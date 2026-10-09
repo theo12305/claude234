@@ -15,6 +15,7 @@ from .properties import SectionInput
 
 
 def default_inputs() -> dict[str, SectionInput]:
+    """Each section with its first variant and default values."""
     return {s.key: SectionInput(s.variant().key, s.variant().defaults()) for s in properties.sections()}
 
 
@@ -91,3 +92,43 @@ def size(inputs: dict[str, SectionInput]) -> SizingResult:
     n = borefield.number_of_boreholes
     borefield.calculate_temperatures(length)
     return SizingResult(length, n, length * n, borefield.Rb, borefield, temperature_table(borefield))
+
+
+# ---------------------------------------------------------------- saving and loading
+
+PROJECT_FORMAT = 1
+
+
+def to_json(inputs: dict[str, SectionInput], name: str = "") -> str:
+    import json
+    return json.dumps({
+        "format": PROJECT_FORMAT,
+        "name": name,
+        "sections": {k: {"variant": v.variant, "values": _plain(v.values)} for k, v in inputs.items()},
+    }, indent=2)
+
+
+def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
+    """Read a saved project. Sections, variants or values that no longer exist are dropped and
+    missing ones get their defaults, so files stay loadable when the interface is extended."""
+    import json
+    data = json.loads(text)
+    if data.get("format") != PROJECT_FORMAT:
+        raise ValueError("This file is not a GHEtool Web project.")
+    inputs = default_inputs()
+    for key, saved in data.get("sections", {}).items():
+        try:
+            variant = properties.get(key).variant(saved.get("variant"))
+        except KeyError:
+            continue
+        values = variant.defaults()
+        for p in variant.properties:
+            if p.key in saved.get("values", {}):
+                v = saved["values"][p.key]
+                values[p.key] = tuple(v) if p.kind == "monthly" else v
+        inputs[key] = SectionInput(variant.key, values)
+    return data.get("name", ""), inputs
+
+
+def _plain(values: dict[str, Any]) -> dict[str, Any]:
+    return {k: list(v) if isinstance(v, (list, tuple)) else v for k, v in values.items()}

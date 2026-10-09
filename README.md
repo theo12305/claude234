@@ -22,7 +22,8 @@ Every push to `main` updates the site automatically.
 
 ```
 app.py                     web page (Streamlit); draws every registered section automatically
-ghe_web/model.py           builds a GHEtool Borefield from the inputs and runs sizing (no web code)
+ghe_web/model.py           builds a GHEtool Borefield from the inputs, runs sizing, saves/loads projects (no web code)
+ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
 ghe_web/properties/
   base.py                  Property, Variant, Section: the building blocks
   registry.py              list of all sections
@@ -33,7 +34,7 @@ ghe_web/properties/
   flow.py                  constant flow per borehole
   load.py                  monthly extracted/injected energy and peaks
   limits.py                min/max average fluid temperature
-tests/test_model.py
+tests/
 ```
 
 - **Property**: one input field with label, unit, default, limits and help text.
@@ -47,7 +48,11 @@ tests/test_model.py
 |------------------------------------------|---------|
 | A field to an existing input             | Add a `Property` to the variant and use it in `build`. |
 | A new option, e.g. coaxial pipe          | Add a `Variant` to the section in `pipe.py`. |
+| A drawing for an input                   | Add an entry to `DRAWINGS` in `plots.py` for that section and variant. |
 | A new topic, e.g. costs                  | New module with a `Section`, `register(...)` it, import it in `properties/__init__.py`, then use it in `model.py`. |
+
+Saved projects are JSON files. Values that no longer exist are ignored and new ones get their
+defaults, so old project files keep working after you extend the interface.
 
 The page picks up new properties, variants and sections without changes to `app.py`.
 Units shown to the user (mm, MJ/m³K) are converted to GHEtool's SI units inside `build`.

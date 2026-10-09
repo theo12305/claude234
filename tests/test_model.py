@@ -36,3 +36,23 @@ def test_sizing_returns_monthly_temperatures():
     # sized so the fluid stays within the limits (small tolerance for the sizing iteration)
     assert result.temperatures["Average fluid (peak extraction)"].min() > -0.1
     assert result.temperatures["Average fluid (peak injection)"].max() < 17.1
+
+
+def test_project_round_trip():
+    inputs = model.default_inputs()
+    inputs["pipe"].variant = "double_u"
+    inputs["ground"].values["k_s"] = 2.2
+    name, loaded = model.from_json(model.to_json(inputs, "Office"))
+    assert name == "Office"
+    assert loaded["pipe"].variant == "double_u"
+    assert loaded["ground"].values["k_s"] == 2.2
+    assert model.validate(loaded) == {}
+
+
+def test_old_project_files_stay_loadable():
+    # unknown sections/values are ignored, missing ones get defaults
+    text = '{"format": 1, "sections": {"ground": {"variant": "constant", "values": {"k_s": 1.8, "old": 3}},' \
+           ' "removed_section": {"variant": "x", "values": {}}}}'
+    _, loaded = model.from_json(text)
+    assert loaded["ground"].values["k_s"] == 1.8
+    assert model.validate(loaded) == {}
