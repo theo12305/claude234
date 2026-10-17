@@ -28,6 +28,29 @@ map, and boreholes closer than one borehole diameter are flagged as overlapping.
 GHEtool then calculates the g-function for the real layout and sizes one common length
 for all boreholes. Try it with `examples/irregular_field.zip`.
 
+## Site plan: from a Flurstück to borehole positions
+
+The first tab, **⓪ Site plan**, finds the largest number of boreholes that fit on a parcel and writes them
+as a shapefile:
+
+1. **Parcel**: search an address, the Flurstück number (Gemarkung number, Flur, Zähler, Nenner), click the
+   parcel on the map, draw it, or upload its outline (GeoJSON, KML, zipped shapefile). The parcel is loaded
+   from the state's open cadastre service (INSPIRE or ALKIS WFS). Bayern publishes no open parcel
+   outlines: there the parcel lines of the cadastre map are shown so it can be drawn.
+2. **Distances**: to the parcel border (pre-filled per state from its Leitfaden, editable), to buildings
+   (2 m), between boreholes (6 m), and to areas drawn on the map.
+3. **Buildings**: official building outlines from the state's cadastre plus OpenStreetMap buildings the
+   cadastre lacks, on top of the state's aerial image (DOP). Buildings are not detected automatically from
+   the image: compare with the image, draw missing buildings or other areas to keep free, and untick
+   buildings that are gone.
+4. **Result**: the boreholes (rotated and shifted hexagonal and square grids plus an outside-in fill; the
+   pattern with the most boreholes wins), the BHE shapefile, a GIS project zip (shapefiles, QGIS project with
+   the aerial image, preview map, read-me) and **Use in the sizing**, which sets Borefield to an irregular
+   field with these positions.
+
+The services and border distances of the 16 states are plain data in `ghe_web/siteplan/states.py`.
+Check the distances with the local water authority (Untere Wasserbehörde) before planning.
+
 ## Hourly heating and cooling demand
 
 Under Ground load choose **Hourly building demand** and upload a CSV or Excel file with 8760 rows:
