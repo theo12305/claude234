@@ -313,6 +313,10 @@ def sensitivity(inputs: dict[str, SectionInput]) -> pd.DataFrame:
                 trial["load"].values = _scaled_load(values, change, variant)
             elif key == "T_g":
                 values[key] = values[key] + change
+            elif key == "k_s" and (values.get("layers") or {}).get("use"):
+                values[key] = values[key] * change
+                values["layers"] = {**values["layers"], "rows": tuple(
+                    {**r, "k_s": float(r["k_s"]) * change} for r in values["layers"]["rows"])}
             else:
                 values[key] = values[key] * change
             try:
@@ -323,6 +327,18 @@ def sensitivity(inputs: dict[str, SectionInput]) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     df["Spread"] = (df["High"] - df["Low"]).abs()
     return df.sort_values("Spread", ascending=False).reset_index(drop=True)
+
+
+def uniform_ground_length(result: model.SizingResult, inputs: dict[str, SectionInput]) -> tuple[float, float]:
+    """Sizes the design again with one conductivity and heat capacity, the layer average over the sized
+    borehole. Returns (length, conductivity used)."""
+    from .strata.predict import effective
+    trial = copy.deepcopy(inputs)
+    values = trial["ground"].values
+    k, c = effective(list(values["layers"]["rows"]), result.borehole_length, inputs["borefield"].values["D"])
+    values.update(k_s=round(float(k), 3), volumetric_heat_capacity=round(float(c), 3),
+                  layers={**values["layers"], "use": False})
+    return model.size(trial).borehole_length, float(k)
 
 
 # ---------------------------------------------------------------- optimisation

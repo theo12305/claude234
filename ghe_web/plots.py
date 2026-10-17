@@ -112,6 +112,117 @@ def _u_tube_cross_section(values: dict, r_b_mm: float, legs: int) -> plt.Figure:
     return fig
 
 
+def ground_rows(inputs: dict[str, SectionInput]) -> tuple[list[dict], bool]:
+    """The layer table of the ground section, or one uniform layer from the single conductivity.
+    The flag is True when the calculation uses the layers."""
+    from .properties.ground import layered
+    v = inputs["ground"].values
+    rows = list((v.get("layers") or {}).get("rows") or ())
+    if rows:
+        return rows, layered(v)
+    depth = inputs["borefield"].values["H"] + inputs["borefield"].values["D"]
+    return [{"top": 0.0, "bottom": max(depth, 1.0), "rock": "Uniform ground", "k_s": v["k_s"],
+             "C": v["volumetric_heat_capacity"]}], False
+
+
+def borehole_log(rows: list[dict], length: float, buried: float = 0.0, title: str = "",
+                 groundwater: float | None = None) -> plt.Figure:
+    """A borehole log: the layers with rock colours and hatching, the borehole, and the conductivity with depth
+    next to it (dashed: the average over the borehole, which is what a single-value calculation uses)."""
+    from .strata import predict, rocks
+    end = buried + length
+    deepest = max(end, float(rows[-1]["top"]) + 2) * 1.12  # the last layer continues downwards
+    plt.rcParams["hatch.linewidth"] = 0.5
+    fig, (ax, axk) = plt.subplots(1, 2, figsize=(6.2, 6.4), sharey=True, gridspec_kw={"width_ratios": [1.5, 1]})
+    for i, r in enumerate(rows):
+        top = float(r["top"])
+        bottom = float(r["bottom"]) if i < len(rows) - 1 else deepest
+        rock = r.get("rock", "")
+        name = rock + (", moist" if "above groundwater" in (r.get("basis") or "") else "")
+        bottom = min(bottom, deepest)
+        if bottom <= top:
+            continue
+        ax.add_patch(plt.Rectangle((0, top), 1, bottom - top, facecolor=rocks.color(rock), hatch=rocks.hatch(rock),
+                                   edgecolor="#00000055", linewidth=0.5))
+        if bottom - top > deepest * 0.025:
+            label = f"{name}\n{float(r['k_s']):.1f} W/(m·K)" if bottom - top > deepest * 0.06 else name
+            ax.text(1.06, (top + bottom) / 2, label, va="center", fontsize=7.5, clip_on=False)
+        axk.plot([float(r["k_s"])] * 2, [top, bottom], color="#2e86ab", linewidth=2)
+        if i:
+            axk.plot([float(rows[i - 1]["k_s"]), float(r["k_s"])], [top, top], color="#2e86ab", linewidth=1)
+    # the borehole
+    ax.add_patch(plt.Rectangle((0.42, buried), 0.16, length, facecolor="white", edgecolor="black", linewidth=1.2,
+                               zorder=3))
+    ax.plot([0.47, 0.47], [buried, end - 0.5], color=PIPE_DOWN, linewidth=1.4, zorder=4)
+    ax.plot([0.53, 0.53], [buried, end - 0.5], color=PIPE_UP, linewidth=1.4, zorder=4)
+    ax.annotate(f"{length:.0f} m", (0.5, end), xytext=(0, -3), textcoords="offset points", ha="center", va="top",
+                fontsize=8, weight="bold", zorder=5, bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none"))
+    if groundwater is not None and groundwater < deepest:
+        ax.plot([0, 1], [groundwater] * 2, color="#1565c0", linewidth=1.5, zorder=2)
+        ax.text(-0.04, groundwater, "GW ▽", fontsize=7, color="#1565c0", va="center", ha="right")
+    k_avg, _ = predict.effective(rows, length, buried)
+    axk.axvline(k_avg, color="#d1495b", linestyle="--", linewidth=1.2)
+    axk.text(k_avg, deepest * 0.01, f" average {k_avg:.2f}", color="#d1495b", fontsize=7.5, va="top")
+    axk.axhspan(buried, end, color="#f2f2f2", zorder=0)
+    ax.set_xlim(-0.1, 1)
+    ax.set_ylim(deepest, 0)
+    ax.set_xticks([])
+    ax.set_ylabel("Depth below ground [m]")
+    for side in ("top", "right", "bottom"):
+        ax.spines[side].set_visible(False)
+    ks = [float(r["k_s"]) for r in rows]
+    axk.set_xlim(0, max(ks + [k_avg]) * 1.25)
+    axk.set_xlabel("Thermal conductivity [W/(m·K)]")
+    axk.grid(alpha=0.3)
+    ax.set_title(title or "Ground layers", fontsize=10, loc="left")
+    fig.tight_layout()
+    fig.subplots_adjust(wspace=0.75)
+    return fig
+
+
+def ground_log_drawing(inputs: dict[str, SectionInput]) -> plt.Figure:
+    rows, used = ground_rows(inputs)
+    bf = inputs["borefield"].values
+    title = "Ground layers" if used else ("Ground layers (not used: switch on the layered calculation)"
+                                          if rows[0].get("rock") != "Uniform ground" else "Uniform ground")
+    return borehole_log(rows, bf["H"], bf["D"], title)
+
+
+def conductivity_with_length(rows: list[dict], buried: float, lengths, sized: float | None = None) -> alt.Chart:
+    """Average conductivity over the borehole for each borehole length: why a deeper borehole may gain more
+    (or less) per metre."""
+    from .strata import predict
+    df = pd.DataFrame({"Borehole length": list(lengths)})
+    df["Average conductivity"] = [predict.effective(rows, float(h), buried)[0] for h in df["Borehole length"]]
+    line = alt.Chart(df).mark_line(color="#2e86ab").encode(
+        x=alt.X("Borehole length:Q", title="Borehole length [m]"),
+        y=alt.Y("Average conductivity:Q", title="Average conductivity [W/(m·K)]", scale=alt.Scale(zero=False)),
+        tooltip=[alt.Tooltip("Borehole length:Q", format=".0f"), alt.Tooltip("Average conductivity:Q", format=".2f")])
+    if sized is None:
+        return line.properties(height=260)
+    rule = alt.Chart(pd.DataFrame({"x": [sized]})).mark_rule(color="#d1495b", strokeDash=[5, 3]).encode(x="x:Q")
+    return (line + rule).properties(height=260)
+
+
+def layer_share_chart(parts: list[dict]) -> alt.Chart:
+    """Per layer along the borehole: its length and its share of the heat exchange (length × conductivity)."""
+    from .strata import rocks
+    df = pd.DataFrame([{"Layer": f"{float(p['top']):g}–{float(p['bottom_shown']):.4g} m {p['rock']}"
+                        + (" (moist)" if "above groundwater" in (p.get("basis") or "") else ""), "Rock": p["rock"],
+                        "Share": p["share"], "Length": p["length"], "Conductivity": float(p["k_s"]),
+                        "order": i} for i, p in enumerate(parts)])
+    names = list(dict.fromkeys(df["Rock"]))
+    return alt.Chart(df).mark_bar().encode(
+        y=alt.Y("Layer:N", sort=alt.EncodingSortField("order"), title=None),
+        x=alt.X("Share:Q", axis=alt.Axis(format="%"), title="Share of the heat exchange"),
+        color=alt.Color("Rock:N", scale=alt.Scale(domain=names, range=[rocks.color(n) for n in names]),
+                        legend=None),
+        stroke=alt.value("#444"), strokeWidth=alt.value(0.5),
+        tooltip=["Layer", alt.Tooltip("Length:Q", format=".1f", title="Length in layer [m]"),
+                 alt.Tooltip("Conductivity:Q", format=".2f"), alt.Tooltip("Share:Q", format=".0%")],
+    ).properties(height=max(120, 34 * len(df)))
+
+
 def load_profile(values: dict) -> alt.Chart:
     """Monthly extracted and injected energy as bars."""
     data = pd.DataFrame({
@@ -223,6 +334,9 @@ def heat_pump_yearly_chart(table: pd.DataFrame, show_spf: bool) -> alt.Chart | t
 # Which drawing belongs to which input. Each function gets all inputs, so it can
 # combine sections (the borehole drawing needs the radius from "borefield").
 DRAWINGS: dict[tuple[str, str], tuple[str, Callable[[dict[str, SectionInput]], object]]] = {
+    ("ground", "constant"): ("Ground layers", ground_log_drawing),
+    ("ground", "flux"): ("Ground layers", ground_log_drawing),
+    ("ground", "gradient"): ("Ground layers", ground_log_drawing),
     ("borefield", "rectangular"): ("Borefield layout", lambda i: rectangular_layout(i["borefield"].values)),
     ("borefield", "custom"): ("Borefield layout", lambda i: custom_layout(i["borefield"].values)),
     ("pipe", "single_u"): ("Borehole cross-section",

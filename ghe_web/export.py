@@ -39,6 +39,11 @@ def inputs_table(inputs: dict[str, SectionInput]) -> pd.DataFrame:
         for p in variant.properties:
             if p.kind in ("monthly", "points", "hourly"):
                 continue
+            if p.kind == "layers":
+                layers = chosen.values.get(p.key) or {}
+                rows.append((section.label, p.label, f"{len(layers.get('rows') or ())} layers, "
+                             + ("used in the calculation" if layers.get("use") else "not used"), ""))
+                continue
             rows.append((section.label, p.label, chosen.values.get(p.key), p.unit))
     return pd.DataFrame(rows, columns=["Section", "Input", "Value", "Unit"])
 
@@ -58,12 +63,21 @@ def _table_inputs(inputs: dict[str, SectionInput]) -> dict[str, pd.DataFrame]:
                 sheets["Input borehole positions"] = pd.DataFrame(
                     list(chosen.values[p.key]), columns=["x [m]", "y [m]"],
                     index=pd.RangeIndex(1, len(chosen.values[p.key]) + 1, name="Borehole"))
+            elif p.kind == "layers" and (chosen.values[p.key] or {}).get("rows"):
+                sheets["Input ground layers"] = layer_table(chosen.values[p.key]["rows"])
             elif p.kind == "hourly":
                 prof = chosen.values[p.key]
                 sheets["Input hourly demand"] = pd.DataFrame(
                     {"Heating [kW]": prof["heating"], "Cooling [kW]": prof["cooling"]},
                     index=pd.RangeIndex(1, len(prof["heating"]) + 1, name="Hour"))
     return sheets
+
+
+def layer_table(rows) -> pd.DataFrame:
+    return pd.DataFrame([{"From [m]": r["top"], "To [m]": r["bottom"], "Rock": r.get("rock", ""),
+                          "Conductivity [W/(m·K)]": r["k_s"], "Heat capacity [MJ/(m³·K)]": r["C"],
+                          "Confidence": r.get("confidence"), "Basis": r.get("basis", "")} for r in rows],
+                        index=pd.RangeIndex(1, len(rows) + 1, name="Layer"))
 
 
 def monthly_temperatures(result: model.SizingResult) -> pd.DataFrame:
