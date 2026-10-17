@@ -36,6 +36,26 @@ optional; `;` or `,` separators and decimal commas work). The SCOP and SEER turn
 into ground load. With **Size with hourly resolution** on, GHEtool sizes on every hour (L4), and the
 results show hourly fluid temperatures. Try it with `examples/hourly_demand_example.csv`.
 
+## Results and analysis
+
+After **Size borefield** (or **Check temperatures** when Calculation is set to *Check a given length*):
+
+- **Key results**: lowest/highest fluid temperature and when, which limit decides the size, ground
+  energy and imbalance, W/m and kWh/m, borehole resistance, Reynolds number, supply temperatures to
+  the field, pressure drop and pump power, investment. Warnings for laminar flow and freezing risk.
+- **Charts**: temperatures over time, last year with supply/return, yearly min/max, monthly energy
+  balance, g-function; with hourly loads also an hourly band and a day × hour heat map.
+- **PDF report** with inputs, drawings, key results and the main charts.
+- **Further analysis**: sensitivity check (tornado chart), compare kept variants, layout optimisation
+  for a plot (GHEtool + optuna, about 5 s per trial), hybrid share for hourly loads.
+
+## Features taken from EED
+
+Rock type, grout, pipe and drilling diameter databases (drop-downs that fill in typical values),
+yearly building demand split over months with a profile and DHW, peak durations, coaxial pipes,
+a measured (constant) borehole resistance, ground temperature from a geothermal gradient, and
+checking a given length instead of sizing. Typical values are in `ghe_web/catalog.py`.
+
 ## Structure
 
 ```
@@ -44,22 +64,27 @@ ghe_web/model.py           builds a GHEtool Borefield from the inputs, runs sizi
 ghe_web/hourly.py          reads hourly demand files (CSV/Excel) and makes the example profile
 ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip or .shp/.shx/.dbf/.prj)
 ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
+ghe_web/analysis.py        key results, hydraulics, costs, sensitivity, layout optimisation, hybrid share
+ghe_web/report.py          PDF report
+ghe_web/catalog.py         typical values for rock, grout, pipes, drilling diameters, fluids, load profiles
 ghe_web/properties/
   base.py                  Property, Variant, Section: the building blocks
   registry.py              list of all sections
-  ground.py                ground: constant temperature, or with geothermal heat flux
+  ground.py                ground: constant temperature, geothermal heat flux, or gradient
   borefield.py             borefield layout: rectangular, or irregular from a shapefile
-  pipe.py                  borehole heat exchanger: single U, double U
+  pipe.py                  borehole heat exchanger: single U, double U, coaxial, measured Rb
   fluid.py                 water / antifreeze mixture
   flow.py                  constant flow per borehole
-  load.py                  monthly ground load, or hourly building demand with SCOP/SEER
+  load.py                  monthly ground load, yearly building demand (EED style), or hourly demand
+  calculation.py           size or check a given length; cost inputs
   limits.py                min/max average fluid temperature
 tests/
 ```
 
 - **Property**: one input field with label, unit, default, limits and help text.
 - **Variant**: one way to describe a topic (e.g. "Single U-tube") plus a `build` function
-  that turns its values into a GHEtool object. Optional `checks` validate several fields together.
+  that turns its values into a GHEtool object. Optional `checks` validate several fields together,
+  `warnings` flag unusual but allowed values, and `presets` add drop-downs with typical values.
 - **Section**: a topic on the page with one or more variants; the user picks the variant.
 
 ## How to extend
@@ -69,7 +94,8 @@ tests/
 | A field to an existing input             | Add a `Property` to the variant and use it in `build`. |
 | A new option, e.g. coaxial pipe          | Add a `Variant` to the section in `pipe.py`. |
 | A drawing for an input                   | Add an entry to `DRAWINGS` in `plots.py` for that section and variant. |
-| A new topic, e.g. costs                  | New module with a `Section`, `register(...)` it, import it in `properties/__init__.py`, then use it in `model.py`. |
+| Typical values for a drop-down           | Add them to `catalog.py`; they appear in the matching preset. |
+| A new topic                              | New module with a `Section`, `register(...)` it, import it in `properties/__init__.py`, then use it in `model.py`. |
 
 Saved projects are JSON files. Values that no longer exist are ignored and new ones get their
 defaults, so old project files keep working after you extend the interface.

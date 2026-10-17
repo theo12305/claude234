@@ -30,6 +30,8 @@ class Property:
     step: float | None = None
     options: tuple = ()
     help: str = ""
+    # True for loads that should grow and shrink with the building demand (used by the sensitivity check).
+    scales_with_load: bool = False
 
     def validate(self, value: Any) -> list[str]:
         """Return a list of human readable problems with ``value`` (empty if fine)."""
@@ -64,6 +66,14 @@ class Property:
 
 
 @dataclass(frozen=True)
+class PresetGroup:
+    """A drop-down of named value sets, e.g. {"Granite": {"k_s": 3.4, ...}}. Picking one fills those fields."""
+    label: str
+    options: dict[str, dict[str, Any]]
+    help: str = ""
+
+
+@dataclass(frozen=True)
 class Variant:
     key: str
     label: str
@@ -73,9 +83,16 @@ class Variant:
     help: str = ""
     # Checks that involve several properties; each returns an error message or None.
     checks: tuple[Callable[[dict[str, Any]], str | None], ...] = ()
+    # Like checks, but only a warning: the calculation still runs.
+    warnings: tuple[Callable[[dict[str, Any]], str | None], ...] = ()
+    # Ready-made values the user can pick from, e.g. rock types or pipe sizes.
+    presets: tuple["PresetGroup", ...] = ()
 
     def defaults(self) -> dict[str, Any]:
         return {p.key: p.default for p in self.properties}
+
+    def check_warnings(self, values: dict[str, Any]) -> list[str]:
+        return [msg for check in self.warnings if (msg := check(values))]
 
     def validate(self, values: dict[str, Any]) -> list[str]:
         errors = []

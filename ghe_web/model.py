@@ -12,11 +12,27 @@ from GHEtool import Borefield
 
 from . import properties
 from .properties import SectionInput
+from .properties.pipe import ConstantRb
 
 
 def default_inputs() -> dict[str, SectionInput]:
     """Each section with its first variant and default values."""
     return {s.key: SectionInput(s.variant().key, s.variant().defaults()) for s in properties.sections()}
+
+
+def warnings(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
+    """Soft warnings per section key: unusual but allowed inputs."""
+    out = {}
+    for section in properties.sections():
+        chosen = inputs.get(section.key)
+        if chosen is None:
+            continue
+        variant = section.variant(chosen.variant)
+        if not variant.validate(chosen.values):
+            msgs = variant.check_warnings(chosen.values)
+            if msgs:
+                out[section.key] = msgs
+    return out
 
 
 def validate(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
@@ -43,13 +59,19 @@ def build_borefield(inputs: dict[str, SectionInput]) -> Borefield:
     if errors:
         raise ValueError("; ".join(msg for msgs in errors.values() for msg in msgs))
 
-    borefield = Borefield(
-        ground_data=_build(inputs, "ground"),
-        pipe_data=_build(inputs, "pipe"),
-        fluid_data=_build(inputs, "fluid"),
-        flow_data=_build(inputs, "flow"),
-        load=_build(inputs, "load"),
-    )
+    pipe = _build(inputs, "pipe")
+    if isinstance(pipe, ConstantRb):
+        borefield = Borefield(ground_data=_build(inputs, "ground"), load=_build(inputs, "load"))
+        borefield.set_Rb(pipe.Rb)
+        borefield.calculation_setup(use_constant_Rb=True)
+    else:
+        borefield = Borefield(
+            ground_data=_build(inputs, "ground"),
+            pipe_data=pipe,
+            fluid_data=_build(inputs, "fluid"),
+            flow_data=_build(inputs, "flow"),
+            load=_build(inputs, "load"),
+        )
     method, kwargs = _build(inputs, "borefield")
     getattr(borefield, method)(**kwargs)
 
@@ -73,19 +95,36 @@ class SizingResult:
     borefield: Borefield
     temperatures: pd.DataFrame  # monthly fluid and borehole wall temperatures, index = years
     hourly_temperatures: pd.DataFrame | None = None  # only for hourly loads, index = hour of the simulation
-    sizing_method: str = "monthly"
+    sizing_method: str = "monthly"  # "monthly", "hourly", or "check" when the length was given
+
+
+def _optional(results, attr: str):
+    """A result array that GHEtool may not have (it raises instead of returning an empty array)."""
+    try:
+        return getattr(results, attr)
+    except (AttributeError, ValueError):
+        return []
 
 
 def temperature_table(borefield: Borefield) -> pd.DataFrame:
     """Monthly temperatures of the last calculation, one row per month, indexed by time in years."""
     r = borefield.results
     n = len(r.Tb)
-    return pd.DataFrame({
+    columns = {
         "Borehole wall": r.Tb,
         "Average fluid (base load)": r.baseload_temperature,
         "Average fluid (peak extraction)": r.peak_extraction,
         "Average fluid (peak injection)": r.peak_injection,
-    }, index=pd.Index([(i + 1) / 12 for i in range(n)], name="Years"))
+    }
+    # supply and return temperatures exist when GHEtool knows the pipe and flow (not with a measured Rb)
+    for label, attr in (("Into borefield (peak extraction)", "peak_extraction_inlet"),
+                        ("Out of borefield (peak extraction)", "peak_extraction_outlet"),
+                        ("Into borefield (peak injection)", "peak_injection_inlet"),
+                        ("Out of borefield (peak injection)", "peak_injection_outlet")):
+        values = _optional(r, attr)
+        if len(values) == n:
+            columns[label] = values
+    return pd.DataFrame(columns, index=pd.Index([(i + 1) / 12 for i in range(n)], name="Years"))
 
 
 def hourly_temperature_table(borefield: Borefield) -> pd.DataFrame:
@@ -100,7 +139,11 @@ def size(inputs: dict[str, SectionInput]) -> SizingResult:
     load_values = inputs["load"].values
     is_hourly = getattr(borefield.load, "_hourly", False)
     hourly_sizing = is_hourly and load_values.get("hourly_sizing", False)
-    length = borefield.size(L4_sizing=True) if hourly_sizing else borefield.size()
+    check_only = inputs.get("calculation") is not None and inputs["calculation"].variant == "check"
+    if check_only:
+        length = borefield.H
+    else:
+        length = borefield.size(L4_sizing=True) if hourly_sizing else borefield.size()
     n = borefield.number_of_boreholes
 
     hourly_temps = None
@@ -109,7 +152,7 @@ def size(inputs: dict[str, SectionInput]) -> SizingResult:
         hourly_temps = hourly_temperature_table(borefield)
     borefield.calculate_temperatures(length)
     return SizingResult(length, n, length * n, borefield.Rb, borefield, temperature_table(borefield),
-                        hourly_temps, "hourly" if hourly_sizing else "monthly")
+                        hourly_temps, "check" if check_only else "hourly" if hourly_sizing else "monthly")
 
 
 # ---------------------------------------------------------------- saving and loading

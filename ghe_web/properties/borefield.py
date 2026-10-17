@@ -2,8 +2,9 @@ import math
 
 import pygfunction as gt
 
+from ..catalog import BOREHOLES
 from ..geometry import closest_pair
-from .base import Property, Section, Variant
+from .base import PresetGroup, Property, Section, Variant
 from .registry import register
 
 
@@ -25,6 +26,17 @@ def _no_overlap(v):
     pair = closest_pair(v["points"])
     if pair and pair[0] < 2 * v["r_b_mm"] / 1000:
         return f"Boreholes {pair[1]} and {pair[2]} overlap ({pair[0]:.2f} m apart)."
+
+
+def _rect_spacing_warning(v):
+    if min(v["B_1"], v["B_2"]) < 4.5 and v["N_1"] * v["N_2"] > 1:
+        return "Spacing below 4.5 m makes boreholes influence each other strongly; 5 to 8 m is common."
+
+
+def _custom_spacing_warning(v):
+    pair = closest_pair(v["points"])
+    if pair and 2 * v["r_b_mm"] / 1000 <= pair[0] < 4.5:
+        return f"Boreholes {pair[1]} and {pair[2]} are only {pair[0]:.1f} m apart; 5 to 8 m is common."
 
 
 def _example_field():
@@ -57,6 +69,8 @@ register(Section(
                 Property("B_1", "Spacing in x direction", 6.0, "m", min=1.0, max=30.0, step=0.5),
                 Property("B_2", "Spacing in y direction", 6.0, "m", min=1.0, max=30.0, step=0.5),
             ) + COMMON,
+            presets=(PresetGroup("Drilling diameter", BOREHOLES),),
+            warnings=(_rect_spacing_warning,),
             build=_rectangular,
         ),
         Variant(
@@ -67,6 +81,8 @@ register(Section(
                 Property("points", "Borehole positions", _example_field(), "m", kind="points"),
             ) + COMMON,
             checks=(_no_overlap,),
+            presets=(PresetGroup("Drilling diameter", BOREHOLES),),
+            warnings=(_custom_spacing_warning,),
             build=_custom,
         ),
     ),
