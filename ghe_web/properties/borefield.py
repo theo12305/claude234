@@ -57,6 +57,7 @@ COMMON = (
 
 register(Section(
     key="borefield",
+    group="Site",
     label="Borefield",
     order=20,
     variants=(

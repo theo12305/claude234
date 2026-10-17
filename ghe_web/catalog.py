@@ -74,3 +74,17 @@ MONTHLY_PROFILES = {
     "Cooling (office, GHEtool example)": (0.025, 0.05, 0.05, 0.05, 0.075, 0.1, 0.2, 0.2, 0.1, 0.075, 0.05, 0.025),
     "Constant": (1 / 12,) * 12,
 }
+
+# Heat pump COP at average fluid temperatures of -5, 0, 5, 10 and 15 °C (brine/water units, typical
+# EN 14511 data sheet values at the given supply temperature).
+HEATING_CURVES = {
+    "Floor heating (35 °C)": (3.9, 4.5, 5.0, 5.6, 6.2),
+    "Low-temperature radiators (45 °C)": (3.1, 3.5, 3.9, 4.3, 4.7),
+    "Radiators (55 °C)": (2.5, 2.8, 3.1, 3.4, 3.7),
+}
+
+# EER at average fluid temperatures of 10, 15, 20, 25 and 30 °C.
+COOLING_CURVES = {
+    "Passive cooling (pumps only)": (20.0, 20.0, 20.0, 20.0, 20.0),
+    "Active cooling (heat pump as chiller)": (7.5, 6.5, 5.5, 4.6, 3.8),
+}

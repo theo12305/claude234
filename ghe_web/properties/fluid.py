@@ -17,6 +17,7 @@ def _build(v):
 
 register(Section(
     key="fluid",
+    group="Borehole",
     label="Fluid",
     order=40,
     variants=(

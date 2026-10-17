@@ -7,6 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from GHEtool import Borefield
 
@@ -54,6 +55,33 @@ def _build(inputs: dict[str, SectionInput], key: str) -> Any:
     return properties.get(key).variant(chosen.variant).build(chosen.values)
 
 
+def uses_building_load(inputs: dict[str, SectionInput]) -> bool:
+    """True when the load is building demand, so a heat pump efficiency applies."""
+    return inputs["load"].variant in ("annual_building", "hourly_building")
+
+
+def temperature_dependent_cop(inputs: dict[str, SectionInput]) -> bool:
+    return "heat_pump" in inputs and inputs["heat_pump"].variant == "curve" and uses_building_load(inputs)
+
+
+def cross_warnings(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
+    """Warnings that need more than one section."""
+    out = {}
+    if "heat_pump" in inputs and inputs["heat_pump"].variant == "curve" and not uses_building_load(inputs):
+        out["heat_pump"] = ["The ground load is entered directly (monthly energy), so there is no heat pump to "
+                            "apply this to. Choose yearly or hourly building demand in Ground load to use it."]
+    return out
+
+
+def _load(inputs: dict[str, SectionInput]):
+    load = _build(inputs, "load")
+    if temperature_dependent_cop(inputs):
+        efficiency = _build(inputs, "heat_pump")
+        load.cop = efficiency["cop"]
+        load.eer = efficiency["eer"]
+    return load
+
+
 def build_borefield(inputs: dict[str, SectionInput]) -> Borefield:
     errors = validate(inputs)
     if errors:
@@ -61,7 +89,7 @@ def build_borefield(inputs: dict[str, SectionInput]) -> Borefield:
 
     pipe = _build(inputs, "pipe")
     if isinstance(pipe, ConstantRb):
-        borefield = Borefield(ground_data=_build(inputs, "ground"), load=_build(inputs, "load"))
+        borefield = Borefield(ground_data=_build(inputs, "ground"), load=_load(inputs))
         borefield.set_Rb(pipe.Rb)
         borefield.calculation_setup(use_constant_Rb=True)
     else:
@@ -70,7 +98,7 @@ def build_borefield(inputs: dict[str, SectionInput]) -> Borefield:
             pipe_data=pipe,
             fluid_data=_build(inputs, "fluid"),
             flow_data=_build(inputs, "flow"),
-            load=_build(inputs, "load"),
+            load=_load(inputs),
         )
     method, kwargs = _build(inputs, "borefield")
     getattr(borefield, method)(**kwargs)
@@ -96,6 +124,7 @@ class SizingResult:
     temperatures: pd.DataFrame  # monthly fluid and borehole wall temperatures, index = years
     hourly_temperatures: pd.DataFrame | None = None  # only for hourly loads, index = hour of the simulation
     sizing_method: str = "monthly"  # "monthly", "hourly", or "check" when the length was given
+    heat_pump: pd.DataFrame | None = None  # per year: electricity and seasonal performance (building loads only)
 
 
 def _optional(results, attr: str):
@@ -146,13 +175,45 @@ def size(inputs: dict[str, SectionInput]) -> SizingResult:
         length = borefield.size(L4_sizing=True) if hourly_sizing else borefield.size()
     n = borefield.number_of_boreholes
 
-    hourly_temps = None
+    hourly_temps = heat_pump = None
     if is_hourly:
         borefield.calculate_temperatures(length, hourly=True)
         hourly_temps = hourly_temperature_table(borefield)
+        if hourly_sizing:  # electricity from the same (hourly) temperatures the sizing used
+            heat_pump = heat_pump_table(borefield.load)
     borefield.calculate_temperatures(length)
+    if heat_pump is None:
+        heat_pump = heat_pump_table(borefield.load)
     return SizingResult(length, n, length * n, borefield.Rb, borefield, temperature_table(borefield),
-                        hourly_temps, "check" if check_only else "hourly" if hourly_sizing else "monthly")
+                        hourly_temps, "check" if check_only else "hourly" if hourly_sizing else "monthly", heat_pump)
+
+
+def heat_pump_table(load) -> pd.DataFrame | None:
+    """Electricity use and seasonal performance per simulated year, for building loads. With a temperature-
+    dependent COP these change over the years as the ground temperature changes."""
+    if not hasattr(load, "yearly_electricity_consumption_heating"):
+        return None
+    years = load.simulation_period
+
+    def yearly(monthly):
+        return np.asarray(monthly, dtype=float).reshape(years, 12).sum(axis=1)
+
+    heating = yearly(load._monthly_baseload_heating_simulation_period_with_limit)
+    cooling = yearly(load._monthly_baseload_cooling_simulation_period_with_limit)
+    dhw = yearly(load._monthly_baseload_dhw_simulation_period_with_limit)
+    e_heat = np.asarray(load.yearly_electricity_consumption_heating, dtype=float)
+    e_cool = np.asarray(load.yearly_electricity_consumption_cooling, dtype=float)
+    e_dhw = np.asarray(load.yearly_electricity_consumption_dhw, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return pd.DataFrame({
+            "Year": np.arange(1, years + 1),
+            "Heating demand [MWh]": heating / 1000, "Cooling demand [MWh]": cooling / 1000,
+            "Hot water demand [MWh]": dhw / 1000,
+            "Electricity heating [MWh]": e_heat / 1000, "Electricity cooling [MWh]": e_cool / 1000,
+            "Electricity hot water [MWh]": e_dhw / 1000,
+            "SPF heating": np.where(e_heat > 0, heating / e_heat, np.nan),
+            "SEER": np.where(e_cool > 0, cooling / e_cool, np.nan),
+        })
 
 
 # ---------------------------------------------------------------- saving and loading

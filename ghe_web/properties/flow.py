@@ -5,6 +5,7 @@ from .registry import register
 
 register(Section(
     key="flow",
+    group="Borehole",
     label="Flow rate",
     order=50,
     variants=(

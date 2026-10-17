@@ -5,7 +5,7 @@ No Streamlit code here, so everything can be tested and reused on its own.
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -22,6 +22,13 @@ class KeyResults:
     rows: list[tuple[str, str, str]]  # (label, value, explanation)
     warnings: list[str]
     values: dict[str, float]  # the same numbers, unformatted, for comparisons and reports
+    groups: list[str] = field(default_factory=list)  # heading of each row, same length as rows
+
+    def by_group(self) -> dict[str, list[tuple[str, str, str]]]:
+        out: dict[str, list[tuple[str, str, str]]] = {}
+        for group, row in zip(self.groups, self.rows):
+            out.setdefault(group, []).append(row)
+        return out
 
 
 def _when(index: int, per_year: int) -> str:
@@ -34,102 +41,160 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
     bf = result.borefield
     load = bf.load
     limits = inputs["limits"].values
-    rows, warns, vals = [], [], {}
+    rows, groups, warns, vals = [], [], [], {}
 
+    def add(group: str, label: str, value: str, note: str = "") -> None:
+        groups.append(group)
+        rows.append((label, value, note))
+
+    temps = "Temperatures"
     if result.hourly_temperatures is not None:
         tf = result.hourly_temperatures["Average fluid"].to_numpy()
+        tf_min_series = tf_max_series = tf
         per_year = 8760
     else:
-        temps = result.temperatures
-        tf_min_series = temps["Average fluid (peak extraction)"].to_numpy()
-        tf_max_series = temps["Average fluid (peak injection)"].to_numpy()
+        tf_min_series = result.temperatures["Average fluid (peak extraction)"].to_numpy()
+        tf_max_series = result.temperatures["Average fluid (peak injection)"].to_numpy()
         per_year = 12
-    t_min = float(tf.min() if per_year == 8760 else tf_min_series.min())
-    t_max = float(tf.max() if per_year == 8760 else tf_max_series.max())
-    i_min = int(tf.argmin() if per_year == 8760 else tf_min_series.argmin())
-    i_max = int(tf.argmax() if per_year == 8760 else tf_max_series.argmax())
+    t_min, t_max = float(tf_min_series.min()), float(tf_max_series.max())
+    i_min, i_max = int(tf_min_series.argmin()), int(tf_max_series.argmax())
     vals.update(t_min=t_min, t_max=t_max)
-    rows.append(("Lowest average fluid temperature", f"{t_min:.2f} °C", f"{_when(i_min, per_year)}; "
-                 f"limit {limits['T_min']} °C"))
-    rows.append(("Highest average fluid temperature", f"{t_max:.2f} °C", f"{_when(i_max, per_year)}; "
-                 f"limit {limits['T_max']} °C"))
+    add(temps, "Lowest average fluid temperature", f"{t_min:.2f} °C",
+        f"{_when(i_min, per_year)}; limit {limits['T_min']} °C")
+    add(temps, "Highest average fluid temperature", f"{t_max:.2f} °C",
+        f"{_when(i_max, per_year)}; limit {limits['T_max']} °C")
 
     margin_cold = t_min - limits["T_min"]
     margin_warm = limits["T_max"] - t_max
+    vals.update(margin_cold=margin_cold, margin_warm=margin_warm)
     if result.sizing_method == "check":
         ok = margin_cold >= -0.05 and margin_warm >= -0.05
-        rows.append(("Check against the limits", "passes" if ok else "fails",
-                     f"{margin_cold:+.2f} K to the minimum, {margin_warm:+.2f} K to the maximum"))
+        vals["passes"] = float(ok)
+        add(temps, "Check against the limits", "passes" if ok else "fails",
+            f"{margin_cold:+.2f} K to the minimum, {margin_warm:+.2f} K to the maximum")
         if not ok:
             warns.append("The given borehole length does not keep the fluid within the temperature limits.")
+    elif abs(margin_cold - margin_warm) < 0.3:
+        add(temps, "Size decided by", "both limits", "heating and cooling need about the same length")
     else:
         limiting = "heating (minimum temperature)" if margin_cold < margin_warm else "cooling (maximum temperature)"
-        rows.append(("Size decided by", limiting, "the other limit still has "
-                     f"{max(margin_cold, margin_warm):.1f} K margin"))
+        add(temps, "Size decided by", limiting,
+            f"the other limit still has {max(margin_cold, margin_warm):.1f} K margin")
 
+    extremes = yearly_extremes(result)
+    if len(extremes) > 1:
+        drift = float(extremes["Lowest"].iloc[-1] - extremes["Lowest"].iloc[0])
+        vals["drift_k"] = drift
+        add(temps, "Long-term drift", f"{drift:+.1f} K",
+            f"change of the yearly lowest temperature from year 1 to year {len(extremes)}; "
+            "a large drift means the ground is out of balance")
+
+    res = bf.results
+    if not bf.borehole.use_constant_Rb and len(model._optional(res, "peak_extraction_inlet")):
+        t_in_min = float(np.min(res.peak_extraction_inlet))
+        t_in_max = float(np.max(res.peak_injection_inlet))
+        vals.update(t_inlet_min=t_in_min, t_inlet_max=t_in_max)
+        add(temps, "Coldest fluid into the borefield", f"{t_in_min:.2f} °C",
+            "supply from the heat pump at peak heating")
+        add(temps, "Warmest fluid into the borefield", f"{t_in_max:.2f} °C", "at peak cooling")
+        freezing = getattr(bf.borehole.fluid_data, "freezing_point", None)
+        if isinstance(freezing, (int, float)) and t_in_min < freezing + 3:
+            warns.append(f"The coldest fluid ({t_in_min:.1f} °C) is close to the freezing point of the fluid "
+                         f"({freezing:.1f} °C). Use more antifreeze or a higher minimum temperature.")
+
+    energy = "Ground energy"
     extraction = float(np.sum(load.monthly_baseload_extraction)) / 1000
     injection = float(np.sum(load.monthly_baseload_injection)) / 1000
     imbalance = injection - extraction
     vals.update(extraction_mwh=extraction, injection_mwh=injection, imbalance_mwh=imbalance)
-    rows.append(("Ground energy per year", f"{extraction:,.0f} MWh out, {injection:,.0f} MWh in",
-                 "after heat pump efficiency"))
-    rows.append(("Yearly imbalance", f"{imbalance:+,.0f} MWh",
-                 "positive: the ground warms up over the years; negative: it cools down"))
+    add(energy, "Ground energy per year", f"{extraction:,.0f} MWh out, {injection:,.0f} MWh in",
+        "after heat pump efficiency")
+    add(energy, "Yearly imbalance", f"{imbalance:+,.0f} MWh",
+        "positive: the ground warms up over the years; negative: it cools down")
 
     total = result.total_length
     peak_ext = float(load.max_peak_extraction)
     peak_inj = float(load.max_peak_injection)
     vals.update(w_per_m_extraction=peak_ext * 1000 / total, w_per_m_injection=peak_inj * 1000 / total,
                 kwh_per_m=extraction * 1000 / total)
-    rows.append(("Specific extraction", f"{peak_ext * 1000 / total:.1f} W/m peak, {extraction * 1e6 / total / 1000:.0f} "
-                 "kWh/m per year", "VDI 4640 rule of thumb: 30 to 60 W/m"))
-    rows.append(("Specific injection", f"{peak_inj * 1000 / total:.1f} W/m peak", ""))
+    add(energy, "Specific extraction", f"{peak_ext * 1000 / total:.1f} W/m peak, "
+        f"{extraction * 1000 / total:.0f} kWh/m per year", "VDI 4640 rule of thumb: 30 to 60 W/m")
+    add(energy, "Specific injection", f"{peak_inj * 1000 / total:.1f} W/m peak")
+    if peak_ext > 0:
+        flh = extraction * 1000 / peak_ext
+        vals["full_load_hours"] = flh
+        add(energy, "Full-load hours, heating", f"{flh:,.0f} h per year",
+            "VDI 4640 W/m values assume 1800 h (heating only) or 2400 h (with hot water)")
 
-    rows.append(("Borehole thermal resistance", f"{result.borehole_resistance:.3f} m·K/W",
-                 "measured value" if bf.borehole.use_constant_Rb else "calculated from pipe, grout and flow"))
+    hyd_group = "Borehole and hydraulics"
+    add(hyd_group, "Borehole thermal resistance", f"{result.borehole_resistance:.3f} m·K/W",
+        "measured value" if bf.borehole.use_constant_Rb else "calculated from pipe, grout and flow")
     vals["Rb"] = result.borehole_resistance
-
     if not bf.borehole.use_constant_Rb:
-        re = float(bf.Re)
+        re = float(bf.Re)  # GHEtool evaluates it at the lowest fluid temperature, the worst case
         vals["Re"] = re
         regime = "laminar" if re < LAMINAR_RE else "transitional" if re < 4000 else "turbulent"
-        rows.append(("Reynolds number", f"{re:,.0f} ({regime})", "turbulent flow (above ~4000) transfers heat better"))
+        add(hyd_group, "Reynolds number", f"{re:,.0f} ({regime})",
+            "at the coldest fluid; turbulent flow (above ~4000) transfers heat better")
         if re < LAMINAR_RE:
             warns.append(f"The flow is laminar (Re = {re:,.0f}). A higher flow rate, smaller pipes or less antifreeze "
                          "lower the borehole resistance and can shorten the boreholes.")
-        res = bf.results
-        if len(model._optional(res, "peak_extraction_inlet")):
-            t_in_min = float(np.min(res.peak_extraction_inlet))
-            t_out_max = float(np.max(res.peak_injection_inlet))
-            vals.update(t_inlet_min=t_in_min, t_inlet_max=t_out_max)
-            rows.append(("Coldest fluid into the borefield", f"{t_in_min:.2f} °C", "supply from the heat pump at peak "
-                         "heating"))
-            rows.append(("Warmest fluid into the borefield", f"{t_out_max:.2f} °C", "at peak cooling"))
-            freezing = getattr(bf.borehole.fluid_data, "freezing_point", None)
-            if freezing is not None and t_in_min < freezing + 3:
-                warns.append(f"The coldest fluid ({t_in_min:.1f} °C) is close to the freezing point of the fluid "
-                             f"({freezing:.1f} °C). Use more antifreeze or a higher minimum temperature.")
-        hyd = hydraulics(result, inputs)
+        hyd = hydraulics(result, inputs, temperature=t_min)
         if hyd:
             vals.update(hyd)
-            rows.append(("Pressure drop per borehole", f"{hyd['dp_kpa']:.1f} kPa", "probe only, without manifold and "
-                         "header pipes"))
-            rows.append(("Hydraulic pump power", f"{hyd['pump_w']:,.0f} W", "for the whole field at the pressure "
-                         "drop above; divide by the pump efficiency for electrical power"))
+            add(hyd_group, "Pressure drop per borehole", f"{hyd['dp_kpa']:.1f} kPa",
+                "at the coldest fluid (highest viscosity); probe only, without manifold and header pipes")
+            add(hyd_group, "Hydraulic pump power", f"{hyd['pump_w']:,.0f} W",
+                "whole field at the pressure drop above; electrical power is about twice this")
+
+    hp = result.heat_pump
+    if hp is not None:
+        group = "Heat pump"
+        curve = _cop_curve(bf.load)
+        spf = hp["SPF heating"].dropna()
+        if len(spf):
+            vals.update(spf_heating=float(spf.mean()), spf_first=float(spf.iloc[0]), spf_last=float(spf.iloc[-1]))
+            note = (f"year 1: {spf.iloc[0]:.2f}, year {len(spf)}: {spf.iloc[-1]:.2f}; heating demand per kWh of "
+                    "electricity" if curve else "fixed value from the inputs")
+            add(group, "Seasonal performance factor, heating", f"{spf.mean():.2f}", note)
+        seer = hp["SEER"].dropna()
+        if len(seer):
+            vals["seer"] = float(seer.mean())
+            add(group, "Seasonal EER, cooling", f"{seer.mean():.1f}")
+        if curve is not None:
+            cop_cold = float(np.atleast_1d(curve.get_COP(t_min))[0])
+            vals["cop_coldest"] = cop_cold
+            add(group, "COP at the coldest fluid", f"{cop_cold:.2f}", f"at {t_min:.1f} °C average fluid temperature")
+        elec = hp[["Electricity heating [MWh]", "Electricity cooling [MWh]", "Electricity hot water [MWh]"]]
+        total = float(elec.sum(axis=1).mean())
+        vals["electricity_mwh"] = total
+        parts = ", ".join(f"{name.split()[1]} {elec[name].mean():,.1f}" for name in elec if elec[name].mean() > 0)
+        add(group, "Heat pump electricity per year", f"{total:,.1f} MWh", parts + " MWh (average over the years)")
 
     cost = investment(result, inputs)
     if cost is not None:
         vals["cost"] = cost
-        rows.append(("Estimated investment", f"€ {cost:,.0f}", f"€ {cost / total:.0f} per metre drilled"))
-    return KeyResults(rows, warns, vals)
+        add("Cost", "Estimated investment", f"€ {cost:,.0f}", f"€ {cost / total:.0f} per metre drilled")
+    return KeyResults(rows, warns, vals, groups)
 
 
-def hydraulics(result: model.SizingResult, inputs: dict[str, SectionInput]) -> dict[str, float] | None:
-    """Pressure drop in one borehole and the hydraulic power to pump the whole field."""
+def _cop_curve(load):
+    """The load's COP object when it depends on temperature, else None."""
+    from GHEtool.VariableClasses.Efficiency import COP
+    cop = getattr(load, "cop", None)
+    return cop if isinstance(cop, COP) else None
+
+
+def hydraulics(result: model.SizingResult, inputs: dict[str, SectionInput],
+               temperature: float | None = None) -> dict[str, float] | None:
+    """Pressure drop in one borehole and the hydraulic power to pump the whole field.
+
+    Evaluated at the given fluid temperature (default: the mean base-load temperature)."""
     from GHEtool.VariableClasses.PipeData.PressureDrop import PressureDrop
     bf = result.borefield
     try:
-        temperature = float(np.mean(result.temperatures["Average fluid (base load)"]))
+        if temperature is None:
+            temperature = float(np.mean(result.temperatures["Average fluid (base load)"]))
         drop = PressureDrop(bf.borehole.pipe_data, bf.borehole.fluid_data, bf.borehole.flow_data,
                             minor_losses_borehole=0, borehole_length=result.borehole_length,
                             r_in_lateral=0.02, distance_lateral=0, minor_losses_lateral=0,
