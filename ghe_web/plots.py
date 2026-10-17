@@ -168,6 +168,51 @@ def hourly_demand(values: dict) -> tuple[alt.Chart, alt.Chart]:
     return over_year, curve
 
 
+def efficiency_curves(values: dict, operating: tuple[float, float] | None = None) -> tuple[alt.Chart, alt.Chart]:
+    """COP (heating) and EER (cooling) against the average fluid temperature, as two charts so a high passive
+    cooling EER does not flatten the COP curve. Optionally shades the fluid temperatures the design reaches."""
+    from .properties.heat_pump import COP_TEMPS, EER_TEMPS, curves
+    cop, eer = curves(values)
+    charts = []
+    for temps, vals, name, color in ((COP_TEMPS, cop, "COP heating", PIPE_DOWN), (EER_TEMPS, eer, "EER cooling", PIPE_UP)):
+        data = pd.DataFrame({"T": temps, "Value": vals})
+        line = alt.Chart(data).mark_line(point={"color": color}, color=color).encode(
+            x=alt.X("T:Q", title="Average fluid temperature [°C]"),
+            y=alt.Y("Value:Q", title=name, scale=alt.Scale(zero=False, padding=10), axis=alt.Axis(format=".1f")),
+            tooltip=[alt.Tooltip("T:Q", title="°C"), alt.Tooltip("Value:Q", format=".2f", title=name)])
+        title = name
+        if operating is not None:
+            band = alt.Chart(pd.DataFrame({"lo": [operating[0]], "hi": [operating[1]]})).mark_rect(
+                opacity=0.15, color="#555").encode(x="lo:Q", x2="hi:Q")
+            line = band + line
+            title = f"{name} (grey: fluid temperatures of this design, {operating[0]:.1f} to {operating[1]:.1f} °C)"
+        charts.append(line.properties(height=220, title=title))
+    return tuple(charts)
+
+
+def heat_pump_yearly_chart(table: pd.DataFrame, show_spf: bool) -> alt.Chart | tuple:
+    """Electricity per year, and the seasonal performance factor per year when it changes."""
+    cols = {"Electricity heating [MWh]": "Heating", "Electricity cooling [MWh]": "Cooling",
+            "Electricity hot water [MWh]": "Hot water"}
+    data = table[["Year", *cols]].rename(columns=cols).melt("Year", var_name="Use", value_name="MWh")
+    data = data[data["MWh"] > 0]
+    bars = alt.Chart(data).mark_bar().encode(
+        x=alt.X("Year:O", axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("MWh:Q", title="Electricity [MWh/yr]", stack=True),
+        color=alt.Color("Use:N", scale=alt.Scale(domain=list(cols.values()), range=[PIPE_DOWN, PIPE_UP, "#e0a030"]),
+                        legend=alt.Legend(orient="top", title=None)),
+        tooltip=["Year", "Use", alt.Tooltip("MWh:Q", format=",.1f")],
+    ).properties(height=260, title="Heat pump electricity per year")
+    if not show_spf:
+        return bars
+    spf = alt.Chart(table.dropna(subset=["SPF heating"])).mark_line(point={"color": PIPE_DOWN}, color=PIPE_DOWN).encode(
+        x=alt.X("Year:O", axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("SPF heating:Q", title="SPF heating [-]", scale=alt.Scale(zero=False)),
+        tooltip=["Year", alt.Tooltip("SPF heating:Q", format=".2f")],
+    ).properties(height=220, title="Seasonal performance factor per year (falls as the ground cools)")
+    return bars, spf
+
+
 # Which drawing belongs to which input. Each function gets all inputs, so it can
 # combine sections (the borehole drawing needs the radius from "borefield").
 DRAWINGS: dict[tuple[str, str], tuple[str, Callable[[dict[str, SectionInput]], object]]] = {
@@ -182,6 +227,7 @@ DRAWINGS: dict[tuple[str, str], tuple[str, Callable[[dict[str, SectionInput]], o
     ("load", "monthly"): ("Ground load", lambda i: load_profile(i["load"].values)),
     ("load", "annual_building"): ("Monthly demand", lambda i: annual_demand_chart(i["load"].values)),
     ("load", "hourly_building"): ("Hourly demand", lambda i: hourly_demand(i["load"].values)),
+    ("heat_pump", "curve"): ("Heat pump efficiency", lambda i: efficiency_curves(i["heat_pump"].values)),
 }
 
 

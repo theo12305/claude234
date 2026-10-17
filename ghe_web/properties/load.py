@@ -13,10 +13,12 @@ PEAK_EXTRACTION_HOURS = Property("peak_extraction_hours", "Duration of heating p
                                  help="How long the peak load lasts (as in EED). GHEtool's default is 6 h.")
 PEAK_INJECTION_HOURS = Property("peak_injection_hours", "Duration of cooling peak", 6, "h", min=1, max=24, step=1)
 SCOP = Property("scop", "SCOP heating", 4.0, min=1.0, max=10.0, step=0.1,
-                help="Seasonal efficiency of the heat pump in heating. Ground extraction = heating × (1 − 1/SCOP).")
+                help="Seasonal efficiency of the heat pump in heating. Ground extraction = heating × (1 − 1/SCOP). "
+                     "Not used when Heat pump efficiency is set to depend on the fluid temperature.")
 SEER = Property("seer", "SEER cooling", 20.0, min=1.0, max=1000.0, step=1.0,
                 help="Seasonal efficiency in cooling. Use a high value (e.g. 20+) for passive cooling. "
-                     "Ground injection = cooling × (1 + 1/SEER).")
+                     "Ground injection = cooling × (1 + 1/SEER). Not used when Heat pump efficiency depends on the "
+                     "fluid temperature.")
 DHW = Property("dhw_mwh", "Domestic hot water demand", 0.0, "MWh/yr", min=0.0, max=1e5, step=1.0,
                scales_with_load=True, help="Spread evenly over the year.")
 SCOP_DHW = Property("scop_dhw", "SCOP hot water", 3.0, min=1.0, max=10.0, step=0.1)

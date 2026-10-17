@@ -147,11 +147,42 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
             add(hyd_group, "Hydraulic pump power", f"{hyd['pump_w']:,.0f} W",
                 "whole field at the pressure drop above; electrical power is about twice this")
 
+    hp = result.heat_pump
+    if hp is not None:
+        group = "Heat pump"
+        curve = _cop_curve(bf.load)
+        spf = hp["SPF heating"].dropna()
+        if len(spf):
+            vals.update(spf_heating=float(spf.mean()), spf_first=float(spf.iloc[0]), spf_last=float(spf.iloc[-1]))
+            note = (f"year 1: {spf.iloc[0]:.2f}, year {len(spf)}: {spf.iloc[-1]:.2f}; heating demand per kWh of "
+                    "electricity" if curve else "fixed value from the inputs")
+            add(group, "Seasonal performance factor, heating", f"{spf.mean():.2f}", note)
+        seer = hp["SEER"].dropna()
+        if len(seer):
+            vals["seer"] = float(seer.mean())
+            add(group, "Seasonal EER, cooling", f"{seer.mean():.1f}")
+        if curve is not None:
+            cop_cold = float(np.atleast_1d(curve.get_COP(t_min))[0])
+            vals["cop_coldest"] = cop_cold
+            add(group, "COP at the coldest fluid", f"{cop_cold:.2f}", f"at {t_min:.1f} °C average fluid temperature")
+        elec = hp[["Electricity heating [MWh]", "Electricity cooling [MWh]", "Electricity hot water [MWh]"]]
+        total = float(elec.sum(axis=1).mean())
+        vals["electricity_mwh"] = total
+        parts = ", ".join(f"{name.split()[1]} {elec[name].mean():,.1f}" for name in elec if elec[name].mean() > 0)
+        add(group, "Heat pump electricity per year", f"{total:,.1f} MWh", parts + " MWh (average over the years)")
+
     cost = investment(result, inputs)
     if cost is not None:
         vals["cost"] = cost
         add("Cost", "Estimated investment", f"€ {cost:,.0f}", f"€ {cost / total:.0f} per metre drilled")
     return KeyResults(rows, warns, vals, groups)
+
+
+def _cop_curve(load):
+    """The load's COP object when it depends on temperature, else None."""
+    from GHEtool.VariableClasses.Efficiency import COP
+    cop = getattr(load, "cop", None)
+    return cop if isinstance(cop, COP) else None
 
 
 def hydraulics(result: model.SizingResult, inputs: dict[str, SectionInput],

@@ -239,6 +239,7 @@ def section_inputs(section) -> tuple[SectionInput, object]:
         if not problems:
             for msg in variant.check_warnings(values):
                 st.warning(msg, icon=":material/warning:")
+        notes[section.key] = st.empty()  # filled once all sections are read (warnings that need other sections)
         target = drawing_col if side else (st.container() if has_drawing else None)
     return SectionInput(variant.key, values), target
 
@@ -250,6 +251,7 @@ step_names = [s for s in list(STEPS.values()) + [MORE] if s in grouped] + [RESUL
 step_tabs = dict(zip(step_names, st.tabs(step_names, key="step", on_change="rerun")))
 
 inputs: dict[str, SectionInput] = {}
+notes: dict[str, object] = {}
 section_step: dict[str, str] = {}
 pending_drawings = []  # (where, section, variant), drawn once every section is read
 for step, sections in grouped.items():
@@ -263,6 +265,10 @@ for step, sections in grouped.items():
                 pending_drawings.append((target, section.key, inputs[section.key].variant))
 
 errors = model.validate(inputs)
+for section_key, msgs in model.cross_warnings(inputs).items():
+    with notes[section_key].container():
+        for msg in msgs:
+            st.info(msg, icon=":material/info:")
 current_json = model.to_json(inputs)
 for target, section_key, variant_key in pending_drawings:
     if section_key in errors or "borefield" in errors:
@@ -299,7 +305,9 @@ action = "Check temperatures" if mode_check else "Size borefield"
 
 
 def calculate() -> None:
-    with st.spinner("Calculating... hourly sizing can take up to a minute."):
+    slow = model.temperature_dependent_cop(inputs) and inputs["load"].values.get("hourly_sizing")
+    with st.spinner("Calculating... hourly sizing with a temperature-dependent COP takes one to two minutes."
+                    if slow else "Calculating... hourly sizing can take up to a minute."):
         try:
             cached_size(current_json)
         except Exception as exc:  # show GHEtool errors to the user instead of crashing
@@ -417,6 +425,30 @@ def view_hourly(result, limits) -> None:
     else:
         st.altair_chart(plots.heatmap_chart(result.hourly_temperatures), width="stretch")
         st.caption("Each cell is one hour of the last year. Blue is cold, red is warm.")
+
+
+def view_heat_pump(result, key, sized_inputs) -> None:
+    curve = sized_inputs["heat_pump"].variant == "curve"
+    c1, c2, c3 = st.columns(3)
+    if "spf_heating" in key.values:
+        c1.metric("SPF heating", f"{key.values['spf_heating']:.2f}",
+                  f"{key.values['spf_last'] - key.values['spf_first']:+.2f} from year 1 to the last year" if curve
+                  else None, delta_color="off", delta_arrow="off")
+    if "seer" in key.values:
+        c2.metric("Seasonal EER cooling", f"{key.values['seer']:.1f}")
+    c3.metric("Electricity per year", f"{key.values['electricity_mwh']:,.1f} MWh")
+    if curve:
+        lo = float(min(result.temperatures["Average fluid (peak extraction)"].min(), key.values["t_min"]))
+        hi = float(max(result.temperatures["Average fluid (peak injection)"].max(), key.values["t_max"]))
+        for chart in plots.efficiency_curves(sized_inputs["heat_pump"].values, (lo, hi)):
+            st.altair_chart(chart, width="stretch")
+    else:
+        st.info("The heat pump efficiency is fixed (SCOP/SEER). Choose **Depends on the fluid temperature** under "
+                "Heat pump efficiency in step ③ to see how the COP changes as the ground cools.",
+                icon=":material/info:")
+    charts = plots.heat_pump_yearly_chart(result.heat_pump, show_spf=curve)
+    for chart in charts if isinstance(charts, tuple) else (charts,):
+        st.altair_chart(chart, width="stretch")
 
 
 def view_analysis(result, key, sized_json, sized_inputs) -> None:
@@ -604,6 +636,8 @@ with step_tabs[RESULTS]:
         views = ["Overview", "Temperatures", "Energy"]
         if result.hourly_temperatures is not None:
             views.append("Hourly")
+        if result.heat_pump is not None:
+            views.append("Heat pump")
         views += ["Further analysis", "Export"]
         # Only the chosen view is drawn, so large hourly charts are not sent to the browser on every click.
         view = st.segmented_control("View", views, default="Overview", required=True, key="result_view",
@@ -616,6 +650,8 @@ with step_tabs[RESULTS]:
             view_energy(result, key)
         elif view == "Hourly":
             view_hourly(result, limits)
+        elif view == "Heat pump":
+            view_heat_pump(result, key, sized_inputs)
         elif view == "Further analysis":
             view_analysis(result, key, sized_json, sized_inputs)
         else:

@@ -57,6 +57,17 @@ temperature with their margin to the limits, investment). Below that, pick a vie
 Only the chosen view is drawn, and input drawings and sizing results are cached, so the page stays
 quick even with hourly results.
 
+## Heat pump efficiency
+
+Under step ③, **Heat pump efficiency** can be set to *Depends on the fluid temperature*: enter the COP at
+-5, 0, 5, 10 and 15 °C average fluid temperature and the EER at 10 to 30 °C, or pick a heating system
+(floor heating, 45 °C or 55 °C radiators) and a cooling mode (passive or active). GHEtool then iterates
+the sizing with the COP that belongs to each month's (or hour's) temperature, so a colder ground means
+less heat from the ground and more electricity. Results get a **Heat pump** view with the seasonal
+performance factor per year, electricity per year and the COP curve with the temperatures the design
+reaches. This only applies to building demand (yearly or hourly); with hourly sizing it takes one to two
+minutes.
+
 ## Features taken from EED
 
 Rock type, grout, pipe and drilling diameter databases (drop-downs that fill in typical values),
@@ -85,6 +96,7 @@ ghe_web/properties/
   fluid.py                 water / antifreeze mixture
   flow.py                  constant flow per borehole
   load.py                  monthly ground load, yearly building demand (EED style), or hourly demand
+  heat_pump.py             heat pump efficiency: fixed SCOP/SEER or COP/EER curves over fluid temperature
   calculation.py           size or check a given length; cost inputs
   limits.py                min/max average fluid temperature
 tests/

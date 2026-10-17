@@ -87,6 +87,8 @@ def excel_workbook(result: model.SizingResult, inputs: dict[str, SectionInput], 
     energy = analysis.monthly_ground_energy(result).rename(columns={"Extraction": "Extraction [MWh]",
                                                                    "Injection": "Injection [MWh]"})
     sheets["Ground energy"] = (energy, False)
+    if result.heat_pump is not None:
+        sheets["Heat pump"] = (result.heat_pump.round(3), False)
     if result.hourly_temperatures is not None:
         sheets["Hourly temperatures"] = (result.hourly_temperatures.round(3).rename(
             columns=lambda c: f"{c} [°C]"), True)
