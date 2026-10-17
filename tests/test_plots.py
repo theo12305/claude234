@@ -10,10 +10,11 @@ def test_every_input_drawing_renders():
             inputs[section.key].variant = variant.key
             inputs[section.key].values = variant.defaults()
             for _, drawing in plots.input_drawings(inputs):
-                if isinstance(drawing, plt.Figure):
-                    plt.close(drawing)
-                else:
-                    drawing.to_dict()
+                for part in drawing if isinstance(drawing, tuple) else (drawing,):
+                    if isinstance(part, plt.Figure):
+                        plt.close(part)
+                    else:
+                        part.to_dict()
 
 
 def test_result_charts_render():

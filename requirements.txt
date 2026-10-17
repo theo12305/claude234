@@ -4,3 +4,4 @@ altair==6.3.0
 pandas==3.0.6
 matplotlib==3.11.2
 pyshp==3.1.6
+openpyxl==3.1.5

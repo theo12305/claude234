@@ -14,7 +14,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
 # "points": a list of (x, y) borehole positions in metres.
-PropertyKind = Literal["float", "int", "choice", "bool", "monthly", "points"]
+# "hourly": {"heating": [8760 values], "cooling": [8760 values]} in kW.
+PropertyKind = Literal["float", "int", "choice", "bool", "monthly", "points", "hourly"]
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,14 @@ class Property:
     def validate(self, value: Any) -> list[str]:
         """Return a list of human readable problems with ``value`` (empty if fine)."""
         errors = []
+        if self.kind == "hourly":
+            for key in ("heating", "cooling"):
+                series = value.get(key) if isinstance(value, dict) else None
+                if series is None or len(series) != 8760:
+                    errors.append(f"{self.label}: {key} needs 8760 hourly values.")
+                elif min(series) < 0:
+                    errors.append(f"{self.label}: {key} demand cannot be negative.")
+            return errors
         if self.kind == "points":
             if len(value) == 0:
                 errors.append(f"{self.label}: at least one borehole is needed.")

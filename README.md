@@ -28,11 +28,20 @@ map, and boreholes closer than one borehole diameter are flagged as overlapping.
 GHEtool then calculates the g-function for the real layout and sizes one common length
 for all boreholes. Try it with `examples/irregular_field.zip`.
 
+## Hourly heating and cooling demand
+
+Under Ground load choose **Hourly building demand** and upload a CSV or Excel file with 8760 rows:
+heating demand [kW] in the first column and cooling demand [kW] in the second (a header row is
+optional; `;` or `,` separators and decimal commas work). The SCOP and SEER turn building demand
+into ground load. With **Size with hourly resolution** on, GHEtool sizes on every hour (L4), and the
+results show hourly fluid temperatures. Try it with `examples/hourly_demand_example.csv`.
+
 ## Structure
 
 ```
 app.py                     web page (Streamlit); draws every registered section automatically
 ghe_web/model.py           builds a GHEtool Borefield from the inputs, runs sizing, saves/loads projects (no web code)
+ghe_web/hourly.py          reads hourly demand files (CSV/Excel) and makes the example profile
 ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip or .shp/.shx/.dbf/.prj)
 ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
 ghe_web/properties/
@@ -43,7 +52,7 @@ ghe_web/properties/
   pipe.py                  borehole heat exchanger: single U, double U
   fluid.py                 water / antifreeze mixture
   flow.py                  constant flow per borehole
-  load.py                  monthly extracted/injected energy and peaks
+  load.py                  monthly ground load, or hourly building demand with SCOP/SEER
   limits.py                min/max average fluid temperature
 tests/
 ```

@@ -18,6 +18,8 @@ from matplotlib.patches import Circle  # noqa: E402
 from .properties import SectionInput  # noqa: E402
 from .properties.load import MONTHS  # noqa: E402
 
+alt.data_transformers.disable_max_rows()  # hourly charts have more than Altair's default 5000 rows
+
 GROUT = "#c9c4b8"
 GROUND = "#e8e2d0"
 PIPE_DOWN = "#d1495b"  # supply
@@ -98,6 +100,33 @@ def load_profile(values: dict) -> alt.Chart:
     ).properties(height=300, title="Monthly ground load")
 
 
+def hourly_demand(values: dict) -> tuple[alt.Chart, alt.Chart]:
+    """Daily peak demand over the year next to the load duration curve."""
+    prof = values["profile"]
+    hourly = pd.DataFrame({"Heating": prof["heating"], "Cooling": prof["cooling"]})
+    daily = hourly.groupby(hourly.index // 24).max()
+    daily.index = pd.Index(range(1, len(daily) + 1), name="Day")
+    data = daily.reset_index().melt("Day", var_name="Type", value_name="Power")
+    colors = alt.Scale(domain=["Heating", "Cooling"], range=[PIPE_DOWN, PIPE_UP])
+    over_year = alt.Chart(data).mark_line(strokeWidth=1).encode(
+        x=alt.X("Day:Q", title="Day of the year", scale=alt.Scale(domain=[1, 365])),
+        y=alt.Y("Power:Q", title="Daily peak demand [kW]"),
+        color=alt.Color("Type:N", scale=colors, legend=alt.Legend(orient="top", title=None)),
+        tooltip=["Day", "Type", alt.Tooltip("Power:Q", format=".1f", title="kW")],
+    ).properties(height=260, title="Daily peak demand")
+    # Load duration curve: hours sorted from highest to lowest demand (every 10th hour is enough to draw it)
+    duration = pd.concat([
+        pd.DataFrame({"Hours": range(1, len(hourly) + 1), "Power": sorted(hourly[c], reverse=True), "Type": c})
+        .iloc[::10] for c in ("Heating", "Cooling")])
+    curve = alt.Chart(duration).mark_line().encode(
+        x=alt.X("Hours:Q", title="Hours per year", scale=alt.Scale(domain=[0, 8760])),
+        y=alt.Y("Power:Q", title="Demand [kW]"),
+        color=alt.Color("Type:N", scale=colors, legend=alt.Legend(orient="top", title=None)),
+        tooltip=["Type", "Hours", alt.Tooltip("Power:Q", format=".1f", title="kW")],
+    ).properties(height=260, title="Load duration curve")
+    return over_year, curve
+
+
 # Which drawing belongs to which input. Each function gets all inputs, so it can
 # combine sections (the borehole drawing needs the radius from "borefield").
 DRAWINGS: dict[tuple[str, str], tuple[str, Callable[[dict[str, SectionInput]], object]]] = {
@@ -108,11 +137,12 @@ DRAWINGS: dict[tuple[str, str], tuple[str, Callable[[dict[str, SectionInput]], o
     ("pipe", "double_u"): ("Borehole cross-section",
                            lambda i: _u_tube_cross_section(i["pipe"].values, i["borefield"].values["r_b_mm"], 4)),
     ("load", "monthly"): ("Ground load", lambda i: load_profile(i["load"].values)),
+    ("load", "hourly_building"): ("Hourly demand", lambda i: hourly_demand(i["load"].values)),
 }
 
 
 def input_drawings(inputs: dict[str, SectionInput]) -> list[tuple[str, object]]:
-    """All drawings available for the current inputs, as (title, figure or chart)."""
+    """All drawings available for the current inputs, as (title, figure or chart, or a tuple of them)."""
     out = []
     for (section, variant), (title, draw) in DRAWINGS.items():
         if section in inputs and inputs[section].variant == variant:
@@ -150,3 +180,35 @@ def last_year_chart(temps: pd.DataFrame, limits: dict) -> alt.Chart:
     bounds = pd.DataFrame({"Temperature": [limits["T_min"], limits["T_max"]]})
     rules = alt.Chart(bounds).mark_rule(strokeDash=[6, 4], color="gray").encode(y="Temperature:Q")
     return (lines + rules).properties(height=320, title="Last year of the simulation")
+
+
+def hourly_band_chart(hourly: pd.DataFrame, limits: dict) -> alt.Chart:
+    """Daily min-max band of the hourly fluid temperature over the whole simulation."""
+    days = hourly["Average fluid"].groupby((hourly.index - 1) // 24).agg(["min", "max"])
+    days["Years"] = (days.index + 1) / 365
+    band = alt.Chart(days).mark_area(opacity=0.5, color=PIPE_UP).encode(
+        x=alt.X("Years:Q", title="Time [years]"),
+        y=alt.Y("min:Q", title="Average fluid temperature [°C]"),
+        y2="max:Q",
+        tooltip=[alt.Tooltip("Years:Q", format=".2f"), alt.Tooltip("min:Q", format=".2f", title="Daily min °C"),
+                 alt.Tooltip("max:Q", format=".2f", title="Daily max °C")],
+    )
+    bounds = pd.DataFrame({"T": [limits["T_min"], limits["T_max"]]})
+    rules = alt.Chart(bounds).mark_rule(strokeDash=[6, 4], color="gray").encode(y="T:Q")
+    return (band + rules).properties(height=380, title="Hourly fluid temperature (daily range)")
+
+
+def hourly_last_year_chart(hourly: pd.DataFrame, limits: dict) -> alt.Chart:
+    """Every hour of the last simulated year."""
+    last = hourly.tail(8760).reset_index(drop=True)
+    last["Day"] = (last.index + 1) / 24
+    data = last.melt("Day", var_name="Series", value_name="Temperature")
+    lines = alt.Chart(data).mark_line(strokeWidth=0.8).encode(
+        x=alt.X("Day:Q", title="Day of the last year"),
+        y=alt.Y("Temperature:Q", title="Temperature [°C]"),
+        color=alt.Color("Series:N", scale=alt.Scale(range=[PIPE_UP, PIPE_DOWN]),
+                        legend=alt.Legend(orient="bottom", title=None)),
+    )
+    bounds = pd.DataFrame({"Temperature": [limits["T_min"], limits["T_max"]]})
+    rules = alt.Chart(bounds).mark_rule(strokeDash=[6, 4], color="gray").encode(y="Temperature:Q")
+    return (lines + rules).properties(height=380, title="Hourly temperatures in the last year")

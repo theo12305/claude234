@@ -5,7 +5,7 @@ import streamlit as st
 
 import hashlib
 
-from ghe_web import geometry, model, plots, properties
+from ghe_web import geometry, hourly, model, plots, properties
 from ghe_web.properties import Property, SectionInput
 from ghe_web.properties.load import MONTHS
 
@@ -89,8 +89,42 @@ def points_input(prop: Property, value, key: str) -> tuple:
     return tuple((float(x), float(y)) for x, y in edited.dropna().itertuples(index=False))
 
 
+def hourly_input(prop: Property, value, key: str) -> dict:
+    """Upload of an hourly heating/cooling demand file, with a template to download."""
+    up_col, tpl_col = st.columns([3, 1])
+    with up_col:
+        file = st.file_uploader("Hourly demand file: 8760 rows, column 1 heating [kW], column 2 cooling [kW]",
+                                type=["csv", "txt", "xlsx"], key=f"{key}.upload")
+    with tpl_col:
+        template = pd.DataFrame({"heating_kW": value["heating"], "cooling_kW": value["cooling"]})
+        st.download_button("Download template", template.to_csv(index=False, sep=";").encode(),
+                           "hourly_demand_template.csv", "text/csv",
+                           help="The current profile as CSV: one row per hour, heating then cooling in kW.")
+    if file is not None:
+        try:
+            heating, cooling, notes = hourly.read_profile(file.name, file.getvalue())
+        except hourly.HourlyFileError as exc:
+            st.error(str(exc))
+        else:
+            value = {"heating": heating, "cooling": cooling}
+            st.success(f"Read 8760 hours from {file.name}.")
+            for note in notes:
+                st.caption(note)
+    elif value == hourly.example_profile():
+        st.caption("Showing an example office profile until you upload your own.")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Heating demand", f"{sum(value['heating']) / 1000:,.0f} MWh/yr")
+    c2.metric("Peak heating", f"{max(value['heating']):,.0f} kW")
+    c3.metric("Cooling demand", f"{sum(value['cooling']) / 1000:,.0f} MWh/yr")
+    c4.metric("Peak cooling", f"{max(value['cooling']):,.0f} kW")
+    return value
+
+
 def show(drawing):
-    if isinstance(drawing, plt.Figure):
+    if isinstance(drawing, tuple):  # several drawings, one below the other
+        for part in drawing:
+            show(part)
+    elif isinstance(drawing, plt.Figure):
         st.pyplot(drawing, width="stretch")
         plt.close(drawing)
     else:
@@ -113,12 +147,16 @@ for section in properties.sections():
         values = variant.defaults()
         if variant.key == chosen.variant:
             values.update(chosen.values)
-        simple = [p for p in variant.properties if p.kind not in ("monthly", "points")]
+        simple = [p for p in variant.properties if p.kind not in ("monthly", "points", "hourly")]
         point_props = [p for p in variant.properties if p.kind == "points"]
+        hourly_props = [p for p in variant.properties if p.kind == "hourly"]
         monthly = [p for p in variant.properties if p.kind == "monthly"]
-        has_drawing = (section.key, variant.key) in plots.DRAWINGS and not monthly
+        # wide inputs (tables, hourly files) get their drawing below instead of beside them
+        has_drawing = (section.key, variant.key) in plots.DRAWINGS and not monthly and not hourly_props
         form_col, drawing_col = st.columns([2, 1]) if has_drawing else (st.container(), None)
         with form_col:
+            for prop in hourly_props:
+                values[prop.key] = hourly_input(prop, values[prop.key], f"{gen}.{section.key}.{variant.key}.{prop.key}")
             for prop in point_props:
                 values[prop.key] = points_input(prop, values[prop.key], f"{gen}.{section.key}.{variant.key}.{prop.key}")
             cols = st.columns(2 if has_drawing else 3)
@@ -171,12 +209,29 @@ if "result" in st.session_state:
     c2.metric("Total length", f"{result.total_length:.0f} m", f"{result.number_of_boreholes} boreholes",
               delta_color="off")
     c3.metric("Borehole resistance", f"{result.borehole_resistance:.3f} m·K/W")
-    over_time, last_year, table = st.tabs(["Temperatures over time", "Last year", "Table"])
+    st.caption("Sized with hourly resolution (L4)." if result.sizing_method == "hourly"
+               else "Sized on monthly values (L2/L3).")
+    tab_names = ["Temperatures over time", "Last year", "Table"]
+    if result.hourly_temperatures is not None:
+        tab_names = ["Hourly, whole period", "Hourly, last year"] + tab_names
+    tabs = st.tabs(tab_names)
+    if result.hourly_temperatures is not None:
+        with tabs[0]:
+            st.altair_chart(plots.hourly_band_chart(result.hourly_temperatures, limits), width="stretch")
+        with tabs[1]:
+            st.altair_chart(plots.hourly_last_year_chart(result.hourly_temperatures, limits), width="stretch")
+        tabs = tabs[2:]
+    over_time, last_year, table = tabs
     with over_time:
         st.altair_chart(plots.temperature_chart(result.temperatures, limits), width="stretch")
     with last_year:
         st.altair_chart(plots.last_year_chart(result.temperatures, limits), width="stretch")
     with table:
         st.dataframe(result.temperatures.round(2), width="stretch")
-    st.download_button("Download temperatures (CSV)", result.temperatures.to_csv().encode(),
-                       "temperatures.csv", "text/csv")
+    d1, d2 = st.columns(2)
+    d1.download_button("Download monthly temperatures (CSV)", result.temperatures.to_csv().encode(),
+                       "temperatures_monthly.csv", "text/csv")
+    if result.hourly_temperatures is not None:
+        d2.download_button("Download hourly temperatures (CSV)",
+                           result.hourly_temperatures.round(3).to_csv().encode(),
+                           "temperatures_hourly.csv", "text/csv")

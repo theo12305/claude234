@@ -72,6 +72,8 @@ class SizingResult:
     borehole_resistance: float  # m·K/W
     borefield: Borefield
     temperatures: pd.DataFrame  # monthly fluid and borehole wall temperatures, index = years
+    hourly_temperatures: pd.DataFrame | None = None  # only for hourly loads, index = hour of the simulation
+    sizing_method: str = "monthly"
 
 
 def temperature_table(borefield: Borefield) -> pd.DataFrame:
@@ -86,12 +88,28 @@ def temperature_table(borefield: Borefield) -> pd.DataFrame:
     }, index=pd.Index([(i + 1) / 12 for i in range(n)], name="Years"))
 
 
+def hourly_temperature_table(borefield: Borefield) -> pd.DataFrame:
+    """Hourly temperatures of the last hourly calculation, indexed by hour of the simulation."""
+    r = borefield.results
+    return pd.DataFrame({"Borehole wall": r.Tb, "Average fluid": r.Tf},
+                        index=pd.RangeIndex(1, len(r.Tf) + 1, name="Hour"))
+
+
 def size(inputs: dict[str, SectionInput]) -> SizingResult:
     borefield = build_borefield(inputs)
-    length = borefield.size()
+    load_values = inputs["load"].values
+    is_hourly = getattr(borefield.load, "_hourly", False)
+    hourly_sizing = is_hourly and load_values.get("hourly_sizing", False)
+    length = borefield.size(L4_sizing=True) if hourly_sizing else borefield.size()
     n = borefield.number_of_boreholes
+
+    hourly_temps = None
+    if is_hourly:
+        borefield.calculate_temperatures(length, hourly=True)
+        hourly_temps = hourly_temperature_table(borefield)
     borefield.calculate_temperatures(length)
-    return SizingResult(length, n, length * n, borefield.Rb, borefield, temperature_table(borefield))
+    return SizingResult(length, n, length * n, borefield.Rb, borefield, temperature_table(borefield),
+                        hourly_temps, "hourly" if hourly_sizing else "monthly")
 
 
 # ---------------------------------------------------------------- saving and loading
