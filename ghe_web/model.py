@@ -125,10 +125,16 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
         for p in variant.properties:
             if p.key in saved.get("values", {}):
                 v = saved["values"][p.key]
-                values[p.key] = tuple(v) if p.kind == "monthly" else v
+                if p.kind == "monthly":
+                    v = tuple(v)
+                elif p.kind == "points":
+                    v = tuple(tuple(pt) for pt in v)
+                values[p.key] = v
         inputs[key] = SectionInput(variant.key, values)
     return data.get("name", ""), inputs
 
 
 def _plain(values: dict[str, Any]) -> dict[str, Any]:
-    return {k: list(v) if isinstance(v, (list, tuple)) else v for k, v in values.items()}
+    def plain(v):
+        return [plain(x) for x in v] if isinstance(v, (list, tuple)) else v
+    return {k: plain(v) for k, v in values.items()}

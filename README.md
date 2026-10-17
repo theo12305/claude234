@@ -18,17 +18,28 @@ pytest                    # runs the tests
 
 Every push to `main` updates the site automatically.
 
+## Irregular borefields from a shapefile
+
+Choose **Irregular field (shapefile)** under Borefield and upload a point shapefile, one point
+per borehole, either zipped or as the separate .shp, .shx, .dbf and .prj files.
+Coordinates in degrees (e.g. WGS 84) are converted to metres; projected coordinates in metres
+(e.g. UTM) or feet are used directly. The positions appear in an editable table and a numbered
+map, and boreholes closer than one borehole diameter are flagged as overlapping.
+GHEtool then calculates the g-function for the real layout and sizes one common length
+for all boreholes. Try it with `examples/irregular_field.zip`.
+
 ## Structure
 
 ```
 app.py                     web page (Streamlit); draws every registered section automatically
 ghe_web/model.py           builds a GHEtool Borefield from the inputs, runs sizing, saves/loads projects (no web code)
+ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip or .shp/.shx/.dbf/.prj)
 ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
 ghe_web/properties/
   base.py                  Property, Variant, Section: the building blocks
   registry.py              list of all sections
   ground.py                ground: constant temperature, or with geothermal heat flux
-  borefield.py             borefield layout: rectangular
+  borefield.py             borefield layout: rectangular, or irregular from a shapefile
   pipe.py                  borehole heat exchanger: single U, double U
   fluid.py                 water / antifreeze mixture
   flow.py                  constant flow per borehole

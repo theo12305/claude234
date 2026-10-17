@@ -13,7 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
-PropertyKind = Literal["float", "int", "choice", "bool", "monthly"]
+# "points": a list of (x, y) borehole positions in metres.
+PropertyKind = Literal["float", "int", "choice", "bool", "monthly", "points"]
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,12 @@ class Property:
     def validate(self, value: Any) -> list[str]:
         """Return a list of human readable problems with ``value`` (empty if fine)."""
         errors = []
+        if self.kind == "points":
+            if len(value) == 0:
+                errors.append(f"{self.label}: at least one borehole is needed.")
+            elif any(len(p) != 2 or any(not isinstance(c, (int, float)) or c != c for c in p) for p in value):
+                errors.append(f"{self.label}: every borehole needs a numeric x and y.")
+            return errors
         values = value if self.kind == "monthly" else [value]
         if self.kind == "monthly" and len(values) != 12:
             errors.append(f"{self.label}: expected 12 monthly values, got {len(values)}.")

@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-from ghe_web import model, plots, properties
+import hashlib
+
+from ghe_web import geometry, model, plots, properties
 from ghe_web.properties import Property, SectionInput
 from ghe_web.properties.load import MONTHS
 
@@ -62,6 +64,31 @@ def monthly_table(props: list[Property], values: dict, key: str) -> dict:
     return {p.key: [float(x) for x in edited.iloc[:, i]] for i, p in enumerate(props)}
 
 
+def points_input(prop: Property, value, key: str) -> tuple:
+    """Shapefile upload plus an editable coordinate table. Returns ((x, y), ...) in metres."""
+    files = st.file_uploader("Shapefile with one point per borehole (.zip, or .shp + .shx + .dbf + .prj)",
+                             type=["zip", "shp", "shx", "dbf", "prj"], accept_multiple_files=True, key=f"{key}.upload")
+    upload_id = ""
+    if files:
+        contents = {f.name: f.getvalue() for f in files}
+        try:
+            result = geometry.read_shapefile(contents)
+        except geometry.GeometryError as exc:
+            st.error(str(exc))
+        else:
+            value = result.points
+            # A new upload gets a fresh table; edits made after the upload are kept.
+            upload_id = hashlib.md5(b"".join(contents[n] for n in sorted(contents))).hexdigest()[:8]
+            st.success(f"Read {len(value)} boreholes from {', '.join(sorted(contents))}.")
+            for note in result.notes:
+                st.caption(note)
+    df = pd.DataFrame(list(value), columns=["x [m]", "y [m]"], dtype=float)
+    df.index = range(1, len(df) + 1)
+    st.caption(f"{prop.label}. You can edit, add or delete rows.")
+    edited = st.data_editor(df, num_rows="dynamic", height=240, width="stretch", key=f"{key}.table.{upload_id}")
+    return tuple((float(x), float(y)) for x, y in edited.dropna().itertuples(index=False))
+
+
 def show(drawing):
     if isinstance(drawing, plt.Figure):
         st.pyplot(drawing, width="stretch")
@@ -86,11 +113,14 @@ for section in properties.sections():
         values = variant.defaults()
         if variant.key == chosen.variant:
             values.update(chosen.values)
-        simple = [p for p in variant.properties if p.kind != "monthly"]
+        simple = [p for p in variant.properties if p.kind not in ("monthly", "points")]
+        point_props = [p for p in variant.properties if p.kind == "points"]
         monthly = [p for p in variant.properties if p.kind == "monthly"]
         has_drawing = (section.key, variant.key) in plots.DRAWINGS and not monthly
         form_col, drawing_col = st.columns([2, 1]) if has_drawing else (st.container(), None)
         with form_col:
+            for prop in point_props:
+                values[prop.key] = points_input(prop, values[prop.key], f"{gen}.{section.key}.{variant.key}.{prop.key}")
             cols = st.columns(2 if has_drawing else 3)
             for i, prop in enumerate(simple):
                 with cols[i % len(cols)]:

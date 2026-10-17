@@ -26,16 +26,32 @@ PIPE_UP = "#2e86ab"  # return
 
 # ---------------------------------------------------------------- inputs
 
-def borefield_layout(values: dict) -> plt.Figure:
-    """Top view of a rectangular borefield."""
+def rectangular_layout(values: dict) -> plt.Figure:
     xs = [i * values["B_1"] for i in range(values["N_1"]) for _ in range(values["N_2"])]
     ys = [j * values["B_2"] for _ in range(values["N_1"]) for j in range(values["N_2"])]
+    return borefield_layout(xs, ys, f"{len(xs)} boreholes, {values['B_1']} m × {values['B_2']} m spacing")
+
+
+def custom_layout(values: dict) -> plt.Figure:
+    from .geometry import closest_pair
+    xs = [p[0] for p in values["points"]]
+    ys = [p[1] for p in values["points"]]
+    pair = closest_pair(values["points"])
+    title = f"{len(xs)} boreholes" + (f", closest {pair[0]:.1f} m apart" if pair else "")
+    return borefield_layout(xs, ys, title, numbered=len(xs) <= 150)
+
+
+def borefield_layout(xs: list, ys: list, title: str, numbered: bool = False) -> plt.Figure:
+    """Top view of the borefield."""
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.scatter(xs, ys, s=40, color=PIPE_UP, zorder=3)
+    if numbered:
+        for n, (x, y) in enumerate(zip(xs, ys), start=1):
+            ax.annotate(str(n), (x, y), textcoords="offset points", xytext=(4, 4), fontsize=6, color="#555")
     ax.set_aspect("equal")
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
-    ax.set_title(f"{len(xs)} boreholes, {values['B_1']} m × {values['B_2']} m spacing", fontsize=10)
+    ax.set_title(title, fontsize=10)
     ax.grid(alpha=0.3)
     ax.margins(0.08)
     fig.tight_layout()
@@ -85,7 +101,8 @@ def load_profile(values: dict) -> alt.Chart:
 # Which drawing belongs to which input. Each function gets all inputs, so it can
 # combine sections (the borehole drawing needs the radius from "borefield").
 DRAWINGS: dict[tuple[str, str], tuple[str, Callable[[dict[str, SectionInput]], object]]] = {
-    ("borefield", "rectangular"): ("Borefield layout", lambda i: borefield_layout(i["borefield"].values)),
+    ("borefield", "rectangular"): ("Borefield layout", lambda i: rectangular_layout(i["borefield"].values)),
+    ("borefield", "custom"): ("Borefield layout", lambda i: custom_layout(i["borefield"].values)),
     ("pipe", "single_u"): ("Borehole cross-section",
                            lambda i: _u_tube_cross_section(i["pipe"].values, i["borefield"].values["r_b_mm"], 2)),
     ("pipe", "double_u"): ("Borehole cross-section",
