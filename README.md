@@ -36,18 +36,26 @@ optional; `;` or `,` separators and decimal commas work). The SCOP and SEER turn
 into ground load. With **Size with hourly resolution** on, GHEtool sizes on every hour (L4), and the
 results show hourly fluid temperatures. Try it with `examples/hourly_demand_example.csv`.
 
-## Results and analysis
+## Using the page
 
-After **Size borefield** (or **Check temperatures** when Calculation is set to *Check a given length*):
+The inputs are split into four steps (tabs): ① ground and borefield, ② borehole and fluid,
+③ loads, ④ limits and costs. The **Size borefield** button sits in the sidebar together with a list of
+inputs that still need attention; after the calculation the page jumps to **Results**.
 
-- **Key results**: lowest/highest fluid temperature and when, which limit decides the size, ground
-  energy and imbalance, W/m and kWh/m, borehole resistance, Reynolds number, supply temperatures to
-  the field, pressure drop and pump power, investment. Warnings for laminar flow and freezing risk.
-- **Charts**: temperatures over time, last year with supply/return, yearly min/max, monthly energy
-  balance, g-function; with hourly loads also an hourly band and a day × hour heat map.
-- **PDF report** with inputs, drawings, key results and the main charts.
-- **Further analysis**: sensitivity check (tornado chart), compare kept variants, layout optimisation
-  for a plot (GHEtool + optuna, about 5 s per trial), hybrid share for hourly loads.
+Results start with a one-line verdict and five numbers (length, total length, lowest and highest
+temperature with their margin to the limits, investment). Below that, pick a view:
+
+- **Overview**: the temperature chart and the key results in groups: temperatures (incl. long-term
+  drift and supply temperatures), ground energy (incl. W/m and full-load hours), borehole and
+  hydraulics (Rb, Reynolds, pressure drop and pump power at the coldest fluid), cost.
+- **Temperatures**, **Energy**, **Hourly** (hourly loads only): the detailed charts.
+- **Further analysis**: sensitivity check (in %), variant comparison, layout optimisation for a plot
+  (about 5 s per trial), hybrid share for hourly loads, g-function.
+- **Export**: Excel workbook (summary, inputs, all result tables and any analysis you ran), PDF report,
+  a zip with workbook + PDF + project file, and CSV files. Files are built when you click.
+
+Only the chosen view is drawn, and input drawings and sizing results are cached, so the page stays
+quick even with hourly results.
 
 ## Features taken from EED
 
@@ -66,6 +74,7 @@ ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip
 ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
 ghe_web/analysis.py        key results, hydraulics, costs, sensitivity, layout optimisation, hybrid share
 ghe_web/report.py          PDF report
+ghe_web/export.py          Excel workbook and zip export
 ghe_web/catalog.py         typical values for rock, grout, pipes, drilling diameters, fluids, load profiles
 ghe_web/properties/
   base.py                  Property, Variant, Section: the building blocks
@@ -85,7 +94,8 @@ tests/
 - **Variant**: one way to describe a topic (e.g. "Single U-tube") plus a `build` function
   that turns its values into a GHEtool object. Optional `checks` validate several fields together,
   `warnings` flag unusual but allowed values, and `presets` add drop-downs with typical values.
-- **Section**: a topic on the page with one or more variants; the user picks the variant.
+- **Section**: a topic on the page with one or more variants; the user picks the variant. Its `group`
+  (Site, Borehole, Loads, Design) decides which input step it appears in.
 
 ## How to extend
 

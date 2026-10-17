@@ -113,6 +113,7 @@ class Section:
     variants: tuple[Variant, ...]
     help: str = ""
     order: int = 100
+    group: str = ""  # page step the section is shown in, e.g. "Site"; empty puts it under "More inputs"
 
     def variant(self, key: str | None = None) -> Variant:
         if key is None:

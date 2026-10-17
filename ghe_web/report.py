@@ -122,7 +122,8 @@ def make_pdf(result: model.SizingResult, inputs: dict[str, SectionInput], projec
                    ("Borehole length", f"{result.borehole_length:.1f} m"),
                    ("Number of boreholes", str(result.number_of_boreholes)),
                    ("Total length", f"{result.total_length:,.0f} m")]
-        blocks = [("Summary", summary), ("Key results", [(label, value) for label, value, _ in key.rows])]
+        blocks = [("Summary", summary)] + [(group, [(label, value) for label, value, _ in rows])
+                                           for group, rows in key.by_group().items()]
         if key.warnings:
             blocks.append(("Warnings", [("!", w) for w in key.warnings]))
         _text_page(pdf, title, blocks)

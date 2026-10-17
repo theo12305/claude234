@@ -26,6 +26,7 @@ def _c(v):
 
 register(Section(
     key="ground",
+    group="Site",
     label="Ground",
     order=10,
     variants=(

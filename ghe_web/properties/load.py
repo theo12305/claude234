@@ -51,6 +51,7 @@ def _annual_build(v):
 
 register(Section(
     key="load",
+    group="Loads",
     label="Ground load",
     order=60,
     help="Heat taken from (extraction) and put into (injection) the ground.",

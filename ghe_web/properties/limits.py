@@ -3,6 +3,7 @@ from .registry import register
 
 register(Section(
     key="limits",
+    group="Design",
     label="Temperature limits",
     order=70,
     help="Allowed average fluid temperature in the borefield.",

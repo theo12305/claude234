@@ -3,6 +3,7 @@ from .registry import register
 
 register(Section(
     key="calculation",
+    group="Design",
     label="Calculation",
     order=75,
     variants=(
@@ -26,6 +27,7 @@ register(Section(
 
 register(Section(
     key="costs",
+    group="Design",
     label="Costs",
     order=80,
     help="Rough investment estimate for comparing variants.",

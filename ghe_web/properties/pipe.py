@@ -41,6 +41,7 @@ def _coaxial_ok(v):
 
 register(Section(
     key="pipe",
+    group="Borehole",
     label="Borehole heat exchanger",
     order=30,
     variants=(
