@@ -25,6 +25,13 @@ GROUT = "#c9c4b8"
 GROUND = "#e8e2d0"
 PIPE_DOWN = "#d1495b"  # supply
 PIPE_UP = "#2e86ab"  # return
+# Loads: heating / extraction red, cooling / injection blue, in every chart. (Temperatures use blue for cold.)
+HEATING = PIPE_DOWN
+COOLING = PIPE_UP
+
+
+def _load_colors(heating: str, cooling: str) -> alt.Scale:
+    return alt.Scale(domain=[heating, cooling], range=[HEATING, COOLING])
 
 
 # ---------------------------------------------------------------- inputs
@@ -116,7 +123,7 @@ def load_profile(values: dict) -> alt.Chart:
     return alt.Chart(data).mark_bar().encode(
         x=alt.X("Month:N", sort=list(MONTHS), title=None, axis=alt.Axis(labelAngle=0)),
         y=alt.Y("Energy:Q", title="Energy [kWh]"),
-        color=alt.Color("Type:N", scale=alt.Scale(range=[PIPE_DOWN, PIPE_UP]),
+        color=alt.Color("Type:N", scale=_load_colors("Extraction (heating)", "Injection (cooling)"),
                         legend=alt.Legend(orient="top", title=None)),
         tooltip=["Month", "Type", alt.Tooltip("Energy:Q", format=",.0f")],
     ).properties(height=300, title="Monthly ground load")
@@ -134,7 +141,7 @@ def annual_demand_chart(values: dict) -> alt.Chart:
     return alt.Chart(data).mark_bar().encode(
         x=alt.X("Month:N", sort=list(MONTHS), title=None, axis=alt.Axis(labelAngle=0)),
         y=alt.Y("Energy:Q", title="Building demand [MWh]"),
-        color=alt.Color("Type:N", scale=alt.Scale(range=[PIPE_UP, PIPE_DOWN]),
+        color=alt.Color("Type:N", scale=_load_colors("Heating demand", "Cooling demand"),
                         legend=alt.Legend(orient="top", title=None)),
         tooltip=["Month", "Type", alt.Tooltip("Energy:Q", format=",.1f", title="MWh"),
                  alt.Tooltip("Peak:Q", format=",.0f", title="Peak kW")],
@@ -148,7 +155,7 @@ def hourly_demand(values: dict) -> tuple[alt.Chart, alt.Chart]:
     daily = hourly.groupby(hourly.index // 24).max()
     daily.index = pd.Index(range(1, len(daily) + 1), name="Day")
     data = daily.reset_index().melt("Day", var_name="Type", value_name="Power")
-    colors = alt.Scale(domain=["Heating", "Cooling"], range=[PIPE_DOWN, PIPE_UP])
+    colors = _load_colors("Heating", "Cooling")
     over_year = alt.Chart(data).mark_line(strokeWidth=1).encode(
         x=alt.X("Day:Q", title="Day of the year", scale=alt.Scale(domain=[1, 365])),
         y=alt.Y("Power:Q", title="Daily peak demand [kW]"),
@@ -374,7 +381,7 @@ def energy_balance_chart(df: pd.DataFrame) -> alt.Chart:
     return alt.Chart(data).mark_bar().encode(
         x=alt.X("Month:N", sort=list(MONTHS), title=None, axis=alt.Axis(labelAngle=0)),
         y=alt.Y("Energy:Q", title="Ground energy [MWh]"),
-        color=alt.Color("Type:N", scale=alt.Scale(range=[PIPE_DOWN, PIPE_UP]),
+        color=alt.Color("Type:N", scale=_load_colors("Extraction (from ground)", "Injection (into ground)"),
                         legend=alt.Legend(orient="top", title=None)),
         tooltip=["Month", "Type", alt.Tooltip("Energy:Q", format=",.1f", title="MWh")],
     ).properties(height=320, title=f"Ground energy balance (yearly imbalance {imbalance:+,.0f} MWh)")
@@ -432,3 +439,72 @@ def gfunction_chart(df: pd.DataFrame) -> alt.Chart:
         tooltip=[alt.Tooltip("hours:Q", format=",.0f", title="Time h"), alt.Tooltip("g:Q", format=".3f",
                                                                                     title="g-function")],
     ).properties(height=300, title="g-function of the borefield (thermal interaction of the boreholes)")
+
+
+def load_duration_chart(df: pd.DataFrame) -> alt.Chart:
+    """Building demand and ground load, each sorted from the highest hour to the lowest."""
+    cols = [c for c in df.columns if c != "Hours"]
+    data = df.iloc[::10].melt("Hours", value_vars=cols, var_name="Load", value_name="Power")
+    colors = {"Heating demand": HEATING, "Cooling demand": COOLING, "Ground extraction": "#f2a3ad",
+              "Ground injection": "#95c4d9"}
+    dashes = {"Ground extraction": [5, 3], "Ground injection": [5, 3]}
+    return alt.Chart(data).mark_line().encode(
+        x=alt.X("Hours:Q", title="Hours per year", scale=alt.Scale(domain=[0, 8760])),
+        y=alt.Y("Power:Q", title="Power [kW]"),
+        color=alt.Color("Load:N", scale=alt.Scale(domain=cols, range=[colors.get(c, "#555") for c in cols]),
+                        legend=alt.Legend(orient="top", title=None)),
+        strokeDash=alt.StrokeDash("Load:N", scale=alt.Scale(domain=cols, range=[dashes.get(c, [1, 0]) for c in cols]),
+                                  legend=None),
+        tooltip=["Load", "Hours", alt.Tooltip("Power:Q", format=",.1f", title="kW")],
+    ).properties(height=300, title="Load duration curve (first year)")
+
+
+def pressure_drop_chart(df: pd.DataFrame, flow: float, dp: float) -> alt.Chart:
+    data = pd.DataFrame({"Flow": df["Flow per borehole [l/s]"], "Drop": df["Pressure drop [kPa]"]})
+    line = alt.Chart(data).mark_line(color=PIPE_UP).encode(
+        x=alt.X("Flow:Q", title="Flow rate per borehole [l/s]"),
+        y=alt.Y("Drop:Q", title="Pressure drop per borehole [kPa]"),
+        tooltip=[alt.Tooltip("Flow:Q", format=".3f", title="l/s"), alt.Tooltip("Drop:Q", format=".1f", title="kPa")])
+    point = pd.DataFrame({"Flow": [flow], "Drop": [dp], "Label": [f"design: {dp:.1f} kPa"]})
+    base = alt.Chart(point).encode(x="Flow:Q", y="Drop:Q")
+    return (line + base.mark_point(filled=True, size=80, color="black")
+            + base.mark_text(align="left", dx=8, dy=-8, fontWeight="bold").encode(text="Label:N")).properties(
+        height=300, title="Pressure drop against flow rate")
+
+
+def ground_map_chart(m: dict) -> alt.Chart:
+    """Ground temperature at mid-depth around the field at the end of the simulation."""
+    table, holes = m["table"], m["boreholes"]
+    lim = max(m["max_change"], 0.1)
+    cell = m["cell"]
+    heat = alt.Chart(table.assign(x2=table["x"] + cell, y2=table["y"] + cell)).mark_rect().encode(
+        x=alt.X("x:Q", title="x [m]", scale=alt.Scale(nice=False)), x2="x2:Q",
+        y=alt.Y("y:Q", title="y [m]", scale=alt.Scale(nice=False)), y2="y2:Q",
+        color=alt.Color("Change:Q", title="Change [K]", scale=alt.Scale(scheme="redblue", reverse=True,
+                                                                         domain=[-lim, lim])),
+        tooltip=[alt.Tooltip("x:Q", format=".0f"), alt.Tooltip("y:Q", format=".0f"),
+                 alt.Tooltip("Change:Q", format="+.2f", title="Change K"),
+                 alt.Tooltip("Temperature:Q", format=".2f", title="Ground °C")])
+    dots = alt.Chart(holes).mark_point(shape="circle", size=12, color="black", filled=True).encode(x="x:Q", y="y:Q")
+    return (heat + dots).properties(height=440, width=440,
+                                    title=f"Ground temperature change at {m['depth']:.0f} m depth after "
+                                          f"{m['years']} years")
+
+
+def optimisation_chart(monthly: pd.DataFrame) -> alt.Chart:
+    """Average monthly building demand split into the part the ground covers and the external part."""
+    rows = []
+    for _, r in monthly.iterrows():
+        for kind, sign in (("heating", 1), ("cooling", -1)):
+            rows.append({"Month": r["Month"], "Part": f"Ground {kind}", "Energy": sign * r[f"Ground {kind} [MWh]"]})
+            rows.append({"Month": r["Month"], "Part": f"Backup {kind}", "Energy": sign * r[f"External {kind} [MWh]"]})
+    data = pd.DataFrame(rows)
+    parts = ["Ground heating", "Backup heating", "Ground cooling", "Backup cooling"]
+    return alt.Chart(data).mark_bar().encode(
+        x=alt.X("Month:N", sort=list(MONTHS), title=None, axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("Energy:Q", title="Building demand [MWh] (cooling below zero)"),
+        color=alt.Color("Part:N", scale=alt.Scale(domain=parts, range=[HEATING, "#f2c4ca", COOLING, "#bcdbe8"]),
+                        legend=alt.Legend(orient="top", title=None)),
+        order=alt.Order("Part:N"),
+        tooltip=["Month", "Part", alt.Tooltip("Energy:Q", format=",.1f", title="MWh")],
+    ).properties(height=320, title="Who covers the demand (average year)")

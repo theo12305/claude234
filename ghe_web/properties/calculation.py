@@ -1,4 +1,4 @@
-from .base import Property, Section, Variant
+from .base import Section, Variant
 from .registry import register
 
 register(Section(
@@ -25,25 +25,3 @@ register(Section(
     ),
 ))
 
-register(Section(
-    key="costs",
-    group="Design",
-    label="Costs",
-    order=80,
-    help="Rough investment estimate for comparing variants.",
-    variants=(
-        Variant(
-            key="simple",
-            label="Drilling and connection",
-            properties=(
-                Property("drilling_per_m", "Drilling and probe cost", 45.0, "€/m", min=0.0, max=1000.0, step=1.0,
-                         help="Drilling, probe and grouting per metre of borehole."),
-                Property("per_borehole", "Cost per borehole", 1500.0, "€", min=0.0, max=1e5, step=100.0,
-                         help="Connection, trenching and manifold share per borehole."),
-                Property("fixed", "Fixed cost", 10000.0, "€", min=0.0, max=1e7, step=1000.0,
-                         help="Site setup, permits, thermal response test."),
-            ),
-            build=lambda v: v,
-        ),
-    ),
-))

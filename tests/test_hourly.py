@@ -42,7 +42,7 @@ def test_bad_files_are_reported(rows, message):
 def test_hourly_sizing_stays_within_limits():
     result = model.size(_hourly_inputs())
     assert result.sizing_method == "hourly"
-    assert len(result.hourly_temperatures) == 8760 * 20
+    assert len(result.hourly_temperatures) == 8760 * result.borefield.load.simulation_period
     assert result.hourly_temperatures["Average fluid"].min() > -0.1
     assert result.hourly_temperatures["Average fluid"].max() < 17.1
     limits = model.default_inputs()["limits"].values

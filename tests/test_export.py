@@ -17,7 +17,7 @@ def test_key_results_are_grouped(sized):
     inputs, result = sized
     key = analysis.key_results(result, inputs)
     assert len(key.groups) == len(key.rows)
-    assert list(key.by_group()) == ["Temperatures", "Ground energy", "Borehole and hydraulics", "Cost"]
+    assert list(key.by_group()) == ["Temperatures", "Ground energy", "Borehole and hydraulics"]
     assert key.values["drift_k"] < 0  # the default load takes more heat out than it puts in
     assert 1000 < key.values["full_load_hours"] < 3000
 

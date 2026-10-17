@@ -41,8 +41,7 @@ def test_key_results(sized):
     assert "Size decided by" in labels
     assert keys.values["t_min"] > inputs["limits"].values["T_min"] - 0.1
     assert keys.values["dp_kpa"] > 0 and keys.values["pump_w"] > 0
-    expected_cost = 45 * result.total_length + 1500 * result.number_of_boreholes + 10000
-    assert keys.values["cost"] == pytest.approx(expected_cost)
+    assert "cost" not in keys.values
 
 
 def test_check_mode_keeps_length_and_reports_failure():
@@ -76,12 +75,10 @@ def test_pipe_variants_size(variant):
 def test_round_trip_with_new_sections():
     inputs = model.default_inputs()
     inputs["calculation"].variant = "check"
-    inputs["costs"].values["drilling_per_m"] = 60.0
     inputs["ground"].variant = "gradient"
     inputs["ground"].values = properties.get("ground").variant("gradient").defaults()
     _, loaded = model.from_json(model.to_json(inputs))
     assert loaded["calculation"].variant == "check"
-    assert loaded["costs"].values["drilling_per_m"] == 60.0
     assert loaded["ground"].variant == "gradient"
     assert model.validate(loaded) == {}
 

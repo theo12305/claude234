@@ -54,18 +54,18 @@ BOREHOLES = {
     "Ø 180 mm": {"r_b_mm": 90.0},
 }
 
-# Fluids GHEtool knows, with the concentration range [%] it has data for
+# Fluids GHEtool knows, with the mass percentage range it has data for (checked against GHEtool 2.4.1)
 FLUIDS = {
     "Water": (0, 0),
     "MPG": (0, 60),
     "MEG": (0, 60),
     "MEA": (0, 60),
     "MMA": (0, 60),
-    "Thermox DTX": (25, 55),
-    "Coolflow NTP": (30, 60),
-    "Kilfrost GEO": (30, 60),
-    "Kilfrost GEO Plus": (35, 65),
-    "GeoPro": (35, 40),
+    "Thermox DTX": (25, 58),
+    "Coolflow NTP": (27, 62),
+    "Kilfrost GEO": (27, 68),
+    "Kilfrost GEO Plus": (34, 72),
+    "GeoPro": (33, 49),
 }
 
 # Share of the yearly energy per month, Jan..Dec. The first two are the profiles of the GHEtool example.

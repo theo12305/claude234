@@ -39,20 +39,31 @@ results show hourly fluid temperatures. Try it with `examples/hourly_demand_exam
 ## Using the page
 
 The inputs are split into four steps (tabs): ① ground and borefield, ② borehole and fluid,
-③ loads, ④ limits and costs. The **Size borefield** button sits in the sidebar together with a list of
+③ loads, ④ limits and calculation. The **Size borefield** button sits in the sidebar together with a list of
 inputs that still need attention; after the calculation the page jumps to **Results**.
 
 Results start with a one-line verdict and five numbers (length, total length, lowest and highest
-temperature with their margin to the limits, investment). Below that, pick a view:
+temperature with their margin to the limits, borehole resistance). The default simulation period is
+50 years. Below that, pick a view (modelled on the result views of the paid GHEtool Cloud):
 
 - **Overview**: the temperature chart and the key results in groups: temperatures (incl. long-term
   drift and supply temperatures), ground energy (incl. W/m and full-load hours), borehole and
-  hydraulics (Rb, Reynolds, pressure drop and pump power at the coldest fluid), cost.
-- **Temperatures**, **Energy**, **Hourly** (hourly loads only): the detailed charts.
+  hydraulics (Rb, Reynolds, pressure drop, pump power and pump energy at the coldest fluid).
+- **Temperatures**, **Energy** (incl. load duration curve for hourly loads), **Hourly** (hourly loads only),
+  **Heat pump** (building loads): the detailed charts. With hourly (L4) sizing all key results come
+  from the hourly run; the monthly charts are shown for comparison only.
+- **Hydraulics**: Rb, Reynolds, pressure drop and pump power, and the pressure drop curve against flow rate.
+- **Ground**: map of the ground temperature change around the field at mid-depth at the end of the
+  simulation (finite line source of the yearly imbalance), and the g-function.
+- **Load optimisation** (hourly building demand): keeps the field and finds how much demand it can
+  cover, optimised for power, energy or a balanced ground (GHEtool's `optimise_load_profile_*`). The rest
+  is backup heating or cooling; the optimised load can be downloaded.
 - **Further analysis**: sensitivity check (in %), variant comparison, layout optimisation for a plot
-  (about 5 s per trial), hybrid share for hourly loads, g-function.
-- **Export**: Excel workbook (summary, inputs, all result tables and any analysis you ran), PDF report,
-  a zip with workbook + PDF + project file, and CSV files. Files are built when you click.
+  (about 5 s per trial).
+- **Export**: Excel workbook (summary, inputs, all result tables and any analysis you ran), PDF report
+  (full report with cover page, or a one-page summary; title, author, company, client, logo, introduction
+  and conclusion can be filled in), a zip with workbook + PDF + project file, and CSV files. Files are
+  built when you click.
 
 Only the chosen view is drawn, and input drawings and sizing results are cached, so the page stays
 quick even with hourly results.
@@ -83,7 +94,7 @@ ghe_web/model.py           builds a GHEtool Borefield from the inputs, runs sizi
 ghe_web/hourly.py          reads hourly demand files (CSV/Excel) and makes the example profile
 ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip or .shp/.shx/.dbf/.prj)
 ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
-ghe_web/analysis.py        key results, hydraulics, costs, sensitivity, layout optimisation, hybrid share
+ghe_web/analysis.py        key results, hydraulics, sensitivity, layout and load optimisation, ground map
 ghe_web/report.py          PDF report
 ghe_web/export.py          Excel workbook and zip export
 ghe_web/catalog.py         typical values for rock, grout, pipes, drilling diameters, fluids, load profiles
@@ -97,7 +108,7 @@ ghe_web/properties/
   flow.py                  constant flow per borehole
   load.py                  monthly ground load, yearly building demand (EED style), or hourly demand
   heat_pump.py             heat pump efficiency: fixed SCOP/SEER or COP/EER curves over fluid temperature
-  calculation.py           size or check a given length; cost inputs
+  calculation.py           size or check a given length
   limits.py                min/max average fluid temperature
 tests/
 ```
