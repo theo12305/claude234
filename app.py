@@ -2,10 +2,29 @@
 import hashlib
 import html
 import io
+import pathlib
+import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
+
+
+def _drop_stale_package():
+    """After a deploy the server reruns app.py but keeps the old ghe_web modules in memory, which crashes
+    the page. When any ghe_web file changed since it was imported, forget the old modules and cached results."""
+    stamp = tuple(sorted((str(p), p.stat().st_mtime_ns) for p in (pathlib.Path(__file__).parent / "ghe_web").rglob("*.py")))
+    loaded = sys.modules.get("ghe_web")
+    if loaded is not None and getattr(loaded, "_stamp", None) != stamp:
+        for name in [m for m in sys.modules if m == "ghe_web" or m.startswith("ghe_web.")]:
+            del sys.modules[name]
+        st.cache_data.clear()
+        st.cache_resource.clear()
+    import ghe_web
+    ghe_web._stamp = stamp
+
+
+_drop_stale_package()
 
 from ghe_web import analysis, export, geometry, hourly, model, plots, properties, report
 from ghe_web.properties import Property, SectionInput, Variant
