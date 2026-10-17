@@ -27,6 +27,7 @@ def _drop_stale_package():
 _drop_stale_package()
 
 from ghe_web import analysis, export, geometry, hourly, model, plots, properties, report
+from ghe_web.siteplan import page as siteplan_page
 from ghe_web.properties import Property, SectionInput, Variant
 from ghe_web.properties.load import MONTHS
 
@@ -47,6 +48,7 @@ STEPS = {"Site": "① Ground & borefield", "Borehole": "② Borehole & fluid", "
          "Design": "④ Limits & calculation"}
 MORE = "More inputs"
 RESULTS = "Results"
+SITE_PLAN = "⓪ Site plan"
 
 # Values the widgets start from: the defaults, or a project the user loaded.
 # Widget keys include a generation number, so loading a project rebuilds every widget.
@@ -57,6 +59,8 @@ project_name, start = st.session_state.project
 gen = st.session_state.generation
 if st.session_state.pop("goto_results", False):
     st.session_state.step = RESULTS
+if "goto_step" in st.session_state:
+    st.session_state.step = st.session_state.pop("goto_step")
 
 
 # ---------------------------------------------------------------- sidebar: save / load
@@ -266,8 +270,8 @@ def section_inputs(section) -> tuple[SectionInput, object]:
 grouped: dict[str, list] = {}
 for section in properties.sections():
     grouped.setdefault(STEPS.get(section.group, MORE), []).append(section)
-step_names = [s for s in list(STEPS.values()) + [MORE] if s in grouped] + [RESULTS]
-step_tabs = dict(zip(step_names, st.tabs(step_names, key="step", on_change="rerun")))
+step_names = [SITE_PLAN] + [s for s in list(STEPS.values()) + [MORE] if s in grouped] + [RESULTS]
+step_tabs = dict(zip(step_names, st.tabs(step_names, default=STEPS["Site"], key="step", on_change="rerun")))
 
 inputs: dict[str, SectionInput] = {}
 notes: dict[str, object] = {}
@@ -275,6 +279,9 @@ section_step: dict[str, str] = {}
 pending_drawings = []  # (where, section, variant), drawn once every section is read
 for step, sections in grouped.items():
     with step_tabs[step]:
+        if step == STEPS["Site"] and "site_plan_done" in st.session_state:
+            st.success(f"Borefield set to an irregular field with the {st.session_state.pop('site_plan_done')} "
+                       "positions from the site plan.", icon=":material/check_circle:")
         for section in sections:
             inputs[section.key], target = section_inputs(section)
             section_step[section.key] = step
@@ -294,6 +301,32 @@ for target, section_key, variant_key in pending_drawings:
         continue
     with target:
         show_drawing(cached_drawing(section_key, variant_key, current_json))
+
+
+def use_site_plan(points) -> None:
+    """Called from the site plan: the borefield becomes an irregular field with these positions."""
+    st.session_state.site_plan_points = points
+    st.rerun()
+
+
+if "site_plan_points" in st.session_state:
+    pts = st.session_state.pop("site_plan_points")
+    x0, y0 = min(x for x, _ in pts), min(y for _, y in pts)
+    borefield = inputs["borefield"]
+    values = dict(borefield.values) if borefield.variant == "custom" else \
+        {**properties.get("borefield").variant("custom").defaults(),
+         **{k: v for k, v in borefield.values.items() if k in ("H", "D", "r_b_mm")}}
+    values["points"] = tuple((round(x - x0, 2), round(y - y0, 2)) for x, y in pts)
+    st.session_state.project = (name, {**inputs, "borefield": SectionInput("custom", values)})
+    st.session_state.generation += 1
+    st.session_state.goto_step = STEPS["Site"]
+    st.session_state.site_plan_done = len(pts)
+    st.rerun()
+
+with step_tabs[SITE_PLAN]:
+    # Only drawn while open: the map and the data services are slow.
+    if st.session_state.get("step") == SITE_PLAN:
+        siteplan_page.page(use_site_plan)
 
 with save_slot:
     st.download_button("Save project", model.to_json(inputs, name).encode(),
