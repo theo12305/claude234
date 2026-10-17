@@ -47,7 +47,33 @@ def validate(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
         problems = section.variant(chosen.variant).validate(chosen.values)
         if problems:
             errors[section.key] = problems
+    if not errors:
+        for key, msg in _cross_errors(inputs):
+            errors.setdefault(key, []).append(msg)
     return errors
+
+
+def _cross_errors(inputs: dict[str, SectionInput]) -> list[tuple[str, str]]:
+    """Checks that need more than one section: the pipes have to fit in the borehole. GHEtool does not check
+    this and returns a borehole resistance that is too low when they don't."""
+    pipe, r_b = inputs["pipe"], inputs["borefield"].values.get("r_b_mm")
+    v = pipe.values
+    if r_b is None:
+        return []
+    if pipe.variant in ("single_u", "double_u"):
+        if v["D_s_mm"] + v["r_out_mm"] > r_b:
+            return [("pipe", f"The pipes stick out of the borehole: shank spacing + outer radius "
+                             f"({v['D_s_mm'] + v['r_out_mm']:g} mm) is more than the borehole radius ({r_b:g} mm).")]
+        # legs sit on a circle of radius D_s: two (single U) or four at 90° (double U)
+        gap = 2 * v["D_s_mm"] if pipe.variant == "single_u" else 2 ** 0.5 * v["D_s_mm"]
+        if gap < 2 * v["r_out_mm"]:
+            return [("pipe", f"The pipe legs overlap: increase the shank spacing to at least "
+                             f"{2 * v['r_out_mm'] / (2 if pipe.variant == 'single_u' else 2 ** 0.5):.1f} mm or "
+                             "use smaller pipes.")]
+    elif pipe.variant == "coaxial" and v["r_out_out_mm"] >= r_b:
+        return [("pipe", f"The outer pipe ({v['r_out_out_mm']:g} mm radius) does not fit in the borehole "
+                         f"({r_b:g} mm radius).")]
+    return []
 
 
 def _build(inputs: dict[str, SectionInput], key: str) -> Any:
@@ -125,6 +151,9 @@ class SizingResult:
     hourly_temperatures: pd.DataFrame | None = None  # only for hourly loads, index = hour of the simulation
     sizing_method: str = "monthly"  # "monthly", "hourly", or "check" when the length was given
     heat_pump: pd.DataFrame | None = None  # per year: electricity and seasonal performance (building loads only)
+    hourly_basis: bool = False  # True when the limits were checked hour by hour (L4); the monthly table is then
+    # only an approximation with block peaks, and the key results come from the hourly run
+    reynolds: float | None = None  # at the lowest fluid temperature of the run the limits were checked with
 
 
 def _optional(results, attr: str):
@@ -159,8 +188,11 @@ def temperature_table(borefield: Borefield) -> pd.DataFrame:
 def hourly_temperature_table(borefield: Borefield) -> pd.DataFrame:
     """Hourly temperatures of the last hourly calculation, indexed by hour of the simulation."""
     r = borefield.results
-    return pd.DataFrame({"Borehole wall": r.Tb, "Average fluid": r.Tf},
-                        index=pd.RangeIndex(1, len(r.Tf) + 1, name="Hour"))
+    columns = {"Borehole wall": r.Tb, "Average fluid": r.Tf}
+    inlet, outlet = _optional(r, "peak_extraction_inlet"), _optional(r, "peak_extraction_outlet")
+    if len(inlet) == len(r.Tf):  # hourly results have one inlet/outlet series (not per peak)
+        columns["Into borefield"], columns["Out of borefield"] = inlet, outlet
+    return pd.DataFrame(columns, index=pd.RangeIndex(1, len(r.Tf) + 1, name="Hour"))
 
 
 def size(inputs: dict[str, SectionInput]) -> SizingResult:
@@ -175,17 +207,30 @@ def size(inputs: dict[str, SectionInput]) -> SizingResult:
         length = borefield.size(L4_sizing=True) if hourly_sizing else borefield.size()
     n = borefield.number_of_boreholes
 
-    hourly_temps = heat_pump = None
+    hourly_temps = heat_pump = reynolds = None
     if is_hourly:
         borefield.calculate_temperatures(length, hourly=True)
         hourly_temps = hourly_temperature_table(borefield)
-        if hourly_sizing:  # electricity from the same (hourly) temperatures the sizing used
+        if hourly_sizing:  # electricity and Re from the same (hourly) temperatures the sizing used
             heat_pump = heat_pump_table(borefield.load)
+            reynolds = _reynolds(borefield)
     borefield.calculate_temperatures(length)
     if heat_pump is None:
         heat_pump = heat_pump_table(borefield.load)
+    if reynolds is None:
+        reynolds = _reynolds(borefield)
     return SizingResult(length, n, length * n, borefield.Rb, borefield, temperature_table(borefield),
-                        hourly_temps, "check" if check_only else "hourly" if hourly_sizing else "monthly", heat_pump)
+                        hourly_temps, "check" if check_only else "hourly" if hourly_sizing else "monthly", heat_pump,
+                        hourly_basis=bool(hourly_sizing), reynolds=reynolds)
+
+
+def _reynolds(borefield: Borefield) -> float | None:
+    if borefield.borehole.use_constant_Rb:
+        return None
+    try:
+        return float(borefield.Re)  # GHEtool evaluates it at the lowest fluid temperature, the worst case
+    except Exception:
+        return None
 
 
 def heat_pump_table(load) -> pd.DataFrame | None:

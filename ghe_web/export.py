@@ -109,12 +109,13 @@ def excel_workbook(result: model.SizingResult, inputs: dict[str, SectionInput], 
 
 
 def zip_bundle(result: model.SizingResult, inputs: dict[str, SectionInput], name: str = "",
-               extra: dict[str, pd.DataFrame] | None = None) -> bytes:
+               extra: dict[str, pd.DataFrame] | None = None, report_options: report.ReportOptions | None = None,
+               report_extras: dict | None = None) -> bytes:
     """Workbook, PDF report and the project file, so a design can be archived or shared in one file."""
     stem = name.strip() or "ghetool-project"
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(f"{stem}.xlsx", excel_workbook(result, inputs, name, extra))
-        z.writestr(f"{stem}.pdf", report.make_pdf(result, inputs, name))
+        z.writestr(f"{stem}.pdf", report.make_pdf(result, inputs, name, report_options, report_extras))
         z.writestr(f"{stem}.json", model.to_json(inputs, name))
     return buf.getvalue()

@@ -44,7 +44,7 @@ table.keys .note {font-size: 0.78rem; opacity: 0.65; line-height: 1.25;}
 # Input steps, in page order. A section with an unknown group lands in "More inputs", so new
 # sections show up without changes here.
 STEPS = {"Site": "① Ground & borefield", "Borehole": "② Borehole & fluid", "Loads": "③ Loads",
-         "Design": "④ Limits & costs"}
+         "Design": "④ Limits & calculation"}
 MORE = "More inputs"
 RESULTS = "Results"
 
@@ -319,6 +319,16 @@ def cached_optimisation(project_json: str, *limits) -> pd.DataFrame:
     return analysis.optimise_layout(model.from_json(project_json)[1], *limits)
 
 
+@st.cache_resource(max_entries=8, show_spinner=False)
+def cached_load_optimisation(project_json: str, objective: str) -> dict | None:
+    return analysis.load_optimisation(cached_size(project_json), objective)
+
+
+@st.cache_resource(max_entries=8, show_spinner=False)
+def cached_ground_map(project_json: str) -> dict | None:
+    return analysis.ground_temperature_map(cached_size(project_json))
+
+
 mode_check = inputs["calculation"].variant == "check"
 action = "Check temperatures" if mode_check else "Size borefield"
 
@@ -380,11 +390,23 @@ def extra_tables(sized_json: str) -> dict[str, pd.DataFrame]:
         extra["Variant comparison"] = pd.DataFrame(st.session_state.kept)
     if st.session_state.get("optimised_json") == sized_json and "optimised" in st.session_state:
         extra["Layout optimisation"] = st.session_state.optimised
+    opt = load_optimisation_done(sized_json)
+    if opt is not None:
+        extra["Load optimisation monthly"] = opt["monthly"].round(3)
+        extra["Load optimisation yearly"] = opt["yearly"].round(3)
     return extra
 
 
+def load_optimisation_done(sized_json: str) -> dict | None:
+    """The load optimisation the user ran for this result, if any."""
+    ran = st.session_state.get("load_opt")
+    if ran and ran[0] == sized_json:
+        return cached_load_optimisation(sized_json, ran[1])
+    return None
+
+
 def view_overview(result, key, limits) -> None:
-    if result.hourly_temperatures is not None:  # the hourly result is what the sizing used
+    if result.hourly_basis:  # the hourly result is what the limits were checked against
         st.altair_chart(plots.hourly_band_chart(result.hourly_temperatures, limits), width="stretch")
         st.caption("Daily range of the hourly average fluid temperature. Dashed: your limits.")
     else:
@@ -406,6 +428,9 @@ def view_overview(result, key, limits) -> None:
 
 
 def view_temperatures(result, limits) -> None:
+    if result.hourly_basis:
+        st.info("These are the monthly temperatures with block peaks, shown for comparison. The sizing checked the "
+                "limits hour by hour: see **Hourly** for those temperatures.", icon=":material/info:")
     choice = st.segmented_control("Chart", ["Over the years", "Last year", "Yearly min/max", "Table"],
                                   default="Over the years", required=True, key="temp_view")
     if choice == "Over the years":
@@ -430,7 +455,99 @@ def view_energy(result, key) -> None:
     c1.metric("Taken from the ground", f"{key.values['extraction_mwh']:,.0f} MWh/yr")
     c2.metric("Put into the ground", f"{key.values['injection_mwh']:,.0f} MWh/yr")
     c3.metric("Imbalance", f"{key.values['imbalance_mwh']:+,.0f} MWh/yr")
+    duration = analysis.load_duration(result)
+    if duration is not None:
+        st.altair_chart(plots.load_duration_chart(duration), width="stretch")
+        st.caption("Each load sorted from its highest hour to its lowest. Solid: building demand. Dashed: what the "
+                   "ground sees after the heat pump. The area under a curve is the energy per year.")
 
+
+def view_hydraulics(result, key) -> None:
+    if result.reynolds is None:
+        st.info("With a measured borehole resistance (TRT) the pipe and flow are not known, so there are no "
+                "hydraulic results.", icon=":material/info:")
+        return
+    v = key.values
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Borehole resistance Rb", f"{result.borehole_resistance:.3f} m·K/W")
+    regime = "laminar" if v["Re"] < analysis.LAMINAR_RE else "transitional" if v["Re"] < 4000 else "turbulent"
+    c2.metric("Reynolds number", f"{v['Re']:,.0f}", regime, delta_color="off", delta_arrow="off")
+    if "dp_kpa" in v:
+        c3.metric("Pressure drop per borehole", f"{v['dp_kpa']:.1f} kPa")
+        c4.metric("Pump power", f"{v['pump_electric_w']:,.0f} W", f"{v['pump_mwh']:,.1f} MWh per year",
+                  delta_color="off", delta_arrow="off")
+        curve = analysis.pressure_drop_curve(result, v["t_min"])
+        if curve is not None:
+            bf = result.borefield
+            flow = float(bf.borehole.flow_data.vfr_borehole(fluid_data=bf.borehole.fluid_data,
+                                                             temperature=v["t_min"]))
+            st.altair_chart(plots.pressure_drop_chart(curve, flow, v["dp_kpa"]), width="stretch")
+            st.caption("At the coldest fluid temperature, where the fluid is most viscous. The probe only: add the "
+                       "manifold, header pipes and heat pump evaporator for the pump. The kink is where the flow "
+                       "turns turbulent.")
+    st.caption("Pump energy = hydraulic power ÷ pump efficiency × running hours, both set under Flow rate in step ②.")
+
+
+def view_ground(result, sized_json) -> None:
+    with st.spinner("Calculating the ground temperature around the field..."):
+        m = cached_ground_map(sized_json)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Undisturbed ground", f"{m['t_ground']:.1f} °C")
+    c2.metric("Net heat flow into the ground", f"{m['q_w_per_m']:+.2f} W/m", "yearly average per metre of borehole",
+              delta_color="off", delta_arrow="off")
+    c3.metric("Largest change", f"{m['max_change']:.1f} K", f"after {m['years']} years",
+              delta_color="off", delta_arrow="off")
+    left, right = st.columns([3, 2])
+    with left:
+        st.altair_chart(plots.ground_map_chart(m), width="stretch")
+    with right:
+        st.caption("How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end "
+                   "of the simulation, halfway down the boreholes. Each dot is a borehole. Boreholes in the middle "
+                   "change most because their neighbours add up. The seasonal swing on top of this averages out "
+                   "over a year and is left out.")
+        st.caption("Calculated with the finite line source (uniform heat flow per metre, with the mirror image at "
+                   "the surface), which is also the basis of the g-function.")
+    with st.expander("g-function (for specialists)", icon=":material/show_chart:"):
+        st.caption("The dimensionless step response of the field. Its rise at large times shows how strongly the "
+                   "boreholes influence each other.")
+        st.altair_chart(plots.gfunction_chart(analysis.gfunction_curve(result)), width="stretch")
+
+
+def view_load_optimisation(result, sized_json) -> None:
+    st.caption("Keeps the borefield as designed and works out how much of the hourly building demand it can take "
+               "within the temperature limits. The rest comes from a backup boiler, gas or electric, or a chiller "
+               "(a hybrid system). This answers: how far does a smaller or cheaper field get me?")
+    names = analysis.OBJECTIVES
+    with st.form("load_opt_form"):
+        objective = st.radio("Optimise for", list(names), format_func=names.get, horizontal=True,
+                             captions=["the largest share of the peak power", "the most energy, month by month",
+                                       "the most power with no long-term imbalance (slow, 2 to 3 minutes)"])
+        go = st.form_submit_button("Optimise the load", icon=":material/tune:", type="primary")
+    if go:
+        with st.spinner("Optimising the load split..."):
+            try:
+                cached_load_optimisation(sized_json, objective)
+                st.session_state.load_opt = (sized_json, objective)
+            except Exception as exc:
+                st.error(f"The optimisation failed: {exc}")
+    opt = load_optimisation_done(sized_json)
+    if opt is None:
+        return
+    st.markdown(f"**Result: {names[opt['objective']].lower()}**")
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Heating covered by the ground", f"{opt['heating_share']:.1%}")
+    k2.metric("Cooling covered by the ground", f"{opt['cooling_share']:.1%}")
+    k3.metric("Backup heating", f"{opt['backup_heating_kw']:,.0f} kW", f"{opt['backup_heating_mwh']:,.1f} MWh per year",
+              delta_color="off", delta_arrow="off")
+    k4.metric("Backup cooling", f"{opt['backup_cooling_kw']:,.0f} kW", f"{opt['backup_cooling_mwh']:,.1f} MWh per year",
+              delta_color="off", delta_arrow="off")
+    st.altair_chart(plots.optimisation_chart(opt["monthly"]), width="stretch")
+    st.caption(f"Peak power taken by the ground: heating {opt['ground_peak_heating_kw']:,.0f} kW, cooling "
+               f"{opt['ground_peak_cooling_kw']:,.0f} kW (building side).")
+    stem = name.strip() or "ghetool-project"
+    st.download_button("Download the optimised load, first year hourly (CSV)",
+                       lambda: opt["first_year"].round(3).to_csv().encode(), f"{stem}_optimised_load.csv",
+                       "text/csv", icon=":material/download:", on_click="ignore")
 
 def view_hourly(result, limits) -> None:
     choice = st.segmented_control("Chart", ["Daily range", "Last year", "Heat map"], default="Daily range",
@@ -502,19 +619,12 @@ def view_analysis(result, key, sized_json, sized_inputs) -> None:
                    "Lowest temp. [°C]": round(key.values["t_min"], 2),
                    "Highest temp. [°C]": round(key.values["t_max"], 2),
                    "Rb [m·K/W]": round(result.borehole_resistance, 3)}
-            if "cost" in key.values:
-                row["Investment [€]"] = round(key.values["cost"])
             st.session_state.setdefault("kept", []).append(row)
         kept = st.session_state.get("kept", [])
         if kept:
             table = pd.DataFrame(kept)
             st.dataframe(table, hide_index=True, width="stretch")
-            ch1, ch2 = st.columns(2)
-            with ch1:
-                st.altair_chart(plots.comparison_chart(table, "Total length [m]", "Total length [m]"), width="stretch")
-            if "Investment [€]" in table:
-                with ch2:
-                    st.altair_chart(plots.comparison_chart(table, "Investment [€]", "Investment [€]"), width="stretch")
+            st.altair_chart(plots.comparison_chart(table, "Total length [m]", "Total length [m]"), width="stretch")
             if st.button("Clear comparison"):
                 st.session_state.kept = []
                 st.rerun()
@@ -544,28 +654,31 @@ def view_analysis(result, key, sized_json, sized_inputs) -> None:
         if st.session_state.get("optimised_json") == sized_json and "optimised" in st.session_state:
             st.dataframe(st.session_state.optimised.round(1), hide_index=True, width="stretch")
 
-    if sized_inputs["load"].variant == "hourly_building":
-        with st.expander("Hybrid system: how much this field can cover", icon=":material/call_split:"):
-            st.caption("Keeps the current borefield and finds the largest share of the hourly demand it can take "
-                       "within the temperature limits; the rest comes from a backup boiler or chiller.")
-            if st.button("Calculate hybrid share"):
-                with st.spinner("Optimising the load split..."):
-                    try:
-                        st.session_state.hybrid = (sized_json, analysis.hybrid_share(result, sized_inputs))
-                    except Exception as exc:
-                        st.error(f"Calculation failed: {exc}")
-            if st.session_state.get("hybrid", (None,))[0] == sized_json:
-                h = st.session_state.hybrid[1]
-                k1, k2, k3, k4 = st.columns(4)
-                k1.metric("Heating covered by the ground", f"{h['heating_share']:.1%}")
-                k2.metric("Cooling covered by the ground", f"{h['cooling_share']:.1%}")
-                k3.metric("Backup heating needed", f"{h['backup_heating_kw']:,.0f} kW")
-                k4.metric("Backup cooling needed", f"{h['backup_cooling_kw']:,.0f} kW")
 
-    with st.expander("g-function (for specialists)", icon=":material/show_chart:"):
-        st.caption("The dimensionless step response of the field. Its rise at large times shows how strongly the "
-                   "boreholes influence each other.")
-        st.altair_chart(plots.gfunction_chart(analysis.gfunction_curve(result)), width="stretch")
+def report_settings(sized_json: str, stem: str) -> tuple[report.ReportOptions, dict]:
+    """Report settings in an expander. Text fields keep their values while the page is open."""
+    with st.expander("Report settings: type, title, company, client, logo, introduction and conclusion",
+                     icon=":material/edit_document:"):
+        kind = st.radio("Report type", ["full", "summary"], horizontal=True, key="rep_kind",
+                        format_func={"full": "Full report", "summary": "One-page summary"}.get)
+        c1, c2 = st.columns(2)
+        title = c1.text_input("Title", key="rep_title", placeholder=stem)
+        subtitle = c2.text_input("Subtitle", key="rep_subtitle", placeholder="e.g. Borefield sizing, design phase")
+        author = c1.text_input("Author", key="rep_author")
+        company = c2.text_input("Company", key="rep_company")
+        client = c1.text_input("Client", key="rep_client")
+        logo = c2.file_uploader("Logo (PNG or JPEG)", type=["png", "jpg", "jpeg"], key="rep_logo")
+        intro = st.text_area("Introduction", key="rep_intro", height=90,
+                             placeholder="Project background, scope of the calculation...")
+        conclusion = st.text_area("Conclusion", key="rep_conclusion", height=90)
+        include_map = st.checkbox("Include the ground temperature map", value=True, key="rep_map")
+    options = report.ReportOptions(kind=kind, title=title, subtitle=subtitle, author=author, company=company,
+                                   client=client, introduction=intro, conclusion=conclusion,
+                                   logo=logo.getvalue() if logo else None)
+    extras = {"load_optimisation": load_optimisation_done(sized_json)}
+    if include_map:
+        extras["ground_map"] = cached_ground_map(sized_json)
+    return options, extras
 
 
 def view_export(result, sized_inputs, sized_json) -> None:
@@ -583,14 +696,18 @@ def view_export(result, sized_inputs, sized_json) -> None:
                            type="primary", icon=":material/table_view:", on_click="ignore")
     with c2, st.container(border=True):
         st.markdown("**PDF report**")
-        st.caption("Inputs, drawings, key results and the main charts, ready to send.")
-        st.download_button("Download PDF", lambda: report.make_pdf(result, sized_inputs, name), f"{stem}.pdf",
-                           "application/pdf", type="primary", icon=":material/picture_as_pdf:", on_click="ignore")
+        st.caption("Full report: cover page, results, inputs, drawings and all charts. One-page summary: the "
+                   "design, key results and the temperature chart. Fill in the report settings below first.")
+        st.download_button("Download PDF",
+                           lambda: report.make_pdf(result, sized_inputs, name, options, report_extras),
+                           f"{stem}.pdf", "application/pdf", type="primary", icon=":material/picture_as_pdf:",
+                           on_click="ignore")
     c3, c4 = st.columns(2)
     with c3, st.container(border=True):
         st.markdown("**Everything in one zip**")
         st.caption("Excel workbook, PDF report and the project file, for archiving a design.")
-        st.download_button("Download zip", lambda: export.zip_bundle(result, sized_inputs, name, extra),
+        st.download_button("Download zip", lambda: export.zip_bundle(result, sized_inputs, name, extra, options,
+                                                                     report_extras),
                            f"{stem}.zip", "application/zip", icon=":material/folder_zip:", on_click="ignore")
     with c4, st.container(border=True):
         st.markdown("**CSV files**")
@@ -602,6 +719,8 @@ def view_export(result, sized_inputs, sized_json) -> None:
             st.download_button("Hourly temperatures (CSV)",
                                lambda: result.hourly_temperatures.round(3).to_csv().encode(),
                                f"{stem}_hourly.csv", "text/csv", icon=":material/download:", on_click="ignore")
+    # read when a download button is clicked, so it can come after the buttons on the page
+    options, report_extras = report_settings(sized_json, stem)
 
 
 with step_tabs[RESULTS]:
@@ -646,9 +765,8 @@ with step_tabs[RESULTS]:
             else:
                 col.metric(label, f"{temp:.1f} °C", f"{margin:+.1f} K margin" if margin > 0 else
                            f"{-margin:.1f} K beyond the limit", delta_color="normal" if margin > 0 else "inverse")
-        if "cost" in key.values:
-            c5.metric("Estimated investment", f"€ {key.values['cost']:,.0f}",
-                      f"€ {key.values['cost'] / result.total_length:.0f}/m", delta_color="off", delta_arrow="off")
+        c5.metric("Borehole resistance", f"{result.borehole_resistance:.3f} m·K/W", "effective Rb",
+                  delta_color="off", delta_arrow="off")
         for w in key.warnings:
             st.warning(w, icon=":material/warning:")
 
@@ -657,6 +775,9 @@ with step_tabs[RESULTS]:
             views.append("Hourly")
         if result.heat_pump is not None:
             views.append("Heat pump")
+        views += ["Hydraulics", "Ground"]
+        if sized_inputs["load"].variant == "hourly_building":
+            views.append("Load optimisation")
         views += ["Further analysis", "Export"]
         # Only the chosen view is drawn, so large hourly charts are not sent to the browser on every click.
         view = st.segmented_control("View", views, default="Overview", required=True, key="result_view",
@@ -671,6 +792,12 @@ with step_tabs[RESULTS]:
             view_hourly(result, limits)
         elif view == "Heat pump":
             view_heat_pump(result, key, sized_inputs)
+        elif view == "Hydraulics":
+            view_hydraulics(result, key)
+        elif view == "Ground":
+            view_ground(result, sized_json)
+        elif view == "Load optimisation":
+            view_load_optimisation(result, sized_json)
         elif view == "Further analysis":
             view_analysis(result, key, sized_json, sized_inputs)
         else:

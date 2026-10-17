@@ -8,7 +8,7 @@ from .registry import register
 def _concentration_ok(v):
     low, high = FLUIDS[v["name"]]
     if v["name"] != "Water" and not low <= v["percentage"] <= high:
-        return f"GHEtool has data for {v['name']} between {low} and {high} %."
+        return f"GHEtool has data for {v['name']} between {low} and {high} % by mass."
 
 
 def _build(v):
@@ -28,7 +28,9 @@ register(Section(
                 Property("name", "Fluid", "MPG", kind="choice", options=tuple(FLUIDS),
                          help="MPG = propylene glycol, MEG = ethylene glycol, MEA = ethanol, MMA = methanol. "
                               "The others are commercial products."),
-                Property("percentage", "Antifreeze share", 25.0, "% (mass)", min=0.0, max=65.0, step=1.0),
+                Property("percentage", "Antifreeze share", 25.0, "% (mass)", min=0.0, max=75.0, step=1.0,
+                         help="Share of antifreeze by mass. GHEtool converts it to volume for the commercial "
+                              "products, whose data sheets give volume percentages."),
             ),
             checks=(_concentration_ok,),
             build=_build,

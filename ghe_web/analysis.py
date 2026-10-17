@@ -1,4 +1,4 @@
-"""Post-processing of a calculated borefield: key results, hydraulics, costs, sensitivity, optimisation.
+"""Post-processing of a calculated borefield: key results, hydraulics, sensitivity, optimisation.
 
 No Streamlit code here, so everything can be tested and reused on its own.
 """
@@ -12,9 +12,10 @@ import pandas as pd
 
 from . import model, properties
 from .properties import SectionInput
-from .properties.load import MONTHS
+from .properties.load import HOURS_PER_MONTH, MONTHS
 
 LAMINAR_RE = 2300
+MONTH_END_HOURS = np.cumsum(HOURS_PER_MONTH)  # hour of the year at which each month ends
 
 
 @dataclass
@@ -33,7 +34,7 @@ class KeyResults:
 
 def _when(index: int, per_year: int) -> str:
     year, rest = divmod(index, per_year)
-    month = rest if per_year == 12 else min(rest // 730, 11)
+    month = rest if per_year == 12 else int(np.searchsorted(MONTH_END_HOURS, rest, side="right"))
     return f"{MONTHS[month]}, year {year + 1}"
 
 
@@ -48,7 +49,7 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
         rows.append((label, value, note))
 
     temps = "Temperatures"
-    if result.hourly_temperatures is not None:
+    if result.hourly_basis:
         tf = result.hourly_temperatures["Average fluid"].to_numpy()
         tf_min_series = tf_max_series = tf
         per_year = 8760
@@ -90,9 +91,15 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
             "a large drift means the ground is out of balance")
 
     res = bf.results
-    if not bf.borehole.use_constant_Rb and len(model._optional(res, "peak_extraction_inlet")):
+    if result.hourly_basis and "Into borefield" in result.hourly_temperatures:
+        inlet = result.hourly_temperatures["Into borefield"]
+        t_in_min, t_in_max = float(inlet.min()), float(inlet.max())
+    elif not bf.borehole.use_constant_Rb and len(model._optional(res, "peak_extraction_inlet")):
         t_in_min = float(np.min(res.peak_extraction_inlet))
         t_in_max = float(np.max(res.peak_injection_inlet))
+    else:
+        t_in_min = t_in_max = None
+    if t_in_min is not None:
         vals.update(t_inlet_min=t_in_min, t_inlet_max=t_in_max)
         add(temps, "Coldest fluid into the borefield", f"{t_in_min:.2f} °C",
             "supply from the heat pump at peak heating")
@@ -108,7 +115,8 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
     imbalance = injection - extraction
     vals.update(extraction_mwh=extraction, injection_mwh=injection, imbalance_mwh=imbalance)
     add(energy, "Ground energy per year", f"{extraction:,.0f} MWh out, {injection:,.0f} MWh in",
-        "after heat pump efficiency")
+        "after heat pump efficiency" if hasattr(load, "yearly_electricity_consumption_heating") else
+        "as entered (ground side)")
     add(energy, "Yearly imbalance", f"{imbalance:+,.0f} MWh",
         "positive: the ground warms up over the years; negative: it cools down")
 
@@ -123,15 +131,15 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
     if peak_ext > 0:
         flh = extraction * 1000 / peak_ext
         vals["full_load_hours"] = flh
-        add(energy, "Full-load hours, heating", f"{flh:,.0f} h per year",
-            "VDI 4640 W/m values assume 1800 h (heating only) or 2400 h (with hot water)")
+        add(energy, "Full-load hours, heating" + (" and hot water" if _has_dhw(load) else ""),
+            f"{flh:,.0f} h per year", "VDI 4640 W/m values assume 1800 h (heating only) or 2400 h (with hot water)")
 
     hyd_group = "Borehole and hydraulics"
     add(hyd_group, "Borehole thermal resistance", f"{result.borehole_resistance:.3f} m·K/W",
         "measured value" if bf.borehole.use_constant_Rb else "calculated from pipe, grout and flow")
     vals["Rb"] = result.borehole_resistance
-    if not bf.borehole.use_constant_Rb:
-        re = float(bf.Re)  # GHEtool evaluates it at the lowest fluid temperature, the worst case
+    if result.reynolds is not None:
+        re = result.reynolds
         vals["Re"] = re
         regime = "laminar" if re < LAMINAR_RE else "transitional" if re < 4000 else "turbulent"
         add(hyd_group, "Reynolds number", f"{re:,.0f} ({regime})",
@@ -144,8 +152,10 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
             vals.update(hyd)
             add(hyd_group, "Pressure drop per borehole", f"{hyd['dp_kpa']:.1f} kPa",
                 "at the coldest fluid (highest viscosity); probe only, without manifold and header pipes")
-            add(hyd_group, "Hydraulic pump power", f"{hyd['pump_w']:,.0f} W",
-                "whole field at the pressure drop above; electrical power is about twice this")
+            add(hyd_group, "Pump power", f"{hyd['pump_electric_w']:,.0f} W electrical",
+                f"{hyd['pump_w']:,.0f} W hydraulic for the whole field, at {hyd['pump_efficiency']:.0%} pump efficiency")
+            add(hyd_group, "Pump energy per year", f"{hyd['pump_mwh']:,.1f} MWh",
+                f"at {hyd['pump_hours']:,.0f} running hours; probe pressure drop only")
 
     hp = result.heat_pump
     if hp is not None:
@@ -168,14 +178,17 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
         elec = hp[["Electricity heating [MWh]", "Electricity cooling [MWh]", "Electricity hot water [MWh]"]]
         total = float(elec.sum(axis=1).mean())
         vals["electricity_mwh"] = total
-        parts = ", ".join(f"{name.split()[1]} {elec[name].mean():,.1f}" for name in elec if elec[name].mean() > 0)
+        short = {"Electricity heating [MWh]": "heating", "Electricity cooling [MWh]": "cooling",
+                 "Electricity hot water [MWh]": "hot water"}
+        parts = ", ".join(f"{short[name]} {elec[name].mean():,.1f}" for name in elec if elec[name].mean() > 0)
         add(group, "Heat pump electricity per year", f"{total:,.1f} MWh", parts + " MWh (average over the years)")
 
-    cost = investment(result, inputs)
-    if cost is not None:
-        vals["cost"] = cost
-        add("Cost", "Estimated investment", f"€ {cost:,.0f}", f"€ {cost / total:.0f} per metre drilled")
     return KeyResults(rows, warns, vals, groups)
+
+
+def _has_dhw(load) -> bool:
+    dhw = getattr(load, "monthly_baseload_dhw", None)
+    return dhw is not None and float(np.sum(dhw)) > 0
 
 
 def _cop_curve(load):
@@ -185,42 +198,50 @@ def _cop_curve(load):
     return cop if isinstance(cop, COP) else None
 
 
+def _pressure_drop(result: model.SizingResult):
+    """GHEtool's pressure drop model for one borehole (no header pipes), or None for a measured Rb."""
+    from GHEtool.VariableClasses.PipeData.PressureDrop import PressureDrop
+    bf = result.borefield
+    if bf.borehole.use_constant_Rb:
+        return None
+    return PressureDrop(bf.borehole.pipe_data, bf.borehole.fluid_data, bf.borehole.flow_data,
+                        minor_losses_borehole=0, borehole_length=result.borehole_length,
+                        r_in_lateral=0.02, distance_lateral=0, minor_losses_lateral=0,
+                        r_in_main=0.05, distance_main=0, minor_losses_main=0,
+                        nb_of_boreholes=result.number_of_boreholes, series_factor=1, tichelmann_factor=1)
+
+
 def hydraulics(result: model.SizingResult, inputs: dict[str, SectionInput],
                temperature: float | None = None) -> dict[str, float] | None:
     """Pressure drop in one borehole and the hydraulic power to pump the whole field.
 
     Evaluated at the given fluid temperature (default: the mean base-load temperature)."""
-    from GHEtool.VariableClasses.PipeData.PressureDrop import PressureDrop
     bf = result.borefield
+    drop = _pressure_drop(result)
+    if drop is None:
+        return None
     try:
         if temperature is None:
             temperature = float(np.mean(result.temperatures["Average fluid (base load)"]))
-        drop = PressureDrop(bf.borehole.pipe_data, bf.borehole.fluid_data, bf.borehole.flow_data,
-                            minor_losses_borehole=0, borehole_length=result.borehole_length,
-                            r_in_lateral=0.02, distance_lateral=0, minor_losses_lateral=0,
-                            r_in_main=0.05, distance_main=0, minor_losses_main=0,
-                            nb_of_boreholes=result.number_of_boreholes, series_factor=1, tichelmann_factor=1)
         dp_kpa = float(drop.calculate_pressure_drop_borehole(temperature=temperature))
         rho = float(bf.borehole.fluid_data.rho(temperature=temperature))
         mfr = float(bf.borehole.flow_data.mfr_borehole(fluid_data=bf.borehole.fluid_data, temperature=temperature))
     except Exception:  # not every pipe/flow combination supports this; the rest of the results still stand
         return None
     flow_m3s = mfr / rho * result.number_of_boreholes
-    return {"dp_kpa": dp_kpa, "pump_w": dp_kpa * 1000 * flow_m3s}
-
-
-def investment(result: model.SizingResult, inputs: dict[str, SectionInput]) -> float | None:
-    if "costs" not in inputs:
-        return None
-    c = inputs["costs"].values
-    return c["drilling_per_m"] * result.total_length + c["per_borehole"] * result.number_of_boreholes + c["fixed"]
+    pump_w = dp_kpa * 1000 * flow_m3s
+    flow = inputs["flow"].values
+    efficiency = flow.get("pump_efficiency", 35.0) / 100
+    hours = flow.get("pump_hours", 4000.0)
+    return {"dp_kpa": dp_kpa, "pump_w": pump_w, "pump_efficiency": efficiency, "pump_electric_w": pump_w / efficiency,
+            "pump_hours": hours, "pump_mwh": pump_w / efficiency * hours / 1e6}
 
 
 # ---------------------------------------------------------------- tables for graphs
 
 def yearly_extremes(result: model.SizingResult) -> pd.DataFrame:
     """Lowest and highest average fluid temperature of every simulated year."""
-    if result.hourly_temperatures is not None:
+    if result.hourly_basis:
         tf = result.hourly_temperatures["Average fluid"].to_numpy()
         years = tf.reshape(-1, 8760)
         low, high = years.min(axis=1), years.max(axis=1)
@@ -315,7 +336,6 @@ def optimise_layout(inputs: dict[str, SectionInput], length_max: float, width_ma
         bf, l_1_max=length_max, l_2_max=width_max, b_min=spacing_min, b_max=spacing_max, b_step=0.5,
         h_min=depth_min, h_max=depth_max, nb_of_trials=trials, size_L3=True)
     names = {0: "L-shape", 1: "U-shape", 2: "Box", 3: "Rectangle", 4: "Staggered"}
-    costs = inputs.get("costs")
     rows = []
     for total, params, n, _ in solutions[:10]:
         n_1, n_2, b_1 = params["n_1"], params["n_2"], params["b_1"]
@@ -323,27 +343,151 @@ def optimise_layout(inputs: dict[str, SectionInput], length_max: float, width_ma
         shape = params.get("type", params.get("shape"))
         row = {"Layout": names.get(shape, str(shape)), "Boreholes": int(n), "Grid": f"{n_1} × {n_2}",
                "Spacing [m]": f"{b_1} × {b_2}", "Length each [m]": total / n, "Total length [m]": total}
-        if costs:
-            c = costs.values
-            row["Investment [€]"] = c["drilling_per_m"] * total + c["per_borehole"] * n + c["fixed"]
         rows.append(row)
     return pd.DataFrame(rows)
 
 
-def hybrid_share(result: model.SizingResult, inputs: dict[str, SectionInput]) -> dict[str, float] | None:
-    """For an hourly building load: how much of the demand this field can cover, the rest by backup."""
-    from GHEtool.Methods import optimise_load_profile_power
+OBJECTIVES = {
+    "power": "Most geothermal power",
+    "energy": "Most geothermal energy",
+    "balance": "Balanced ground",
+}
+
+
+def _hourly_period(load, name: str) -> np.ndarray:
+    """Hourly values over the whole simulation period, for single-year and multi-year loads alike."""
+    arr = getattr(load, f"hourly_{name}_load_simulation_period", None)
+    if arr is None:
+        arr = np.tile(getattr(load, f"hourly_{name}_load"), load.simulation_period)
+    return np.asarray(arr, dtype=float)
+
+
+def load_optimisation(result: model.SizingResult, objective: str = "power") -> dict | None:
+    """Keeps the borefield as designed and splits the hourly building demand into the part the ground can take
+    within the temperature limits and the rest for a boiler or chiller (GHEtool's load optimisation).
+
+    power: the largest constant share of the peaks; energy: the most energy, month by month;
+    balance: the most power while keeping the ground in balance over the years."""
     from GHEtool import HourlyBuildingLoad
+    from GHEtool.Methods import (optimise_load_profile_balance, optimise_load_profile_energy,
+                                 optimise_load_profile_power)
+    from GHEtool.VariableClasses import HourlyBuildingLoadMultiYear
     load = result.borefield.load
-    if not isinstance(load, HourlyBuildingLoad):
+    if not isinstance(load, (HourlyBuildingLoad, HourlyBuildingLoadMultiYear)):
         return None
     bf = copy.deepcopy(result.borefield)
-    ground, external = optimise_load_profile_power(bf, load, use_hourly_resolution=False)
-    heat_total = float(np.sum(load.hourly_heating_load))
-    cool_total = float(np.sum(load.hourly_cooling_load))
+    if objective == "power":
+        ground, external = optimise_load_profile_power(bf, load, use_hourly_resolution=False)
+    elif objective == "energy":
+        ground, external = optimise_load_profile_energy(bf, load)
+    elif objective == "balance":
+        ground, external = optimise_load_profile_balance(bf, load, use_hourly_resolution=False)
+    else:
+        raise ValueError(f"Unknown objective {objective!r}")
+
+    years = load.simulation_period
+    series = {}
+    for who, obj in (("Building", load), ("Ground", ground), ("External", external)):
+        for kind in ("heating", "cooling"):
+            series[f"{who} {kind}"] = _hourly_period(obj, kind)
+    hours = np.concatenate(([0], MONTH_END_HOURS))
+
+    def monthly(arr):  # average year, MWh per month
+        per_year = arr.reshape(years, 8760)
+        return np.array([per_year[:, a:b].sum() for a, b in zip(hours[:-1], hours[1:])]) / years / 1000
+
+    month_table = pd.DataFrame({"Month": MONTHS} | {f"{k} [MWh]": monthly(v) for k, v in series.items()})
+    yearly = pd.DataFrame({"Year": np.arange(1, years + 1)} | {
+        f"{k} [MWh]": v.reshape(years, 8760).sum(axis=1) / 1000 for k, v in series.items()})
+    first_year = pd.DataFrame({f"{k} [kW]": v[:8760] for k, v in series.items()},
+                              index=pd.RangeIndex(1, 8761, name="Hour"))
+
+    def share(kind):
+        total = series[f"Building {kind}"].sum()
+        return float(series[f"Ground {kind}"].sum() / total) if total else 1.0
+
     return {
-        "heating_share": float(np.sum(ground.hourly_heating_load)) / heat_total if heat_total else 1.0,
-        "cooling_share": float(np.sum(ground.hourly_cooling_load)) / cool_total if cool_total else 1.0,
-        "backup_heating_kw": float(np.max(external.hourly_heating_load)),
-        "backup_cooling_kw": float(np.max(external.hourly_cooling_load)),
+        "objective": objective,
+        "heating_share": share("heating"), "cooling_share": share("cooling"),
+        "ground_peak_heating_kw": float(series["Ground heating"].max()),
+        "ground_peak_cooling_kw": float(series["Ground cooling"].max()),
+        "backup_heating_kw": float(series["External heating"].max()),
+        "backup_cooling_kw": float(series["External cooling"].max()),
+        "backup_heating_mwh": float(series["External heating"].sum() / years / 1000),
+        "backup_cooling_mwh": float(series["External cooling"].sum() / years / 1000),
+        "monthly": month_table, "yearly": yearly, "first_year": first_year,
     }
+
+
+def load_duration(result: model.SizingResult) -> pd.DataFrame | None:
+    """Hourly building and ground loads of the first year, each sorted from high to low."""
+    load = result.borefield.load
+    if not hasattr(load, "hourly_heating_load"):
+        return None
+    out = {"Hours": np.arange(1, 8761)}
+    out["Heating demand"] = np.sort(np.asarray(load.hourly_heating_load, dtype=float))[::-1]
+    out["Cooling demand"] = np.sort(np.asarray(load.hourly_cooling_load, dtype=float))[::-1]
+    for name in ("extraction", "injection"):
+        arr = getattr(load, f"hourly_{name}_load_simulation_period", None)
+        if arr is not None:
+            out[f"Ground {name}"] = np.sort(np.asarray(arr, dtype=float)[:8760])[::-1]
+    return pd.DataFrame(out)
+
+
+def pressure_drop_curve(result: model.SizingResult, temperature: float) -> pd.DataFrame | None:
+    """Pressure drop over one borehole for flow rates from zero to twice the design flow."""
+    drop = _pressure_drop(result)
+    if drop is None:
+        return None
+    try:
+        dp, _, _, flows = drop.create_pressure_drop_curve(range=2, datapoints=40, temperature=temperature)
+    except Exception:
+        return None
+    return pd.DataFrame({"Flow per borehole [l/s]": flows, "Pressure drop [kPa]": dp})[1:]
+
+
+def ground_temperature_map(result: model.SizingResult, cells: int = 90) -> dict | None:
+    """Ground temperature around the field at mid-depth at the end of the simulation, caused by the yearly
+    imbalance (finite line source with mirror image, superposed over all boreholes).
+
+    Shows how far the field changes the ground and how the boreholes influence each other. Seasonal swings
+    are left out: they average out over a year."""
+    from scipy.special import erfc
+    bf = result.borefield
+    holes = bf.borefield
+    xs = np.array([b.x for b in holes])
+    ys = np.array([b.y for b in holes])
+    H, D, r_b = holes[0].H, holes[0].D, holes[0].r_b
+    years = bf.load.simulation_period
+    t = years * 8760 * 3600.0
+    k = float(bf.ground_data.k_s(H + D, D))
+    alpha = float(bf.ground_data.alpha(H + D, D))
+    t_ground = float(bf.ground_data.calculate_Tg(H + D, D))
+    load = bf.load
+    imbalance_w = (float(np.sum(load.monthly_baseload_injection)) - float(np.sum(load.monthly_baseload_extraction))
+                   ) * 1000 / 8760  # kWh per year to W
+    q = imbalance_w / result.total_length  # W/m, positive warms the ground
+
+    # temperature change around one borehole as a function of distance, then superposed
+    z = D + H / 2
+    zs = np.linspace(D, D + H, 2001)
+    radii = np.geomspace(r_b, 2000.0, 400)
+    d1 = np.sqrt(radii[:, None] ** 2 + (z - zs[None, :]) ** 2)
+    d2 = np.sqrt(radii[:, None] ** 2 + (z + zs[None, :]) ** 2)
+    integrand = erfc(d1 / (2 * np.sqrt(alpha * t))) / d1 - erfc(d2 / (2 * np.sqrt(alpha * t))) / d2
+    unit = np.trapezoid(integrand, zs, axis=1) / (4 * np.pi * k)  # K per W/m
+
+    span = max(xs.max() - xs.min(), ys.max() - ys.min(), H / 2)
+    margin = max(span * 0.6, 20.0)
+    gx = np.linspace(xs.min() - margin, xs.max() + margin, cells)
+    gy = np.linspace(ys.min() - margin, ys.max() + margin, cells)
+    X, Y = np.meshgrid(gx, gy)
+    dT = np.zeros_like(X)
+    for x0, y0 in zip(xs, ys):
+        r = np.maximum(np.hypot(X - x0, Y - y0), r_b)
+        dT += np.interp(np.log(r), np.log(radii), unit)
+    dT *= q
+    table = pd.DataFrame({"x": X.ravel(), "y": Y.ravel(), "Change": dT.ravel(), "Temperature": t_ground + dT.ravel()})
+    return {"table": table, "boreholes": pd.DataFrame({"x": xs, "y": ys}), "q_w_per_m": q,
+            "t_ground": t_ground, "depth": z, "years": years, "max_change": float(np.abs(dT).max()),
+            "cell": float(gx[1] - gx[0])}
