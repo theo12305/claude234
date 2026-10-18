@@ -26,6 +26,11 @@ def _online_logs(state_key: str | None, x: float, y: float, radius: float) -> li
     return sources.boreholes_online(state_key, x, y, radius)
 
 
+@st.cache_data(ttl=24 * 3600, show_spinner=False, max_entries=32)
+def _state_points(state_key: str | None, x: float, y: float, radius: float) -> list[sources.BoreholePoint]:
+    return sources.borehole_points(state_key, x, y, radius)
+
+
 @st.cache_data(ttl=24 * 3600, show_spinner=False, max_entries=64)
 def _state_at(x: float, y: float) -> str | None:
     state = lookup.state_at(*lookup.to_wgs84(x, y))
@@ -125,7 +130,8 @@ def _predict_panel(key: str, depth_default: float) -> None:
                          help=t("Loose sediments above the groundwater table conduct heat worse (VDI 4640). Empty: "
                                 "from the logs, if they have it, else all layers count as water saturated."))
     c5, c6 = st.columns([2, 1])
-    online = c5.toggle(t("Ask the open data services (BGR geological map of Germany; borehole logs of GD NRW)"),
+    online = c5.toggle(t("Ask the open data services (BGR geological map of Germany; borehole data of the state "
+                         "surveys)"),
                        value=True, key=f"{key}.online")
     bedrock = c6.selectbox(t("Rock below the logs"), [""] + rocks.NAMES[:-1],
                            format_func=lambda r: t(r) if r else t("Continue the deepest layer"),
@@ -138,7 +144,7 @@ def _predict_panel(key: str, depth_default: float) -> None:
     if site is None:  # only uploaded logs: predict at the nearest log
         site = (uploaded[0].x, uploaded[0].y, uploaded[0].name, None)
     x, y, label, state_key = site
-    holes, notes, units = list(uploaded), list(upload_notes), []
+    holes, notes, units, points = list(uploaded), list(upload_notes), [], []
     if online:
         with st.spinner(t("Asking the geological services...")):
             try:
@@ -153,7 +159,7 @@ def _predict_panel(key: str, depth_default: float) -> None:
             if state_unknown:
                 notes.append(t("Could not find out the state of this location (the address service did not "
                                "answer), so no borehole database was asked."))
-            elif state_key in sources.LOG_SERVICES:
+            if state_key in sources.LOG_SERVICES:
                 try:
                     found = _online_logs(state_key, x, y, radius)
                     holes += found
@@ -161,22 +167,31 @@ def _predict_panel(key: str, depth_default: float) -> None:
                                    service=t(sources.LOG_SERVICES[state_key]), n=len(found), radius=radius))
                 except LookupError_ as exc:
                     notes.append(t("Borehole logs: {error}", error=exc))
-            else:
-                notes.append(t("No open service with borehole logs is connected for this state yet. Most state "
-                               "surveys show logs in their map portals (often as BoreholeML download): upload them "
-                               "above to use them."))
+            if state_key in sources.POINT_SERVICES:
+                service = t(sources.POINT_SERVICES[state_key].label)
+                try:
+                    points = _state_points(state_key, x, y, radius)
+                    notes.append(t("{service}: {n} borehole(s) within {radius:,.0f} m. This state publishes the "
+                                   "logs only as pictures or web pages; see the list below.",
+                                   service=service, n=len(points), radius=radius))
+                except LookupError_ as exc:
+                    notes.append(t("{service}: {error}", service=service, error=exc))
+            elif state_key and state_key not in sources.LOG_SERVICES:
+                notes.append(t("This state survey has no open borehole service that the app can ask. See the "
+                               "overview of the state portals below; logs you get from them can be uploaded above."))
     surface_rock = next((u["rock"] for u in units if u["rock"] != rocks.UNKNOWN), None)
     result = predict.predict(holes, x, y, depth, radius, max_n, groundwater=gw, surface_rock=surface_rock,
                              bedrock=bedrock or None)
     result.notes = notes + result.notes
-    st.session_state[f"{key}.prediction"] = (result, units, label, gw)
+    st.session_state[f"{key}.prediction"] = (result, units, label, gw, points, state_key)
 
 
 def _show_prediction(key: str, prefix: str, length: float, buried: float) -> None:
     saved = st.session_state.get(f"{key}.prediction")
     if not saved:
         return
-    result, units, label, gw = saved
+    result, units, label, gw, *more = saved  # predictions made before the state boreholes have no more
+    points, state_key = (more + [[], None])[:2]
     st.markdown(t("**Predicted layers at {place}**", place=label))
     for note in result.notes:
         st.caption(note)
@@ -211,6 +226,36 @@ def _show_prediction(key: str, prefix: str, length: float, buried: float) -> Non
     with right:
         fig = plots.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
         st.pyplot(fig, width="stretch")
+    if points:
+        _show_points(points, state_key)
+
+
+def _show_points(points: list[sources.BoreholePoint], state_key: str | None) -> None:
+    svc = sources.POINT_SERVICES.get(state_key or "")
+    st.markdown(t("**Boreholes of the state survey near the site** ({n})", n=len(points)))
+    st.caption(t("These logs are not machine-readable, so they are not in the prediction above. Open the nearest "
+                 "deep ones, then type their layers into the layer table below (or into the table template and "
+                 "upload it). {how}.", how=t(svc.link_note) if svc else ""))
+    table = pd.DataFrame([{t("Borehole"): p.name, t("Distance [m]"): round(p.distance),
+                           t("Depth [m]"): p.depth, t("Log"): p.link, t("Notes"): p.note} for p in points[:200]])
+    st.dataframe(table.sort_values([t("Distance [m]")]), hide_index=True, width="stretch", column_config={
+        t("Log"): st.column_config.LinkColumn(t("Log"), display_text=t("open")),
+        t("Depth [m]"): st.column_config.NumberColumn(format="%.1f")})
+    deep = [p for p in points if p.depth and p.depth >= 30]
+    if points and not deep:
+        st.caption(t("None of them is 30 m deep or more; a larger search radius may find deeper ones."))
+
+
+def portals_overview() -> None:
+    """Which state survey offers what, with links to their portals."""
+    lines = [f"| {t('State')} | {t('Survey')} | {t('What the app gets')} |", "|---|---|---|"]
+    for key in sorted(sources.PORTALS, key=lambda k: lookup.by_key(k).name):
+        survey, url, note = sources.PORTALS[key]
+        lines.append(f"| {lookup.by_key(key).name} | [{survey}]({url}) | {t(note)} |")
+    st.markdown("\n".join(lines))
+    st.caption(t("Everywhere else: the BGR geological map gives the rock at the surface, and logs you get from the "
+                 "survey (BoreholeML or a table) can be uploaded. Drilling companies and earlier geothermal "
+                 "projects nearby are often the quickest source of a log."))
 
 
 def _apply(key: str, prefix: str, rows: list[dict], k: float, c: float, use: bool) -> None:
@@ -287,6 +332,8 @@ def layers_input(prop, value: dict, key: str, prefix: str, length: float, buried
                      "estimate for planning; a thermal response test measures the real value."))
         _predict_panel(key, max(100.0, round((length + buried) * 1.5 / 10) * 10))
         _show_prediction(key, prefix, length, buried)
+        with st.popover(t("Borehole data of the 16 state surveys"), icon=":material/public:", width="stretch"):
+            portals_overview()
     if rows or use:
         st.caption(t("Layer table: edit the depths and rocks, add or delete rows. Tops follow from the row above."))
         rows = _editor(key, rows)  # the session keeps the table's starting rows; the editor keeps the edits

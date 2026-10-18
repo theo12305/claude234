@@ -59,8 +59,12 @@ Under Ground in step ① the panel **Predict the layers** estimates the layers a
 - Data: borehole logs within a search radius, weighted by 1/distance², and the BGR geological map (GÜK250) at
   the surface. Logs come from the open BoreholeML service of GD NRW (North Rhine-Westphalia) or from files you upload:
   BoreholeML (.xml, the exchange format of the state surveys) or a table with one row per layer (template on the
-  page; SEP 3 codes such as `mS,g` or words such as `Tonstein` are recognised). Other states have no open log service
-  yet; download the logs from the state portal and upload them.
+  page; SEP 3 codes such as `mS,g` or words such as `Tonstein` are recognised).
+- State surveys: only NRW publishes logs with machine-readable layers. Berlin, Brandenburg, Hessen,
+  Mecklenburg-Vorpommern, Niedersachsen, Sachsen and Schleswig-Holstein publish borehole points (name, depth, link
+  to the log as a picture or web page); the page lists those near the site so you can open the deep ones and type
+  their layers into the table. The services and their field names are plain data in `POINT_SERVICES` in
+  `ghe_web/strata/sources.py`; `PORTALS` there is the overview of all 16 states shown on the page.
 - Thermal values: VDI 4640 Blatt 1 per rock type (`ghe_web/strata/rocks.py`); loose sediments above the groundwater
   table get lower, moist values.
 - **Fill in the averages** puts the depth-weighted averages into the single fields; **Use the layers** copies the

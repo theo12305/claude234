@@ -1,6 +1,7 @@
 import pytest
 
 from ghe_web import analysis, export, model, plots, report
+from ghe_web.siteplan import states
 from ghe_web.strata import predict, rocks, sources
 from ghe_web.strata.predict import Borehole, LogLayer
 
@@ -140,3 +141,80 @@ def test_table_without_coordinates_goes_on_the_site():
     assert (holes[0].x, holes[0].y) == (1.0, 2.0) and holes[0].layers[1].rock == "Marl"
     with pytest.raises(sources.TableError):
         sources.read_table("log.csv", content)
+
+
+# Answers of the state services as they came back when they were checked (2026-10-18), shortened
+STATE_ANSWERS = {
+    "BB": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "bpk_m_sch_50419", "geometry": {
+        "type": "MultiPoint", "coordinates": [[13.094439129726357, 52.343431736087446]]}, "properties": {
+        "Bohrungs_ID": 364400258, "Schichtenverzeichnis_grafisch": "https://geo.brandenburg.de/karten/bpk24/x364400258.png",
+        "Bohrungsname": "Hy BghRb 11/67", "HoeheNN_in_m": 33.6, "Ostwert": 370191.7, "Nordwert": 5800946.0,
+        "Teufe_in_m": 8.2, "Aufschlussart": "MS", "Schichtenverzeichnis": 1}}]},
+    "BE": {"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "urn:ogc:def:crs:EPSG::25833"}},
+           "features": [{"type": "Feature", "id": "bohrpunkte.413A00103", "geometry": {
+               "type": "Point", "coordinates": [391000.0, 5819000.0]}, "properties": {
+               "schluessel": "413A00103", "xcoord": 391000.0, "ycoord": 5819000.0, "endteufe": 12,
+               "ansatzhoehe": "34.32", "langname": None, "profil": "https://example.invalid/p.jpg",
+               "profil_lang": None}}]},
+    "SN": {"features": [{"attributes": {"IDENT": 591302, "AKBEZ": "6....1....2016", "RECHTSWERT": 411420.31,
+                                        "HOCHWERT": 5656933.11, "ENDTEUFE": 10.0, "HAT_FACHDATEN": 1.0,
+                                        "URL": "https://www.umwelt.sachsen.de/umwelt/infosysteme/geodin/getportalpage"},
+                         "geometry": {"x": 350000.0, "y": 5660000.0}}]},
+    "HE": {"features": [{"attributes": {"ARNUM": 5151, "ANAME": "5151 BK 2/97", "OSTWERT": 476808.365,
+                                        "NORDWERT": 5551366.571, "ET": 40, "FORMATION": "AQT", "GW": 12.87},
+                         "geometry": {"x": 476808.365, "y": 5551366.571}}]},
+    "SH": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "ID_LONGNAME.2323/0017/W", "geometry": {
+        "type": "Point", "coordinates": [9.633403761462434, 53.67374556296559]}, "properties": {
+        "Archivnummer": "2323/0017/W", "X-Koordinate-UTM": 3.254184304E7, "Y-Koordinate-UTM": 5947409.77,
+        "Endtiefe-m": 11.5, "LinkzurProfilsäulendarstellung": "http://141.91.161.241/geodin/getportalpage"}}]},
+    "MV": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "bohrdaten.654", "geometry": {
+        "type": "Point", "coordinates": [12.053038, 54.108252]}, "properties": {
+        "BO_IDENT": 183800879, "LONGNAME": "Hy R 5/1995", "RW": 33307356, "HW": 5999581, "STRAT_EH": None,
+        "SVZ_URL": "https://www.umweltkarten.mv-regierung.de/atlas/lbds_svz_overview.php?prj_id=TA6AQC&locid=206",
+        "ZCOORDB": 21.75, "ZCOORDE": 8.1}}]},
+    "NI": {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {
+        "BID": "3624BV0654", "LONGNAME": "BV 654", "OST": 32550000.0, "NORD": 5800000.0, "ZCOORDE": 25.0,
+        "LINK": "http://nibis.lbeg.de/DetailseitenKartenserver/DetailSeitenBohrsaeulenGeodin/Bohrungsseite.aspx"}}]},
+}
+
+
+@pytest.mark.parametrize("state", list(STATE_ANSWERS))
+def test_state_borehole_points(state):
+    [p] = sources.parse_points(state, STATE_ANSWERS[state])
+    assert p.name and p.name != "?" and p.depth > 0
+    assert 280_000 < p.x < 920_000 and 5_200_000 < p.y < 6_120_000  # Germany in UTM 32N
+    if state != "HE":
+        assert p.link.startswith("http")
+    if state in ("BB", "SH", "MV"):  # the stated coordinates and the lon/lat geometry agree
+        x, y = sources._wgs_point(STATE_ANSWERS[state]["features"][0]["geometry"])
+        assert abs(p.x - x) < 5 and abs(p.y - y) < 5
+    if state == "HE":
+        assert "12.9" in p.note and "AQT" in p.note
+
+
+def test_every_state_is_in_the_overview_and_requests_are_built(monkeypatch):
+    assert set(sources.PORTALS) == {s.key for s in states.STATES}
+    assert set(sources.POINT_SERVICES) | set(sources.LOG_SERVICES) <= set(sources.PORTALS)
+    asked = []
+
+    class Answer:
+        def __init__(self, state):
+            self.state = state
+
+        def json(self):
+            return STATE_ANSWERS[self.state]
+
+    for state, svc in sources.POINT_SERVICES.items():
+        monkeypatch.setattr(sources.lookup, "_get", lambda url, params, s=state: asked.append(params) or Answer(s))
+        [p] = sources.parse_points(state, STATE_ANSWERS[state])
+        found = sources.borehole_points(state, p.x + 30, p.y + 40, 500)
+        assert len(found) == 1 and found[0].distance == pytest.approx(50, abs=1)
+        assert sources.borehole_points(state, p.x + 3000, p.y, 500) == []
+    assert sources.borehole_points("BY", 0, 0, 500) == []
+    mv = asked[[*sources.POINT_SERVICES].index("MV") * 2]
+    assert mv["BBOX"].startswith("33")  # MV wants the zone in front of the easting
+
+
+def test_utm33_with_zone_prefix():
+    x, y = sources.to_utm32(33_307_356, 5_999_581)
+    assert x == pytest.approx(sources.to_utm32(307_356, 5_999_581, 25833)[0])
