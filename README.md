@@ -91,6 +91,17 @@ The inputs are split into four steps (tabs): ① ground and borefield, ② boreh
 ③ loads, ④ limits and calculation. The **Size borefield** button sits in the sidebar together with a list of
 inputs that still need attention; after the calculation the page jumps to **Results**.
 
+- **Example projects**: until the first calculation the start page offers four typical buildings
+  (single-family house, apartment building, office with cooling, school with an irregular field). One click
+  fills in every input and sizes it (`ghe_web/examples.py`).
+- **Share link** (sidebar): the project file, compressed into the link (`?p=...`), so a colleague opens the
+  same inputs from one link. Nothing is stored on the server. Hourly demand files are left out (too long for a
+  link) and have to be uploaded again (`ghe_web/share.py`).
+- **Design check** (sidebar and Results): every check in one list, marked problem, warning or fine, each with
+  a button to the input step: input errors and warnings, conductivity, VDI 4640 spacing, and after a
+  calculation the limits, laminar flow, antifreeze, ground balance, W/m and drilling deeper than 100 m
+  (`ghe_web/checks.py`).
+
 Results start with a one-line verdict and five numbers (length, total length, lowest and highest
 temperature with their margin to the limits, borehole resistance). The default simulation period is
 50 years. Below that, pick a view (modelled on the result views of the paid GHEtool Cloud):
@@ -104,6 +115,9 @@ temperature with their margin to the limits, borehole resistance). The default s
 - **Hydraulics**: Rb, Reynolds, pressure drop and pump power, and the pressure drop curve against flow rate.
 - **Ground**: map of the ground temperature change around the field at mid-depth at the end of the
   simulation (finite line source of the yearly imbalance), and the g-function.
+- **Borefield map**: every borehole coloured by its share of the load (with one wall temperature for the
+  field, edge and corner boreholes take more) or by the long-term change of its wall temperature, after one
+  year or at the end of the simulation; table as CSV.
 - **Load optimisation** (hourly building demand): keeps the field and finds how much demand it can
   cover, optimised for power, energy or a balanced ground (GHEtool's `optimise_load_profile_*`). The rest
   is backup heating or cooling; the optimised load can be downloaded.
@@ -144,6 +158,9 @@ ghe_web/hourly.py          reads hourly demand files (CSV/Excel) and makes the e
 ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip or .shp/.shx/.dbf/.prj)
 ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
 ghe_web/analysis.py        key results, hydraulics, sensitivity, layout and load optimisation, ground map
+ghe_web/checks.py          design check: input and result checks as problem / warning / fine
+ghe_web/examples.py        example projects for the start page
+ghe_web/share.py           project packed into a share link
 ghe_web/report.py          PDF report
 ghe_web/export.py          Excel workbook and zip export
 ghe_web/catalog.py         typical values for rock, grout, pipes, drilling diameters, fluids, load profiles
