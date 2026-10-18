@@ -1,6 +1,12 @@
+# No fixed base: the page follows the device's light or dark setting, and users can switch in ⋮ > Settings.
 [theme]
 primaryColor = "#d1495b"
-base = "light"
+
+[theme.light]
+primaryColor = "#d1495b"
+
+[theme.dark]
+primaryColor = "#e0606f"
 
 [browser]
 gatherUsageStats = false

@@ -433,6 +433,8 @@ DE: dict[str, str] = {
     "Marble": "Marmor",
     "Unknown": "Unbekannt",
     "Uniform ground": "Homogener Untergrund",
+    "🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**.":
+        "🌙 Dunkelmodus: Menü **⋮** oben rechts > **Settings** > Theme **Dark**.",
     # ------------------------------------------------------------ results, charts, reports, site plan, ground layers
     " (moist)": " (feucht)",
     " average {k:.2f}": " Mittelwert {k:.2f}",
@@ -496,9 +498,9 @@ DE: dict[str, str] = {
     "Balanced ground": "Ausgeglichener Untergrund",
     "Base [m]": "Unterkante [m]",
     "Basis": "Grundlage",
-    "Blue: coldest fluid (heating peaks). Red: warmest fluid (cooling peaks). Dashed: your limits. Black dots: the lowest and highest value.":
+    "Blue: coldest fluid (heating peaks). Red: warmest fluid (cooling peaks). Dashed: your limits. Grey dots: the lowest and highest value.":
         "Blau: kältestes Fluid (Heizspitzen). Rot: wärmstes Fluid (Kühlspitzen). Gestrichelt: Ihre Grenzwerte. "
-        "Schwarze Punkte: niedrigster und höchster Wert.",
+        "Graue Punkte: niedrigster und höchster Wert.",
     "Borefield design": "Auslegung des Sondenfelds",
     "Borefield layout": "Anordnung des Sondenfelds",
     "Borehole": "Sonde",

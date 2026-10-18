@@ -47,7 +47,9 @@ table.keys .note {font-size: 0.78rem; opacity: 0.65; line-height: 1.25;}
 
 if "pending_language" in st.session_state:  # set by opening a project file
     st.session_state.language = st.session_state.pop("pending_language")
-with st.sidebar:
+# At the top of the page (not in the sidebar), so it is also visible on phones where the sidebar starts closed.
+title_col, language_col = st.columns([5, 1.3], vertical_alignment="center")
+with language_col:
     lang = st.segmented_control("🌐 Language · Sprache", list(i18n.LANGUAGES), format_func=i18n.LANGUAGES.get,
                                 default=i18n.DEFAULT, required=True, key="language")
 lang = i18n.set_language(lang)
@@ -122,10 +124,11 @@ with st.sidebar:
     save_slot = st.empty()  # filled after the inputs are read
     st.caption(t("Projects are saved as a file on your computer, including the language. Nothing is stored on "
                  "the server."))
+    st.caption(t("🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
     st.divider()
     calc_slot = st.container()  # the calculate button and a short result, filled at the end
 
-st.title(t("Borehole heat exchanger sizing"))
+title_col.title(t("Borehole heat exchanger sizing"))
 st.caption(t("Fill in the four input steps, then press **Size borefield** on the left. Every field has a question "
              "mark with an explanation; the drop-downs fill in typical values."))
 with st.expander(t("How to use this tool"), icon=":material/help:"):
@@ -538,7 +541,7 @@ def view_overview(result, key, limits) -> None:
     else:
         chart(plots.temperature_chart(result.temperatures, limits))
         st.caption(t("Blue: coldest fluid (heating peaks). Red: warmest fluid (cooling peaks). Dashed: your limits. "
-                     "Black dots: the lowest and highest value."))
+                     "Grey dots: the lowest and highest value."))
     # spread the groups over two columns so both end at about the same height
     parts, heights = ([], []), [0, 0]
     for group, rows in key.by_group().items():
