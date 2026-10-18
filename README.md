@@ -91,9 +91,6 @@ The inputs are split into four steps (tabs): ① ground and borefield, ② boreh
 ③ loads, ④ limits and calculation. The **Size borefield** button sits in the sidebar together with a list of
 inputs that still need attention; after the calculation the page jumps to **Results**.
 
-- **Example projects**: until the first calculation the start page offers four typical buildings
-  (single-family house, apartment building, office with cooling, school with an irregular field). One click
-  fills in every input and sizes it (`ghe_web/examples.py`).
 - **Share link** (sidebar): the project file, compressed into the link (`?p=...`), so a colleague opens the
   same inputs from one link. Nothing is stored on the server. Hourly demand files are left out (too long for a
   link) and have to be uploaded again (`ghe_web/share.py`).
@@ -159,7 +156,6 @@ ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip
 ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
 ghe_web/analysis.py        key results, hydraulics, sensitivity, layout and load optimisation, ground map
 ghe_web/checks.py          design check: input and result checks as problem / warning / fine
-ghe_web/examples.py        example projects for the start page
 ghe_web/share.py           project packed into a share link
 ghe_web/report.py          PDF report
 ghe_web/export.py          Excel workbook and zip export
