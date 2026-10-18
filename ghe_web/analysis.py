@@ -477,29 +477,18 @@ def pressure_drop_curve(result: model.SizingResult, temperature: float) -> pd.Da
     return pd.DataFrame({"Flow per borehole [l/s]": flows, "Pressure drop [kPa]": dp})[1:]
 
 
-def ground_temperature_map(result: model.SizingResult, cells: int = 90) -> dict | None:
-    """Ground temperature around the field at mid-depth at the end of the simulation, caused by the yearly
-    imbalance (finite line source with mirror image, superposed over all boreholes).
-
-    Shows how far the field changes the ground and how the boreholes influence each other. Seasonal swings
-    are left out: they average out over a year."""
+def _line_source_response(result: model.SizingResult, years: float | None = None) -> dict:
+    """Temperature change at mid-depth around one borehole per W/m of steady heat flow, as a function of the
+    distance, after the given years (default: the end of the simulation; finite line source with the mirror
+    image at the surface)."""
     from scipy.special import erfc
     bf = result.borefield
     holes = bf.borefield
-    xs = np.array([b.x for b in holes])
-    ys = np.array([b.y for b in holes])
     H, D, r_b = holes[0].H, holes[0].D, holes[0].r_b
-    years = bf.load.simulation_period
+    years = years or bf.load.simulation_period
     t = years * 8760 * 3600.0
     k = float(bf.ground_data.k_s(H + D, D))
     alpha = float(bf.ground_data.alpha(H + D, D))
-    t_ground = float(bf.ground_data.calculate_Tg(H + D, D))
-    load = bf.load
-    imbalance_w = (float(np.sum(load.monthly_baseload_injection)) - float(np.sum(load.monthly_baseload_extraction))
-                   ) * 1000 / 8760  # kWh per year to W
-    q = imbalance_w / result.total_length  # W/m, positive warms the ground
-
-    # temperature change around one borehole as a function of distance, then superposed
     z = D + H / 2
     zs = np.linspace(D, D + H, 2001)
     radii = np.geomspace(r_b, 2000.0, 400)
@@ -507,18 +496,66 @@ def ground_temperature_map(result: model.SizingResult, cells: int = 90) -> dict 
     d2 = np.sqrt(radii[:, None] ** 2 + (z + zs[None, :]) ** 2)
     integrand = erfc(d1 / (2 * np.sqrt(alpha * t))) / d1 - erfc(d2 / (2 * np.sqrt(alpha * t))) / d2
     unit = np.trapezoid(integrand, zs, axis=1) / (4 * np.pi * k)  # K per W/m
+    return {"radii": radii, "unit": unit, "r_b": r_b, "depth": z, "years": years,
+            "xs": np.array([b.x for b in holes]), "ys": np.array([b.y for b in holes]),
+            "t_ground": float(bf.ground_data.calculate_Tg(H + D, D))}
 
-    span = max(xs.max() - xs.min(), ys.max() - ys.min(), H / 2)
+
+def _at(response: dict, r) -> np.ndarray:
+    r = np.maximum(r, response["r_b"])
+    return np.interp(np.log(r), np.log(response["radii"]), response["unit"])
+
+
+def _imbalance_per_metre(result: model.SizingResult) -> float:
+    """Yearly average net heat flow into the ground per metre of borehole (W/m, positive warms the ground)."""
+    load = result.borefield.load
+    imbalance_w = (float(np.sum(load.monthly_baseload_injection)) - float(np.sum(load.monthly_baseload_extraction))
+                   ) * 1000 / 8760  # kWh per year to W
+    return imbalance_w / result.total_length
+
+
+def ground_temperature_map(result: model.SizingResult, cells: int = 90) -> dict | None:
+    """Ground temperature around the field at mid-depth at the end of the simulation, caused by the yearly
+    imbalance (finite line source with mirror image, superposed over all boreholes).
+
+    Shows how far the field changes the ground and how the boreholes influence each other. Seasonal swings
+    are left out: they average out over a year."""
+    resp = _line_source_response(result)
+    xs, ys = resp["xs"], resp["ys"]
+    q = _imbalance_per_metre(result)
+    span = max(xs.max() - xs.min(), ys.max() - ys.min(), result.borehole_length / 2)
     margin = max(span * 0.6, 20.0)
     gx = np.linspace(xs.min() - margin, xs.max() + margin, cells)
     gy = np.linspace(ys.min() - margin, ys.max() + margin, cells)
     X, Y = np.meshgrid(gx, gy)
     dT = np.zeros_like(X)
     for x0, y0 in zip(xs, ys):
-        r = np.maximum(np.hypot(X - x0, Y - y0), r_b)
-        dT += np.interp(np.log(r), np.log(radii), unit)
+        dT += _at(resp, np.hypot(X - x0, Y - y0))
     dT *= q
+    t_ground = resp["t_ground"]
     table = pd.DataFrame({"x": X.ravel(), "y": Y.ravel(), "Change": dT.ravel(), "Temperature": t_ground + dT.ravel()})
     return {"table": table, "boreholes": pd.DataFrame({"x": xs, "y": ys}), "q_w_per_m": q,
-            "t_ground": t_ground, "depth": z, "years": years, "max_change": float(np.abs(dT).max()),
+            "t_ground": t_ground, "depth": resp["depth"], "years": resp["years"], "max_change": float(np.abs(dT).max()),
             "cell": float(gx[1] - gx[0])}
+
+
+def borehole_map(result: model.SizingResult, years: float | None = None) -> pd.DataFrame:
+    """Per borehole: its share of the load and how much it changes the ground, after the given years (default:
+    the end of the simulation).
+
+    GHEtool sizes with one wall temperature for the whole field. With that boundary condition the boreholes do
+    not take the same heat: edge boreholes have fewer neighbours, so they take more. The share solves
+    sum_j R_ij q_j = T for all i with sum q = total (the same model as the g-function, one segment per borehole).
+    The temperature change is the long-term change of each wall from the yearly imbalance with equal heat per
+    borehole, the same as the ground temperature map."""
+    resp = _line_source_response(result, years)
+    xs, ys = resp["xs"], resp["ys"]
+    R = _at(resp, np.hypot(xs[:, None] - xs[None, :], ys[:, None] - ys[None, :]))
+    try:
+        share = np.linalg.solve(R, np.ones(len(xs)))
+    except np.linalg.LinAlgError:
+        share = np.ones(len(xs))
+    share = share / share.mean()
+    change = R.sum(axis=1) * _imbalance_per_metre(result)
+    return pd.DataFrame({"Borehole": np.arange(1, len(xs) + 1), "x": xs, "y": ys, "Share": share,
+                         "Change": change})

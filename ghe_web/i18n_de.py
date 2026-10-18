@@ -1348,4 +1348,144 @@ DE: dict[str, str] = {
     "{x:.1f} K beyond the limit": "{x:.1f} K über dem Grenzwert",
     "🔮 Predict the layers from nearby borehole logs and the geological map":
         "🔮 Schichten aus nahen Bohrungen und der geologischen Karte prognostizieren",
+
+    # ------------------------------------------------------------ examples, share link, design check, borefield map
+    '**Design check**':
+        '**Planungsprüfung**',
+    '**Design check: {summary}**':
+        '**Planungsprüfung: {summary}**',
+    '**New here? Start from an example**':
+        '**Neu hier? Mit einem Beispiel beginnen**',
+    '**Share this project**':
+        '**Dieses Projekt teilen**',
+    '10 kW heat pump for heating and hot water, three boreholes in sandy clay.':
+        '10-kW-Wärmepumpe für Heizung und Warmwasser, drei Sonden in sandigem Ton.',
+    '24 flats, 60 kW heating and hot water, 25 boreholes in sandstone.':
+        '24 Wohnungen, 60 kW Heizung und Warmwasser, 25 Sonden im Sandstein.',
+    '400 MWh heating and 150 MWh cooling a year; cooling in summer puts heat back. 64 boreholes.':
+        '400 MWh Heizen und 150 MWh Kühlen pro Jahr; das Kühlen im Sommer bringt Wärme zurück. 64 Sonden.',
+    'Antifreeze':
+        'Frostschutz',
+    'Anyone with the link opens the site with your inputs filled in. The project is stored in the link itself; nothing is saved on the server. Copy it with the button at the right of the box.':
+        'Wer den Link öffnet, sieht die Seite mit Ihren Eingaben. Das Projekt steckt im Link selbst; auf dem Server wird nichts gespeichert. Kopieren Sie ihn mit der Schaltfläche rechts im Feld.',
+    'Apartment building':
+        'Mehrfamilienhaus',
+    'Borefield map':
+        'Sondenfeld-Karte',
+    'Calculating each borehole...':
+        'Jede Sonde wird berechnet...',
+    'Colour by':
+        'Einfärben nach',
+    'Deeper than 100 m':
+        'Tiefer als 100 m',
+    'Design check':
+        'Planungsprüfung',
+    'Download the table (CSV)':
+        'Tabelle herunterladen (CSV)',
+    'Each example opens with every input filled in and is calculated straight away. Change anything and size again.':
+        'Jedes Beispiel öffnet sich mit allen Eingaben und wird sofort berechnet. Ändern Sie, was Sie möchten, und berechnen Sie neu.',
+    'Every check in one place. The temperature, flow, antifreeze and balance checks appear after a calculation.':
+        'Alle Prüfungen an einem Ort. Temperatur, Strömung, Frostschutz und Bilanz werden nach einer Berechnung geprüft.',
+    'Example projects':
+        'Beispielprojekte',
+    'Finite line source with the mirror image at the surface, one segment per borehole (the same model as the g-function). Numbers as in the input table of the borefield.':
+        'Finite Linienquelle mit Spiegelquelle an der Oberfläche, ein Segment pro Sonde (dasselbe Modell wie die g-Funktion). Nummern wie in der Eingabetabelle des Sondenfelds.',
+    'Flow in the borehole':
+        'Strömung in der Sonde',
+    'GHEtool sizes the field with one wall temperature for all boreholes. To reach it, boreholes at the edge and in the corners take more heat than those in the middle, because they have fewer neighbours. Red: more than the average, blue: less. The difference grows over the years as the boreholes start to influence each other.':
+        'GHEtool legt das Feld mit einer Bohrlochwandtemperatur für alle Sonden aus. Damit diese überall gleich ist, leisten Sonden am Rand und in den Ecken mehr als die in der Mitte, weil sie weniger Nachbarn haben. Rot: mehr als der Durchschnitt, blau: weniger. Der Unterschied wächst mit den Jahren, weil sich die Sonden zunehmend gegenseitig beeinflussen.',
+    'Go to {step}':
+        'Zu {step}',
+    'Ground balance':
+        'Bilanz des Untergrunds',
+    'Ground conductivity':
+        'Wärmeleitfähigkeit des Untergrunds',
+    'Hardest-working borehole':
+        'Am stärksten belastete Sonde',
+    'Heating only, 48 boreholes in an L along the schoolyard, ground temperature rising with depth.':
+        'Nur Heizen, 48 Sonden in L-Form am Schulhof, Untergrundtemperatur steigt mit der Tiefe.',
+    'How much the yearly imbalance warms (red) or cools (blue) the ground at each borehole wall, with the same heat from every borehole. Boreholes in the middle change most, because their neighbours add up; a larger spacing there, or moving boreholes to the edge, helps.':
+        'Wie stark das jährliche Ungleichgewicht den Untergrund an jeder Bohrlochwand erwärmt (rot) oder abkühlt (blau), bei gleicher Leistung aller Sonden. Sonden in der Mitte ändern sich am stärksten, weil sich ihre Nachbarn addieren; ein größerer Abstand dort oder Sonden am Rand helfen.',
+    'Least-loaded borehole':
+        'Am wenigsten belastete Sonde',
+    'No. {n}':
+        'Nr. {n}',
+    'Office with cooling':
+        'Büro mit Kühlung',
+    'Open example':
+        'Beispiel öffnen',
+    'Open the design check':
+        'Planungsprüfung öffnen',
+    'Opened the project from the link. Hourly demand files are not part of links: upload it again if the project uses one.':
+        'Projekt aus dem Link geöffnet. Stündliche Bedarfsdateien sind nicht Teil von Links: Laden Sie die Datei erneut hoch, falls das Projekt eine verwendet.',
+    'Re = {re:,.0f} ({regime}) at the coldest fluid.':
+        'Re = {re:,.0f} ({regime}) beim kältesten Fluid.',
+    'School':
+        'Schule',
+    'Share link':
+        'Link teilen',
+    'Share of the load':
+        'Anteil an der Last',
+    'Share of the load [%]':
+        'Anteil an der Last [%]',
+    'Single-family house':
+        'Einfamilienhaus',
+    'Spacing between boreholes':
+        'Sondenabstand',
+    'Temperature change':
+        'Temperaturänderung',
+    'The boreholes reach {d:.0f} m. In Germany drilling deeper than 100 m must be notified to the mining authority (BBergG §127).':
+        'Die Sonden reichen bis {d:.0f} m. Bohrungen tiefer als 100 m sind in Deutschland der Bergbehörde anzuzeigen (§ 127 BBergG).',
+    'The coldest fluid ({cold:.1f} °C) is within 3 K of the freezing point ({freezing:.1f} °C). Use more antifreeze or a higher minimum temperature.':
+        'Das kälteste Fluid ({cold:.1f} °C) liegt weniger als 3 K über dem Gefrierpunkt ({freezing:.1f} °C). Erhöhen Sie den Frostschutzanteil oder die Mindesttemperatur.',
+    'The flow is laminar (Re = {re:,.0f}), which raises the borehole resistance. A higher flow rate, smaller pipes or less antifreeze make it turbulent and can shorten the boreholes.':
+        'Die Strömung ist laminar (Re = {re:,.0f}), das erhöht den Bohrlochwiderstand. Ein höherer Volumenstrom, kleinere Rohre oder weniger Frostschutz machen sie turbulent und können die Sonden verkürzen.',
+    'The fluid goes beyond the limits: lowest {lo:.1f} °C (limit {t_min:g} °C), highest {hi:.1f} °C (limit {t_max:g} °C). Make the boreholes longer or add boreholes.':
+        'Das Fluid überschreitet die Grenzwerte: niedrigste {lo:.1f} °C (Grenze {t_min:g} °C), höchste {hi:.1f} °C (Grenze {t_max:g} °C). Verlängern Sie die Sonden oder fügen Sie Sonden hinzu.',
+    'The fluid stays between {lo:.1f} and {hi:.1f} °C (limits {t_min:g} and {t_max:g} °C).':
+        'Das Fluid bleibt zwischen {lo:.1f} und {hi:.1f} °C (Grenzen {t_min:g} und {t_max:g} °C).',
+    'The hourly demand file is not part of the link (too large): send the file separately.':
+        'Die stündliche Bedarfsdatei ist nicht im Link enthalten (zu groß): Senden Sie die Datei separat.',
+    'The smallest spacing is {b:.1f} m{where} with {h:.0f} m long boreholes. VDI 4640 asks for at least 6 m for boreholes deeper than 50 m.':
+        'Der kleinste Abstand beträgt {b:.1f} m{where} bei {h:.0f} m langen Sonden. Die VDI 4640 fordert mindestens 6 m für Sonden tiefer als 50 m.',
+    'The smallest spacing is {b:.1f} m{where}.':
+        'Der kleinste Abstand beträgt {b:.1f} m{where}.',
+    'The smallest spacing is {b:.1f} m{where}. VDI 4640 asks for at least 5 m (6 m for boreholes deeper than 50 m).':
+        'Der kleinste Abstand beträgt {b:.1f} m{where}. Die VDI 4640 fordert mindestens 5 m (6 m für Sonden tiefer als 50 m).',
+    'The yearly lowest temperature changes by only {d:+.1f} K over the simulation.':
+        'Die jährlich niedrigste Temperatur ändert sich über die Simulation nur um {d:+.1f} K.',
+    'The yearly lowest temperature changes by {d:+.1f} K over the simulation: the ground is out of balance ({imb:+,.0f} MWh per year). Cooling in summer or a larger spacing helps.':
+        'Die jährlich niedrigste Temperatur ändert sich über die Simulation um {d:+.1f} K: Der Untergrund ist nicht im Gleichgewicht ({imb:+,.0f} MWh pro Jahr). Kühlen im Sommer oder ein größerer Abstand helfen.',
+    'This link does not contain a readable project. Ask for a new link or the project file.':
+        'Dieser Link enthält kein lesbares Projekt. Bitten Sie um einen neuen Link oder die Projektdatei.',
+    'This link is long ({n:,} characters). Some e-mail programs cut long links; if it does not open, send the project file instead.':
+        'Dieser Link ist lang ({n:,} Zeichen). Manche E-Mail-Programme kürzen lange Links; falls er sich nicht öffnet, senden Sie stattdessen die Projektdatei.',
+    'This list is for the current inputs; the results for them are not calculated yet.':
+        'Diese Liste gilt für die aktuellen Eingaben; deren Ergebnisse sind noch nicht berechnet.',
+    'Time':
+        'Zeitpunkt',
+    'Wall temperature change':
+        'Änderung der Wandtemperatur',
+    'With a single borehole there is nothing to compare.':
+        'Bei einer einzelnen Sonde gibt es nichts zu vergleichen.',
+    'after 1 year':
+        'nach 1 Jahr',
+    'boreholes {a} and {b}':
+        'Sonden {a} und {b}',
+    'from the yearly imbalance':
+        'durch das jährliche Ungleichgewicht',
+    '{fluid} protects to {freezing:.1f} °C; the coldest fluid is {cold:.1f} °C.':
+        '{fluid} schützt bis {freezing:.1f} °C; das kälteste Fluid hat {cold:.1f} °C.',
+    '{k:.1f} W/(m·K) is in the usual range of {lo:g} to {hi:g} W/(m·K).':
+        '{k:.1f} W/(m·K) liegt im üblichen Bereich von {lo:g} bis {hi:g} W/(m·K).',
+    '{n} fine':
+        '{n} in Ordnung',
+    '{n} problem(s)':
+        '{n} Problem(e)',
+    '{n} warning(s)':
+        '{n} Warnung(en)',
+    '{w:.0f} W/m at peak is above the VDI 4640 rule of thumb (30 to 60 W/m). The simulation allows it, but check the peak load and the ground values.':
+        '{w:.0f} W/m in der Spitze liegt über dem Richtwert der VDI 4640 (30 bis 60 W/m). Die Simulation lässt das zu, prüfen Sie aber die Spitzenlast und die Untergrundwerte.',
+    '{x:.0f} % of the average load':
+        '{x:.0f} % der mittleren Last',
 }

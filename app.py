@@ -26,7 +26,7 @@ def _drop_stale_package():
 
 _drop_stale_package()
 
-from ghe_web import analysis, export, geometry, hourly, i18n, model, plots, properties, report
+from ghe_web import analysis, checks, examples, export, geometry, hourly, i18n, model, plots, properties, report, share
 from ghe_web.i18n import fmt, t
 from ghe_web.siteplan import page as siteplan_page
 from ghe_web.strata import page as strata_page
@@ -86,6 +86,21 @@ SITE_PLAN, MORE, RESULTS = STEPS["site_plan"], STEPS["more"], STEPS["results"]
 if "project" not in st.session_state:
     st.session_state.project = ("", model.default_inputs())
     st.session_state.generation = 0
+if share.PARAM in st.query_params:  # opened from a share link: load its project once, then drop it from the address
+    packed = st.query_params[share.PARAM]
+    del st.query_params[share.PARAM]
+    try:
+        text = share.decode(packed)
+        st.session_state.project = model.from_json(text)
+    except Exception:
+        st.session_state.link_error = True
+    else:
+        saved = model.saved_language(text)
+        if saved in i18n.LANGUAGES:
+            st.session_state.pending_language = saved
+        st.session_state.generation += 1
+        st.session_state.opened_link = True
+    st.rerun()
 project_name, start = st.session_state.project
 gen = st.session_state.generation
 if st.session_state.pop("goto_results", False):
@@ -122,6 +137,7 @@ with st.sidebar:
             st.session_state.generation += 1
             st.rerun()
     save_slot = st.empty()  # filled after the inputs are read
+    share_slot = st.empty()
     st.caption(t("Projects are saved as a file on your computer, including the language. Nothing is stored on "
                  "the server."))
     st.caption(t("🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
@@ -144,6 +160,39 @@ with st.expander(t("How to use this tool"), icon=":material/help:"):
         "analysis and the PDF report and Excel export.\n\n"
         "Save the project in the sidebar to continue later. Calculations use the open-source "
         "[GHEtool](https://github.com/wouterpeere/GHEtool)."))
+if st.session_state.pop("opened_link", False):
+    st.success(t("Opened the project from the link. Hourly demand files are not part of links: upload it again if "
+                 "the project uses one."), icon=":material/link:")
+if st.session_state.pop("link_error", False):
+    st.error(t("This link does not contain a readable project. Ask for a new link or the project file."),
+             icon=":material/link_off:")
+
+
+def open_example(key: str) -> None:
+    example = examples.get(key)
+    st.session_state.project = (t(example.title), example.inputs())
+    st.session_state.generation += 1
+    st.session_state.calc_example = True  # sized as soon as the inputs are read
+
+
+def example_cards() -> None:
+    st.caption(t("Each example opens with every input filled in and is calculated straight away. Change anything "
+                 "and size again."))
+    for col, example in zip(st.columns(len(examples.EXAMPLES)), examples.EXAMPLES):
+        with col, st.container(border=True, height="stretch"):
+            st.markdown(f"### {example.icon}\n**{t(example.title)}**")
+            st.caption(t(example.description))
+            st.button(t("Open example"), key=f"example.{example.key}", on_click=open_example, args=(example.key,),
+                      type="primary", icon=":material/play_arrow:")
+
+
+if "result_json" in st.session_state:
+    with st.expander(t("Example projects"), icon=":material/apartment:"):
+        example_cards()
+else:
+    with st.container(border=True):
+        st.markdown(t("**New here? Start from an example**"))
+        example_cards()
 
 
 # ---------------------------------------------------------------- inputs
@@ -414,6 +463,18 @@ with save_slot:
     st.download_button(t("Save project"), model.to_json(inputs, name, language=lang).encode(),
                        f"{name.strip() or 'ghetool-project'}.json", "application/json", width="stretch",
                        icon=":material/save:")
+with share_slot, st.popover(t("Share link"), icon=":material/link:", width="stretch"):
+    link, dropped = share.link(st.context.url or "", model.to_json(inputs, name, language=lang))
+    st.markdown(t("**Share this project**"))
+    st.caption(t("Anyone with the link opens the site with your inputs filled in. The project is stored in the link "
+                 "itself; nothing is saved on the server. Copy it with the button at the right of the box."))
+    st.code(link, language=None, wrap_lines=True)
+    if dropped:
+        st.warning(t("The hourly demand file is not part of the link (too large): send the file separately."),
+                   icon=":material/warning:")
+    if len(link) > 8000:
+        st.caption(t("This link is long ({n:,} characters). Some e-mail programs cut long links; if it does not "
+                     "open, send the project file instead.", n=len(link)))
 
 
 # ---------------------------------------------------------------- calculation
@@ -464,6 +525,48 @@ def calculate() -> None:
     st.rerun()
 
 
+def section_step_key(section_key: str) -> str:
+    group = properties.get(section_key).group
+    return group if group in STEPS and group not in ("site_plan", "results") else "more"
+
+
+def design_checks() -> list[checks.Check]:
+    """Input checks, plus the result checks when the current inputs have been calculated."""
+    found = checks.input_checks(inputs)
+    if not errors and st.session_state.get("result_json") == current_json:
+        res = cached_size(current_json)
+        found += checks.result_checks(res, inputs, analysis.key_results(res, inputs))
+    order = {checks.PROBLEM: 0, checks.WARNING: 1, checks.FINE: 2}
+    return sorted(found, key=lambda c: order[c.level])
+
+
+def open_design_check() -> None:
+    st.session_state.goto_results = True
+    st.session_state.result_view_id = "checks"
+
+
+check_icons = {checks.PROBLEM: ":red[:material/cancel:]", checks.WARNING: ":orange[:material/warning:]",
+               checks.FINE: ":green[:material/check_circle:]"}
+
+
+def show_design_check(found: list[checks.Check]) -> None:
+    st.markdown(t("**Design check: {summary}**", summary=checks.summary(found)))
+    st.caption(t("Every check in one place. The temperature, flow, antifreeze and balance checks appear after a "
+                 "calculation."))
+    for i, check in enumerate(found):
+        with st.container(border=True):
+            text_col, button_col = st.columns([4, 1.6], vertical_alignment="center")
+            text_col.markdown(f"{check_icons[check.level]} **{check.title}**  \n{check.detail}")
+            if check.section and check.level != checks.FINE:
+                step = section_step_key(check.section)
+                button_col.button(t("Go to {step}", step=STEPS[step]), key=f"check.goto.{i}", width="stretch",
+                                  on_click=lambda step=step: st.session_state.update(goto_step=step))
+
+
+found_checks = design_checks()
+if st.session_state.pop("calc_example", False) and not errors:
+    calculate()
+
 with calc_slot:
     st.header(t("Calculation"))
     if errors:
@@ -483,6 +586,15 @@ with calc_slot:
             st.warning(t("The inputs changed since the last calculation."), icon=":material/update:")
         else:
             st.caption(t("See the **📊 Results** tab for details."))
+    n = checks.counts(found_checks)
+    with st.container(border=True):
+        st.markdown(t("**Design check**") + "  \n" + " ".join(
+            f":{color if count else 'gray'}-badge[{label}]" for color, count, label in (
+                ("red", n[checks.PROBLEM], t("{n} problem(s)", n=n[checks.PROBLEM])),
+                ("orange", n[checks.WARNING], t("{n} warning(s)", n=n[checks.WARNING])),
+                ("green", n[checks.FINE], t("{n} fine", n=n[checks.FINE])))))
+        st.button(t("Open the design check"), on_click=open_design_check, width="stretch", key="open_checks",
+                  icon=":material/fact_check:")
 
 
 # ---------------------------------------------------------------- results
@@ -928,7 +1040,58 @@ def view_export(result, sized_inputs, sized_json) -> None:
     options, report_extras = report_settings(sized_json, stem)
 
 
-RESULT_VIEWS = {"overview": "Overview", "temperatures": "Temperatures", "energy": "Energy", "hourly": "Hourly",
+@st.cache_resource(max_entries=8, show_spinner=False)
+def cached_borehole_map(project_json: str, years: float | None) -> pd.DataFrame:
+    return analysis.borehole_map(cached_size(project_json), years)
+
+
+FIELD_COLOURS = {"share": "Share of the load", "change": "Temperature change"}
+
+
+def view_field(result, sized_json) -> None:
+    years = result.borefield.load.simulation_period
+    c1, c2 = st.columns(2)
+    colour = c1.segmented_control(t("Colour by"), list(FIELD_COLOURS), format_func=lambda k: t(FIELD_COLOURS[k]),
+                                  default="share", required=True, key="field_colour")
+    when = c2.segmented_control(t("Time"), ["first", "last"], default="last", required=True, key="field_time",
+                                format_func=lambda k: t("after 1 year") if k == "first" else
+                                t("after {n} years", n=years))
+    with st.spinner(t("Calculating each borehole...")):
+        table = cached_borehole_map(sized_json, 1.0 if when == "first" else None)
+    if len(table) < 2:
+        st.info(t("With a single borehole there is nothing to compare."), icon=":material/info:")
+        return
+    hi, lo = table.loc[table["Share"].idxmax()], table.loc[table["Share"].idxmin()]
+    m1, m2, m3 = st.columns(3)
+    m1.metric(t("Hardest-working borehole"), t("No. {n}", n=int(hi["Borehole"])),
+              t("{x:.0f} % of the average load", x=hi["Share"] * 100), delta_color="off", delta_arrow="off")
+    m2.metric(t("Least-loaded borehole"), t("No. {n}", n=int(lo["Borehole"])),
+              t("{x:.0f} % of the average load", x=lo["Share"] * 100), delta_color="off", delta_arrow="off")
+    m3.metric(t("Wall temperature change"), fmt("{a:+.1f} to {b:+.1f} K", a=table["Change"].min(),
+                                                b=table["Change"].max()),
+              t("from the yearly imbalance"), delta_color="off", delta_arrow="off")
+    left, right = st.columns([3, 2])
+    with left:
+        chart(plots.borehole_map_chart(table, colour))
+    with right:
+        if colour == "share":
+            st.caption(t("GHEtool sizes the field with one wall temperature for all boreholes. To reach it, boreholes "
+                         "at the edge and in the corners take more heat than those in the middle, because they have "
+                         "fewer neighbours. Red: more than the average, blue: less. The difference grows over the "
+                         "years as the boreholes start to influence each other."))
+        else:
+            st.caption(t("How much the yearly imbalance warms (red) or cools (blue) the ground at each borehole wall, "
+                         "with the same heat from every borehole. Boreholes in the middle change most, because their "
+                         "neighbours add up; a larger spacing there, or moving boreholes to the edge, helps."))
+        st.caption(t("Finite line source with the mirror image at the surface, one segment per borehole (the same "
+                     "model as the g-function). Numbers as in the input table of the borefield."))
+        st.download_button(t("Download the table (CSV)"),
+                           lambda: table.round(4).to_csv(index=False).encode(),
+                           f"{name.strip() or 'ghetool-project'}_boreholes.csv", "text/csv",
+                           icon=":material/download:", on_click="ignore")
+
+
+RESULT_VIEWS = {"checks": "Design check", "field": "Borefield map", "overview": "Overview", "temperatures": "Temperatures", "energy": "Energy", "hourly": "Hourly",
                 "heat_pump": "Heat pump", "hydraulics": "Hydraulics", "ground": "Ground", "layers": "Layers",
                 "load_optimisation": "Load optimisation", "analysis": "Further analysis", "export": "Export"}
 
@@ -938,6 +1101,7 @@ with step_tabs[RESULTS]:
                 icon=":material/info:")
         if st.button(action, type="primary", disabled=bool(errors), key="results_calc"):
             calculate()
+        show_design_check(found_checks)
     else:
         sized_json = st.session_state.result_json
         sized_inputs = model.from_json(sized_json)[1]
@@ -980,12 +1144,12 @@ with step_tabs[RESULTS]:
         for w in key.warnings:
             st.warning(w, icon=":material/warning:")
 
-        views = ["overview", "temperatures", "energy"]
+        views = ["overview", "checks", "temperatures", "energy"]
         if result.hourly_temperatures is not None:
             views.append("hourly")
         if result.heat_pump is not None:
             views.append("heat_pump")
-        views += ["hydraulics", "ground"]
+        views += ["hydraulics", "ground", "field"]
         if (sized_inputs["ground"].values.get("layers") or {}).get("rows"):
             views.append("layers")
         if sized_inputs["load"].variant == "hourly_building":
@@ -1008,8 +1172,15 @@ with step_tabs[RESULTS]:
             view_heat_pump(result, key, sized_inputs)
         elif view == "hydraulics":
             view_hydraulics(result, key)
+        elif view == "checks":
+            if sized_json != current_json:
+                st.info(t("This list is for the current inputs; the results for them are not calculated yet."),
+                        icon=":material/info:")
+            show_design_check(found_checks)
         elif view == "ground":
             view_ground(result, sized_json)
+        elif view == "field":
+            view_field(result, sized_json)
         elif view == "layers":
             view_layers(result, sized_inputs, sized_json)
         elif view == "load_optimisation":

@@ -6,7 +6,7 @@ import string
 
 import pytest
 
-from ghe_web import analysis, catalog, i18n, model, plots, properties, report
+from ghe_web import analysis, catalog, examples, i18n, model, plots, properties, report
 from ghe_web.i18n import fmt, t
 from ghe_web.i18n_de import DE
 from ghe_web.siteplan import states
@@ -58,6 +58,7 @@ def _data_texts() -> set[str]:
     texts = set(rocks.NAMES) | set(catalog.FLUIDS) | set(catalog.MONTHLY_PROFILES)
     texts |= {s.border_note for s in states.STATES} | set(sources.EPSG_CHOICES) | set(sources.LOG_SERVICES.values())
     texts |= set(analysis.OBJECTIVES.values()) | set(report.METHOD.values())
+    texts |= {e.title for e in examples.EXAMPLES} | {e.description for e in examples.EXAMPLES}
     texts |= {title for title, _ in plots.DRAWINGS.values()} | set(plots.SERIES_COLORS)
     texts |= {"Ground conductivity ±15 %", "Ground temperature ±1 K", "Building load ±10 %",
               "Grout conductivity ±25 %", "Borehole resistance ±15 %"}  # analysis.sensitivity

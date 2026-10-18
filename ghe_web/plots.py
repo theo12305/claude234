@@ -674,3 +674,30 @@ def optimisation_chart(monthly: pd.DataFrame) -> alt.Chart:
         tooltip=[alt.Tooltip("Month:N", title=t("Month")), alt.Tooltip("Part:N", title=t("Share")),
                  alt.Tooltip("Energy:Q", format=",.1f", title="MWh")],
     ).properties(height=320, title=t("Who covers the demand (average year)"))
+
+
+def borehole_map_chart(table: pd.DataFrame, colour: str) -> alt.Chart:
+    """Each borehole drawn at its position, coloured by its share of the load ("share") or by the long-term
+    change of its wall temperature ("change")."""
+    pad = max(table["x"].max() - table["x"].min(), table["y"].max() - table["y"].min(), 10.0) * 0.08 + 3
+    lo_x, lo_y = table["x"].min() - pad, table["y"].min() - pad
+    span = max(table["x"].max() - lo_x, table["y"].max() - lo_y) + pad  # same scale in x and y
+    if colour == "share":
+        field, title, fmt_ = "Percent", t("Share of the load [%]"), ".0f"
+        data = table.assign(Percent=table["Share"] * 100)
+        lim = max(abs(data["Percent"] - 100).max(), 1.0)
+        scale = alt.Scale(scheme="redblue", reverse=True, domain=[100 - lim, 100 + lim])
+    else:
+        field, title, fmt_ = "Change", t("Change [K]"), "+.2f"
+        data = table
+        lim = max(table["Change"].abs().max(), 0.1)
+        scale = alt.Scale(scheme="redblue", reverse=True, domain=[-lim, lim])
+    size = float(np.clip(40000 / max(len(table), 1), 30, 500))
+    return alt.Chart(data).mark_circle(size=size, opacity=1, stroke="white", strokeWidth=0.5).encode(
+        x=alt.X("x:Q", title="x [m]", scale=alt.Scale(domain=[lo_x, lo_x + span], nice=False)),
+        y=alt.Y("y:Q", title="y [m]", scale=alt.Scale(domain=[lo_y, lo_y + span], nice=False)),
+        color=alt.Color(f"{field}:Q", title=title, scale=scale),
+        tooltip=[alt.Tooltip("Borehole:Q", title=t("Borehole")),
+                 alt.Tooltip("Percent:Q" if colour == "share" else "Change:Q", format=fmt_, title=title),
+                 alt.Tooltip("x:Q", format=".1f"), alt.Tooltip("y:Q", format=".1f")],
+    ).properties(width=440, height=440)
