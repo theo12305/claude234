@@ -38,7 +38,7 @@ def test_key_results(sized):
     inputs, result = sized
     keys = analysis.key_results(result, inputs)
     labels = [row[0] for row in keys.rows]
-    assert "Size decided by" in labels
+    assert "Length determined by" in labels
     assert keys.values["t_min"] > inputs["limits"].values["T_min"] - 0.1
     assert keys.values["dp_kpa"] > 0 and keys.values["pump_w"] > 0
     assert "cost" not in keys.values
@@ -52,7 +52,7 @@ def test_check_mode_keeps_length_and_reports_failure():
     assert result.sizing_method == "check"
     assert result.borehole_length == pytest.approx(20.0)
     keys = analysis.key_results(result, inputs)
-    assert ("Check against the limits", "fails") == keys.rows[2][:2]
+    assert ("Check against the limits", "failed") == keys.rows[2][:2]
 
 
 def test_annual_building_load_is_close_to_monthly():

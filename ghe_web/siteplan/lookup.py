@@ -16,6 +16,7 @@ from pyproj import Transformer
 from shapely.geometry import Point, Polygon, shape
 from shapely.ops import unary_union
 
+from ..i18n import t
 from .states import State, by_key
 
 EPSG = 25832
@@ -70,9 +71,11 @@ def _get(url: str, params: dict | None = None, data: str | None = None) -> reque
             r = requests.post(url, data=data.encode(), timeout=TIMEOUT,
                               headers={"User-Agent": USER_AGENT, "Content-Type": "text/xml"})
     except requests.RequestException as exc:
-        raise LookupError_(f"The service {url.split('/')[2]} did not answer ({type(exc).__name__}).") from exc
+        raise LookupError_(t("The service {host} did not answer ({error}).", host=url.split("/")[2],
+                             error=type(exc).__name__)) from exc
     if r.status_code != 200:
-        raise LookupError_(f"The service {url.split('/')[2]} answered with error {r.status_code}.")
+        raise LookupError_(t("The service {host} answered with error {code}.", host=url.split("/")[2],
+                             code=str(r.status_code)))
     return r
 
 
@@ -166,10 +169,10 @@ def parse_gml(content: bytes, epsg: int) -> list[Feature]:
     try:
         root = ET.fromstring(content)
     except ET.ParseError as exc:
-        raise LookupError_("The service sent an answer that could not be read.") from exc
+        raise LookupError_(t("The service sent an answer that could not be read.")) from exc
     if _local(root.tag) in ("ExceptionReport", "ServiceExceptionReport"):
         text = " ".join(t.strip() for t in root.itertext() if t.strip())
-        raise LookupError_(f"The service reported an error: {text[:300]}")
+        raise LookupError_(t("The service reported an error: {error}", error=text[:300]))
     features = []
     for member in root:
         if _local(member.tag) not in ("member", "featureMember", "featureMembers"):
@@ -267,17 +270,17 @@ def parcel_at(lon: float, lat: float, state: State | None = None) -> tuple[Featu
     """The parcel containing the point, from the state's open cadastre service."""
     state = state or state_at(lon, lat)
     if state is None:
-        raise LookupError_("This point is not in Germany.")
+        raise LookupError_(t("This point is not in Germany."))
     if state.parcels is None:
-        raise LookupError_(f"{state.name} does not publish its parcels as open data. "
-                           "Upload the parcel outline or draw it on the map instead.")
+        raise LookupError_(t("{state} does not publish its parcels as open data. Upload the parcel outline or "
+                             "draw it on the map instead.", state=state.name))
     x, y = to_utm(lon, lat)
     feats = wfs_features(state.parcels, (x - 30, y - 30, x + 30, y + 30), 100)
     pt = Point(x, y)
     hits = [f for f in feats if f.geometry.buffer(0.01).contains(pt)]
     if not hits:
         if not feats:
-            raise LookupError_(f"The cadastre of {state.name} returned no parcel at this point.")
+            raise LookupError_(t("The cadastre of {state} returned no parcel at this point.", state=state.name))
         hits = [min(feats, key=lambda f: f.geometry.distance(pt))]
     feat = min(hits, key=lambda f: f.geometry.area)
     feat.attrs["_label"] = _parcel_label(feat.attrs)
@@ -289,15 +292,15 @@ def flurstueckskennzeichen(state: State, gemarkung: str, flur: str, zaehler: str
     Zähler, Nenner); the rest is matched with a wildcard."""
     g, f, z, n = (re.sub(r"\D", "", s or "") for s in (gemarkung, flur, zaehler, nenner))
     if not g or not z:
-        raise LookupError_("Gemarkung number and Flurstück number (Zähler) are needed.")
+        raise LookupError_(t("The Gemarkung number and the Flurstück number (Zähler) are needed."))
     key = f"{state.code}{int(g):04d}{int(f or 0):03d}{int(z):05d}"
     return key + (f"{int(n):04d}" if n else "")
 
 
 def parcel_by_number(state: State, gemarkung: str, flur: str, zaehler: str, nenner: str) -> list[Feature]:
     if state.parcels is None or not state.parcels.ref_property:
-        raise LookupError_(f"Searching by Flurstück number is not available for {state.name}. "
-                           "Search the address or click the parcel on the map instead.")
+        raise LookupError_(t("Searching by Flurstück number is not available for {state}. Search the address or "
+                             "click the parcel on the map instead.", state=state.name))
     key = flurstueckskennzeichen(state, gemarkung, flur, zaehler, nenner)
     feats = wfs_by_attribute(state.parcels, state.parcels.ref_property, key + "*")
     if not feats:  # some states put a prefix (e.g. "DENW") before the number
@@ -344,7 +347,7 @@ def buildings_osm(area_utm) -> list[Feature]:
         except (LookupError_, ValueError) as exc:
             last = exc
     else:
-        raise LookupError_(f"OpenStreetMap buildings could not be loaded: {last}")
+        raise LookupError_(t("OpenStreetMap buildings could not be loaded: {error}", error=last))
     out = []
     for el in data.get("elements", []):
         polys = []
@@ -389,7 +392,7 @@ def read_polygons(name: str, content: bytes) -> list[object]:
         return [geom_to_utm(p, 4326) for p in polys]
     if lower.endswith(".zip"):
         return _read_shapefile_polygons(content)
-    raise LookupError_("Upload a GeoJSON, KML or zipped shapefile.")
+    raise LookupError_(t("Upload a GeoJSON, KML or zipped shapefile."))
 
 
 def _geojson_epsg(data: dict) -> int:
@@ -407,7 +410,7 @@ def _read_shapefile_polygons(content: bytes) -> list[object]:
     with zipfile.ZipFile(io.BytesIO(content)) as zf:
         shp = [n for n in zf.namelist() if n.lower().endswith(".shp") and not n.startswith("__MACOSX")]
         if not shp:
-            raise LookupError_("The zip file contains no .shp file.")
+            raise LookupError_(t("The zip file contains no .shp file."))
         stem = shp[0][:-4]
         parts = {n[-3:].lower(): zf.read(n) for n in zf.namelist() if n[:-4] == stem}
     reader = shapefile.Reader(shp=io.BytesIO(parts["shp"]), shx=io.BytesIO(parts["shx"]), dbf=io.BytesIO(parts["dbf"]))

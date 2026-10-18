@@ -3,6 +3,7 @@ import numpy as np
 from GHEtool.VariableClasses.Efficiency import COP, EER
 
 from ..catalog import COOLING_CURVES, HEATING_CURVES
+from ..i18n import t
 from .base import PresetGroup, Property, Section, Variant
 from .registry import register
 
@@ -41,7 +42,7 @@ def _build(values: dict) -> dict:
 def _cop_rises(values: dict) -> str | None:
     cop, _ = curves(values)
     if np.any(np.diff(cop) < 0):
-        return "The COP usually rises with the fluid temperature. Check the values from left to right."
+        return t("The COP usually rises with the fluid temperature. Check the values from left to right.")
     return None
 
 

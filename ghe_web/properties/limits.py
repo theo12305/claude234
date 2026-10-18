@@ -1,3 +1,4 @@
+from ..i18n import t
 from .base import Property, Section, Variant
 from .registry import register
 
@@ -16,7 +17,7 @@ register(Section(
                 Property("T_max", "Maximum fluid temperature", 17.0, "°C", min=0.0, max=60.0, step=0.5),
             ),
             checks=(lambda v: None if v["T_max"] > v["T_min"]
-                    else "Maximum fluid temperature must be above the minimum.",),
+                    else t("The maximum fluid temperature must be above the minimum."),),
             build=lambda v: v,
         ),
     ),

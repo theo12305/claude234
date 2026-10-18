@@ -14,6 +14,7 @@ from matplotlib.path import Path
 from pyproj import CRS
 from pyproj.enums import WktVersion
 
+from ..i18n import t
 from .layout import Rules, Site, allowed_area
 from .lookup import EPSG, to_wgs84
 
@@ -94,15 +95,16 @@ def preview_png(site: Site, rules: Rules, points, title: str = "", dpi: int = 15
             ax.add_patch(PathPatch(Path(verts, codes), **kw))
             kw.pop("label", None)
 
-    draw(site.parcel, facecolor="#f4f1e8", edgecolor="#5b4a2f", lw=1.6, label="Parcel")
-    draw(allowed, facecolor="#cfe8d4", edgecolor="#3c8a4f", lw=0.8, ls="--", label="Allowed area")
+    draw(site.parcel, facecolor="#f4f1e8", edgecolor="#5b4a2f", lw=1.6, label=t("Parcel"))
+    draw(allowed, facecolor="#cfe8d4", edgecolor="#3c8a4f", lw=0.8, ls="--", label=t("Allowed area"))
     for i, b in enumerate(site.buildings):
-        draw(b, facecolor="#9a9a9a", edgecolor="#555555", lw=0.8, label="Building" if i == 0 else None)
+        draw(b, facecolor="#9a9a9a", edgecolor="#555555", lw=0.8, label=t("Building") if i == 0 else None)
     for i, e in enumerate(site.exclusions):
-        draw(e, facecolor="#f2c4c4", edgecolor="#b44", lw=0.8, hatch="//", label="Excluded area" if i == 0 else None)
+        draw(e, facecolor="#f2c4c4", edgecolor="#b44", lw=0.8, hatch="//",
+             label=t("Excluded area") if i == 0 else None)
     if points:
         xs, ys = zip(*points)
-        ax.scatter(xs, ys, s=22, color="#1f5fbf", zorder=5, label=f"Borehole ({len(points)})")
+        ax.scatter(xs, ys, s=22, color="#1f5fbf", zorder=5, label=t("Boreholes ({n})", n=len(points)))
         if len(points) <= 150:
             for i, (x, y) in enumerate(points, start=1):
                 ax.annotate(str(i), (x, y), xytext=(3, 3), textcoords="offset points", fontsize=6, color="#1f3f7f")
@@ -113,14 +115,14 @@ def preview_png(site: Site, rules: Rules, points, title: str = "", dpi: int = 15
     ax.set_aspect("equal")
     ax.ticklabel_format(useOffset=False, style="plain")
     ax.tick_params(labelsize=7)
-    ax.set_xlabel("Easting [m] (ETRS89 / UTM 32N)", fontsize=8)
-    ax.set_ylabel("Northing [m]", fontsize=8)
+    ax.set_xlabel(t("Easting [m] (ETRS89 / UTM 32N)"), fontsize=8)
+    ax.set_ylabel(t("Northing [m]"), fontsize=8)
     ax.grid(alpha=0.25)
     ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1), fontsize=8, frameon=False)
-    ax.set_title(title or "Borehole site plan", fontsize=11, loc="left")
-    ax.text(1.01, 0.0, f"Distances: parcel border {rules.border_distance:g} m, buildings "
-            f"{rules.building_distance:g} m,\nboreholes {rules.spacing:g} m apart", transform=ax.transAxes,
-            fontsize=7, va="bottom")
+    ax.set_title(title or t("Borehole site plan"), fontsize=11, loc="left")
+    ax.text(1.01, 0.0, t("Distances: parcel border {border:g} m, buildings {buildings:g} m,\nboreholes {spacing:g} m "
+                         "apart", border=rules.border_distance, buildings=rules.building_distance,
+                         spacing=rules.spacing), transform=ax.transAxes, fontsize=7, va="bottom")
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
     plt.close(fig)
@@ -168,28 +170,29 @@ def project_zip(site: Site, rules: Rules, points, info: dict[str, str], imagery:
     files: dict[str, bytes] = {}
     files.update(_shp_points("bhe_positions", points, rules.spacing))
     files.update(_shp_polygons("parcel", [(site.parcel, {"name": info.get("Parcel", "")})]))
-    files.update(_shp_polygons("allowed_area", [(allowed, {"name": "allowed borehole area"})]))
-    layers = [("allowed_area.shp", "Allowed area", "Polygon"), ("parcel.shp", "Parcel", "Polygon")]
+    files.update(_shp_polygons("allowed_area", [(allowed, {"name": t("allowed borehole area")})]))
+    layers = [("allowed_area.shp", t("Allowed area"), "Polygon"), ("parcel.shp", t("Parcel"), "Polygon")]
     if site.buildings:
-        files.update(_shp_polygons("buildings", [(b, {"name": "building"}) for b in site.buildings]))
-        layers.append(("buildings.shp", "Buildings", "Polygon"))
+        files.update(_shp_polygons("buildings", [(b, {"name": t("building")}) for b in site.buildings]))
+        layers.append(("buildings.shp", t("Buildings"), "Polygon"))
     if site.exclusions:
-        files.update(_shp_polygons("exclusions", [(e, {"name": "excluded"}) for e in site.exclusions]))
-        layers.append(("exclusions.shp", "Excluded areas", "Polygon"))
-    layers.append(("bhe_positions.shp", "Borehole positions", "Point"))
+        files.update(_shp_polygons("exclusions", [(e, {"name": t("excluded")}) for e in site.exclusions]))
+        layers.append(("exclusions.shp", t("Excluded areas"), "Polygon"))
+    layers.append(("bhe_positions.shp", t("Borehole positions"), "Point"))
     files["site_plan.png"] = preview_png(site, rules, points, info.get("Parcel", ""))
     # QGIS draws the first layer of the tree on top, so reverse: boreholes on top, image at the bottom
     files["site_plan.qgs"] = _qgis_project(layers[::-1], imagery)
-    lines = [f"BHE site plan, created {dt.date.today():%Y-%m-%d} with GHEtool Web", ""]
-    lines += [f"{k}: {v}" for k, v in info.items()]
-    lines += ["", f"Boreholes: {len(points)}", f"Distance to parcel border: {rules.border_distance:g} m",
-              f"Distance to buildings: {rules.building_distance:g} m",
-              f"Distance between boreholes: {rules.spacing:g} m",
-              f"Allowed area: {allowed.area:,.0f} m2", "",
-              f"Coordinates: ETRS89 / UTM zone 32N (EPSG:{EPSG}).",
-              "Open site_plan.qgs in QGIS, or load the .shp files in any GIS program.",
-              "bhe_positions.shp can be uploaded directly under Borefield > Irregular field (shapefile).", "",
-              "Check the distances with the local water authority (Untere Wasserbehoerde) before planning:",
-              "rules differ by state and district, and the parcel and building data may be out of date."]
+    lines = [t("BHE site plan, created {date} with GHEtool Web", date=f"{dt.date.today():%Y-%m-%d}"), ""]
+    lines += [f"{t(k)}: {v}" for k, v in info.items()]
+    lines += ["", t("Boreholes: {n}", n=len(points)),
+              t("Distance to the parcel border: {d:g} m", d=rules.border_distance),
+              t("Distance to buildings: {d:g} m", d=rules.building_distance),
+              t("Distance between boreholes: {d:g} m", d=rules.spacing),
+              t("Allowed area: {a:,.0f} m2", a=allowed.area), "",
+              t("Coordinates: ETRS89 / UTM zone 32N (EPSG:{epsg}).", epsg=str(EPSG)),
+              t("Open site_plan.qgs in QGIS, or load the .shp files in any GIS program."),
+              t("bhe_positions.shp can be uploaded directly under Borefield > Irregular field (shapefile)."), "",
+              t("Check the distances with the local water authority (Untere Wasserbehörde) before planning:"),
+              t("rules differ by state and district, and the parcel and building data may be out of date.")]
     files["README.txt"] = "\n".join(lines).encode("utf-8")
     return _zip(files)

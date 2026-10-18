@@ -76,6 +76,15 @@ optional; `;` or `,` separators and decimal commas work). The SCOP and SEER turn
 into ground load. With **Size with hourly resolution** on, GHEtool sizes on every hour (L4), and the
 results show hourly fluid temperatures. Try it with `examples/hourly_demand_example.csv`.
 
+## Languages
+
+The page, the PDF report and the Excel workbook are available in English (default) and German. The switch is at
+the top of the sidebar, and the choice is saved in the project file. German numbers use the decimal comma.
+
+Texts are written in English in the code and wrapped in `t("...")` (`ghe_web/i18n.py`); the German texts are in
+`ghe_web/i18n_de.py`, keyed by the English text. `tests/test_i18n.py` fails when a text has no German entry, when
+the placeholders differ, or when an entry is no longer used. German terms follow VDI 4640.
+
 ## Using the page
 
 The inputs are split into four steps (tabs): ① ground and borefield, ② borehole and fluid,
@@ -169,6 +178,7 @@ tests/
 | A drawing for an input                   | Add an entry to `DRAWINGS` in `plots.py` for that section and variant. |
 | Typical values for a drop-down           | Add them to `catalog.py`; they appear in the matching preset. |
 | A new topic                              | New module with a `Section`, `register(...)` it, import it in `properties/__init__.py`, then use it in `model.py`. |
+| Any text on the page or in a report      | Write it in English inside `t("...")` and add the German text to `ghe_web/i18n_de.py`. |
 
 Saved projects are JSON files. Values that no longer exist are ignored and new ones get their
 defaults, so old project files keep working after you extend the interface.

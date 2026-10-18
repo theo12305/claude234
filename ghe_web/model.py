@@ -12,6 +12,7 @@ import pandas as pd
 from GHEtool import Borefield
 
 from . import properties
+from .i18n import t
 from .properties import SectionInput
 from .properties.pipe import ConstantRb
 
@@ -42,7 +43,7 @@ def validate(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
     for section in properties.sections():
         chosen = inputs.get(section.key)
         if chosen is None:
-            errors[section.key] = [f"{section.label}: no input given."]
+            errors[section.key] = [t("{section}: no input given.", section=t(section.label))]
             continue
         problems = section.variant(chosen.variant).validate(chosen.values)
         if problems:
@@ -62,17 +63,17 @@ def _cross_errors(inputs: dict[str, SectionInput]) -> list[tuple[str, str]]:
         return []
     if pipe.variant in ("single_u", "double_u"):
         if v["D_s_mm"] + v["r_out_mm"] > r_b:
-            return [("pipe", f"The pipes stick out of the borehole: shank spacing + outer radius "
-                             f"({v['D_s_mm'] + v['r_out_mm']:g} mm) is more than the borehole radius ({r_b:g} mm).")]
+            return [("pipe", t("The pipes stick out of the borehole: shank spacing + outer pipe radius ({size:g} mm) "
+                               "is more than the borehole radius ({r_b:g} mm).", size=v["D_s_mm"] + v["r_out_mm"],
+                               r_b=r_b))]
         # legs sit on a circle of radius D_s: two (single U) or four at 90° (double U)
         gap = 2 * v["D_s_mm"] if pipe.variant == "single_u" else 2 ** 0.5 * v["D_s_mm"]
         if gap < 2 * v["r_out_mm"]:
-            return [("pipe", f"The pipe legs overlap: increase the shank spacing to at least "
-                             f"{2 * v['r_out_mm'] / (2 if pipe.variant == 'single_u' else 2 ** 0.5):.1f} mm or "
-                             "use smaller pipes.")]
+            return [("pipe", t("The pipe legs overlap: increase the shank spacing to at least {d:.1f} mm or use "
+                               "smaller pipes.", d=2 * v["r_out_mm"] / (2 if pipe.variant == "single_u" else 2 ** 0.5)))]
     elif pipe.variant == "coaxial" and v["r_out_out_mm"] >= r_b:
-        return [("pipe", f"The outer pipe ({v['r_out_out_mm']:g} mm radius) does not fit in the borehole "
-                         f"({r_b:g} mm radius).")]
+        return [("pipe", t("The outer pipe ({r:g} mm radius) does not fit in the borehole ({r_b:g} mm radius).",
+                           r=v["r_out_out_mm"], r_b=r_b))]
     return []
 
 
@@ -94,8 +95,8 @@ def cross_warnings(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
     """Warnings that need more than one section."""
     out = {}
     if "heat_pump" in inputs and inputs["heat_pump"].variant == "curve" and not uses_building_load(inputs):
-        out["heat_pump"] = ["The ground load is entered directly (monthly energy), so there is no heat pump to "
-                            "apply this to. Choose yearly or hourly building demand in Ground load to use it."]
+        out["heat_pump"] = [t("The ground load is entered directly (monthly energy), so there is no heat pump to "
+                              "apply this to. Choose yearly or hourly building demand under Ground load to use it.")]
     return out
 
 
@@ -266,11 +267,13 @@ def heat_pump_table(load) -> pd.DataFrame | None:
 PROJECT_FORMAT = 1
 
 
-def to_json(inputs: dict[str, SectionInput], name: str = "") -> str:
+def to_json(inputs: dict[str, SectionInput], name: str = "", language: str | None = None) -> str:
     import json
+    extra = {"language": language} if language else {}
     return json.dumps({
         "format": PROJECT_FORMAT,
         "name": name,
+        **extra,
         "sections": {k: {"variant": v.variant, "values": _plain(v.values)} for k, v in inputs.items()},
     }, indent=2)
 
@@ -281,7 +284,7 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
     import json
     data = json.loads(text)
     if data.get("format") != PROJECT_FORMAT:
-        raise ValueError("This file is not a GHEtool Web project.")
+        raise ValueError(t("This file is not a GHEtool Web project."))
     inputs = default_inputs()
     for key, saved in data.get("sections", {}).items():
         try:
@@ -302,6 +305,16 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
                 values[p.key] = v
         inputs[key] = SectionInput(variant.key, values)
     return data.get("name", ""), inputs
+
+
+def saved_language(text: str) -> str | None:
+    """The page language stored in a project file, if any."""
+    import json
+    try:
+        language = json.loads(text).get("language")
+    except (ValueError, AttributeError):
+        return None
+    return language if isinstance(language, str) else None
 
 
 def _plain(values: dict[str, Any]) -> dict[str, Any]:
