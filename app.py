@@ -28,6 +28,7 @@ _drop_stale_package()
 
 from ghe_web import analysis, export, geometry, hourly, model, plots, properties, report
 from ghe_web.siteplan import page as siteplan_page
+from ghe_web.strata import page as strata_page
 from ghe_web.properties import Property, SectionInput, Variant
 from ghe_web.properties.load import MONTHS
 
@@ -217,6 +218,18 @@ def show_drawing(parts: tuple) -> None:
             st.altair_chart(part, width="stretch")
 
 
+def borehole_depth() -> tuple[float, float]:
+    """Borehole length and buried depth as currently entered (the borefield section may come later on the page),
+    for sections that need them before it is read."""
+    chosen = start.get("borefield") or SectionInput("rectangular", {})
+    section = properties.get("borefield")
+    labels = {v.label: v.key for v in section.variants}
+    variant = labels.get(st.session_state.get(f"{gen}.borefield.variant"), chosen.variant)
+    defaults = {**section.variant(variant).defaults(), **(chosen.values if variant == chosen.variant else {})}
+    return (float(st.session_state.get(f"{gen}.borefield.{variant}.H", defaults["H"])),
+            float(st.session_state.get(f"{gen}.borefield.{variant}.D", defaults["D"])))
+
+
 def section_inputs(section) -> tuple[SectionInput, object]:
     """Draws one section and returns its values and where its drawing goes (or None)."""
     with st.container(border=True):
@@ -235,7 +248,8 @@ def section_inputs(section) -> tuple[SectionInput, object]:
         values = variant.defaults()
         if variant.key == chosen.variant:
             values.update(chosen.values)
-        simple = [p for p in variant.properties if p.kind not in ("monthly", "points", "hourly")]
+        simple = [p for p in variant.properties if p.kind not in ("monthly", "points", "hourly", "layers")]
+        layer_props = [p for p in variant.properties if p.kind == "layers"]
         point_props = [p for p in variant.properties if p.kind == "points"]
         hourly_props = [p for p in variant.properties if p.kind == "hourly"]
         monthly = [p for p in variant.properties if p.kind == "monthly"]
@@ -256,6 +270,9 @@ def section_inputs(section) -> tuple[SectionInput, object]:
                     values[prop.key] = widget(prop, values[prop.key], f"{prefix}.{prop.key}")
             if monthly:
                 values.update(monthly_table(monthly, values, f"{prefix}.monthly"))
+        for prop in layer_props:  # full width below the fields and the drawing
+            values[prop.key] = strata_page.layers_input(prop, values[prop.key], f"{prefix}.{prop.key}", prefix,
+                                                        *borehole_depth())
         problems = variant.validate(values)
         for msg in problems:
             st.error(msg, icon=":material/error:")
@@ -546,6 +563,59 @@ def view_ground(result, sized_json) -> None:
         st.altair_chart(plots.gfunction_chart(analysis.gfunction_curve(result)), width="stretch")
 
 
+@st.cache_resource(max_entries=8, show_spinner=False)
+def cached_uniform(project_json: str) -> tuple[float, float]:
+    """The same design sized with one average conductivity and heat capacity instead of the layers."""
+    return analysis.uniform_ground_length(cached_size(project_json), model.from_json(project_json)[1])
+
+
+def view_layers(result, sized_inputs, sized_json) -> None:
+    from ghe_web.strata import predict
+    rows, used = plots.ground_rows(sized_inputs)
+    length, buried = result.borehole_length, sized_inputs["borefield"].values["D"]
+    k, c = predict.effective(rows, length, buried)
+    parts = predict.contributions(rows, length, buried)
+    if not used:
+        st.info("These layers were not used: the calculation took the single conductivity from step ①. Switch on "
+                "**Calculate with the layers** under Ground to size with them.", icon=":material/info:")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Average conductivity along the borehole", f"{k:.2f} W/(m·K)", f"from {buried:.1f} to "
+              f"{buried + length:.0f} m", delta_color="off", delta_arrow="off")
+    c2.metric("Average heat capacity", f"{c:.2f} MJ/(m³·K)")
+    c3.metric("Layers reached", f"{len(parts)} of {len(rows)}")
+    left, right = st.columns([2, 3], gap="large")
+    with left:
+        st.pyplot(plots.borehole_log(rows, length, buried, f"{result.number_of_boreholes} boreholes of "
+                                                           f"{length:.1f} m"), width="stretch")
+    with right:
+        st.markdown("**Share of the heat exchange per layer**")
+        st.altair_chart(plots.layer_share_chart(parts), width="stretch")
+        st.caption("Length in the layer × its conductivity, as a share of the whole borehole. Layers that conduct "
+                   "well carry more of the heat, so they are worth reaching.")
+        st.markdown("**Average conductivity for other borehole lengths**")
+        top = max(float(rows[-1]["top"]) * 1.2, length * 1.6, 50.0)
+        st.altair_chart(plots.conductivity_with_length(rows, buried, range(10, int(top) + 1, 5), length),
+                        width="stretch")
+        st.caption("Dashed: the calculated length. Where the curve rises, a deeper borehole reaches better ground.")
+    if used:
+        with st.expander("Compare: the same design with one average value", icon=":material/compare_arrows:"):
+            st.caption("Sizes again with a single conductivity and heat capacity, the average over the borehole "
+                       "length found here. The difference shows how much the layering matters.")
+            if st.button("Calculate the comparison", key="uniform_go"):
+                st.session_state.uniform_json = sized_json
+            if st.session_state.get("uniform_json") == sized_json:
+                with st.spinner("Sizing with the average values..."):
+                    try:
+                        uniform, k_used = cached_uniform(sized_json)
+                    except Exception as exc:
+                        st.error(f"The comparison failed: {exc}")
+                        return
+                d1, d2 = st.columns(2)
+                d1.metric("With layers", f"{length:.1f} m")
+                d2.metric(f"With one value ({k_used:.2f} W/(m·K))", f"{uniform:.1f} m",
+                          f"{uniform - length:+.1f} m per borehole", delta_color="off", delta_arrow="off")
+
+
 def view_load_optimisation(result, sized_json) -> None:
     st.caption("Keeps the borefield as designed and works out how much of the hourly building demand it can take "
                "within the temperature limits. The rest comes from a backup boiler, gas or electric, or a chiller "
@@ -809,6 +879,8 @@ with step_tabs[RESULTS]:
         if result.heat_pump is not None:
             views.append("Heat pump")
         views += ["Hydraulics", "Ground"]
+        if (sized_inputs["ground"].values.get("layers") or {}).get("rows"):
+            views.append("Layers")
         if sized_inputs["load"].variant == "hourly_building":
             views.append("Load optimisation")
         views += ["Further analysis", "Export"]
@@ -829,6 +901,8 @@ with step_tabs[RESULTS]:
             view_hydraulics(result, key)
         elif view == "Ground":
             view_ground(result, sized_json)
+        elif view == "Layers":
+            view_layers(result, sized_inputs, sized_json)
         elif view == "Load optimisation":
             view_load_optimisation(result, sized_json)
         elif view == "Further analysis":

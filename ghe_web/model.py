@@ -296,6 +296,9 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
                     v = tuple(v)
                 elif p.kind == "points":
                     v = tuple(tuple(pt) for pt in v)
+                elif p.kind == "layers":
+                    v = {"use": bool(v.get("use")), "rows": tuple(dict(r) for r in v.get("rows") or ())} \
+                        if isinstance(v, dict) else p.default
                 values[p.key] = v
         inputs[key] = SectionInput(variant.key, values)
     return data.get("name", ""), inputs
@@ -303,5 +306,7 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
 
 def _plain(values: dict[str, Any]) -> dict[str, Any]:
     def plain(v):
+        if isinstance(v, dict):
+            return {k: plain(x) for k, x in v.items()}
         return [plain(x) for x in v] if isinstance(v, (list, tuple)) else v
     return {k: plain(v) for k, v in values.items()}

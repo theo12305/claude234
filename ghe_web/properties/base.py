@@ -15,7 +15,8 @@ from typing import Any, Callable, Literal
 
 # "points": a list of (x, y) borehole positions in metres.
 # "hourly": {"heating": [8760 values], "cooling": [8760 values]} in kW.
-PropertyKind = Literal["float", "int", "choice", "bool", "monthly", "points", "hourly"]
+# "layers": {"use": bool, "rows": [{"top", "bottom", "rock", "k_s", "C", ...}]}, depths in m below ground.
+PropertyKind = Literal["float", "int", "choice", "bool", "monthly", "points", "hourly", "layers"]
 
 
 @dataclass(frozen=True)
@@ -43,6 +44,13 @@ class Property:
                     errors.append(f"{self.label}: {key} needs 8760 hourly values.")
                 elif min(series) < 0:
                     errors.append(f"{self.label}: {key} demand cannot be negative.")
+            return errors
+        if self.kind == "layers":
+            if not isinstance(value, dict):
+                return [f"{self.label}: not a layer table."]
+            if value.get("use"):
+                from ..strata.predict import check_rows
+                errors.extend(f"{self.label}: {msg}" for msg in check_rows(list(value.get("rows") or [])))
             return errors
         if self.kind == "points":
             if len(value) == 0:

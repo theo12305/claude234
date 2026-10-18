@@ -51,6 +51,23 @@ as a shapefile:
 The services and border distances of the 16 states are plain data in `ghe_web/siteplan/states.py`.
 Check the distances with the local water authority (Untere Wasserbehörde) before planning.
 
+## Ground layers: predicted from borehole logs
+
+Under Ground in step ① the panel **Predict the layers** estimates the layers at the site:
+
+- Location: the parcel from the site plan, an address or coordinates.
+- Data: borehole logs within a search radius, weighted by 1/distance², and the BGR geological map (GÜK250) at
+  the surface. Logs come from the open BoreholeML service of GD NRW (North Rhine-Westphalia) or from files you upload:
+  BoreholeML (.xml, the exchange format of the state surveys) or a table with one row per layer (template on the
+  page; SEP 3 codes such as `mS,g` or words such as `Tonstein` are recognised). Other states have no open log service
+  yet; download the logs from the state portal and upload them.
+- Thermal values: VDI 4640 Blatt 1 per rock type (`ghe_web/strata/rocks.py`); loose sediments above the groundwater
+  table get lower, moist values.
+- **Fill in the averages** puts the depth-weighted averages into the single fields; **Use the layers** copies the
+  layers into an editable table and switches on the layered calculation (GHEtool `GroundLayer`), which averages the
+  layers over the borehole length while sizing. The Results get a **Layers** view with the borehole log, each layer's
+  share of the heat exchange, the average conductivity for other lengths and a comparison with a single value.
+
 ## Hourly heating and cooling demand
 
 Under Ground load choose **Hourly building demand** and upload a CSV or Excel file with 8760 rows:

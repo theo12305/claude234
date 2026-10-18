@@ -62,6 +62,12 @@ def _input_rows(inputs: dict[str, SectionInput]) -> list[tuple[str, list[tuple[s
                 text = ", ".join(f"{m} {x:,.0f}" for m, x in zip(MONTHS, v))
             elif p.kind == "points":
                 text = f"{len(v)} boreholes"
+            elif p.kind == "layers":
+                layer_rows = (v or {}).get("rows") or ()
+                if not layer_rows:
+                    continue
+                text = ("used: " if v.get("use") else "not used: ") + "; ".join(
+                    f"{r['top']:g}–{r['bottom']:g} m {r.get('rock', '')} ({float(r['k_s']):.2f})" for r in layer_rows)
             elif p.kind == "hourly":
                 text = (f"8760 h, heating {sum(v['heating']) / 1000:,.0f} MWh (peak {max(v['heating']):,.0f} kW), "
                         f"cooling {sum(v['cooling']) / 1000:,.0f} MWh (peak {max(v['cooling']):,.0f} kW)")
