@@ -13,6 +13,8 @@ import shapely
 from shapely.geometry import MultiPolygon, Point, Polygon
 from shapely.ops import unary_union
 
+from ..i18n import t
+
 TOL = 1e-6  # m; points exactly on the edge of the allowed area count as inside
 
 
@@ -230,7 +232,8 @@ def check(points, site: Site, rules: Rules) -> list[str]:
     area = allowed_area(site, rules).buffer(0.01)
     outside = [i + 1 for i, (x, y) in enumerate(points) if not area.contains(Point(x, y))]
     if outside:
-        problems.append(f"{len(outside)} borehole(s) break a distance rule: " + ", ".join(map(str, outside[:20])))
+        problems.append(t("{n} borehole(s) break a distance rule: {which}", n=len(outside),
+                          which=", ".join(map(str, outside[:20]))))
     g = _Grid(rules.spacing - 0.01)
     close = []
     for i, (x, y) in enumerate(points):
@@ -238,6 +241,6 @@ def check(points, site: Site, rules: Rules) -> list[str]:
             close.append(i + 1)
         g.add(x, y)
     if close:
-        problems.append(f"{len(close)} borehole(s) are closer than {rules.spacing:g} m to another: "
-                        + ", ".join(map(str, close[:20])))
+        problems.append(t("{n} borehole(s) are closer than {d:g} m to another: {which}", n=len(close),
+                          d=rules.spacing, which=", ".join(map(str, close[:20]))))
     return problems

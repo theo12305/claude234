@@ -1,6 +1,7 @@
 from GHEtool import GroundConstantTemperature, GroundFluxTemperature, GroundLayer, GroundTemperatureGradient
 
 from ..catalog import GROUND
+from ..i18n import t
 from .base import PresetGroup, Property, Section, Variant
 from .registry import register
 
@@ -20,9 +21,11 @@ def _conductivity_warning(v):
     if layered(v):
         return None
     if v["k_s"] > 4.5:
-        return f"A ground conductivity of {v['k_s']} W/(m·K) is unusually high. Is it from a thermal response test?"
+        return t("A ground thermal conductivity of {k:g} W/(m·K) is unusually high. Is it from a thermal response "
+                 "test?", k=v["k_s"])
     if v["k_s"] < 1.0:
-        return "Ground conductivity below 1 W/(m·K) is typical for dry soil only; boreholes will be long."
+        return t("A ground thermal conductivity below 1 W/(m·K) is typical of dry soil only; the boreholes will be "
+                 "long.")
 
 
 def _c(v):

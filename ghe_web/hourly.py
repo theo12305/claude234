@@ -6,6 +6,8 @@ import math
 
 import pandas as pd
 
+from .i18n import t
+
 HOURS = 8760
 
 
@@ -29,24 +31,25 @@ def read_profile(name: str, content: bytes) -> tuple[list[float], list[float], l
             decimal = "," if sep != "," and _uses_decimal_comma(text) else "."
             df = pd.read_csv(io.StringIO(text), sep=sep, decimal=decimal, header=None, engine="python")
     except Exception as exc:
-        raise HourlyFileError(f"Could not read {name}: {exc}") from exc
+        raise HourlyFileError(t("Could not read {name}: {error}", name=name, error=exc)) from exc
 
     df = df.apply(pd.to_numeric, errors="coerce")
     df = df.dropna(axis=1, how="all")
     if df.shape[1] < 2:
-        raise HourlyFileError("The file needs two columns with numbers: heating and cooling demand in kW.")
+        raise HourlyFileError(t("The file needs two columns with numbers: heating and cooling demand in kW."))
     df = df.iloc[:, :2].dropna(how="all")  # drops a text header row
     notes = []
     if df.isna().any().any():
-        notes.append(f"{int(df.isna().sum().sum())} empty cells were read as 0 kW.")
+        notes.append(t("{n} empty cells were read as 0 kW.", n=int(df.isna().sum().sum())))
         df = df.fillna(0)
     if len(df) == HOURS + 24:
-        notes.append("The file has 8784 hours (leap year); the last day was dropped.")
+        notes.append(t("The file has 8784 hours (leap year); the last day was dropped."))
         df = df.iloc[:HOURS]
     if len(df) != HOURS:
-        raise HourlyFileError(f"Expected {HOURS} hourly values (one year), found {len(df)}.")
+        raise HourlyFileError(t("Expected {hours} hourly values (one year), found {n}.", hours=HOURS, n=len(df)))
     if (df < 0).any().any():
-        raise HourlyFileError("Demand cannot be negative. Put heating and cooling in separate columns, both positive.")
+        raise HourlyFileError(t("The demand cannot be negative. Put heating and cooling in separate columns, both "
+                                "positive."))
     heating, cooling = (df.iloc[:, i].astype(float).round(3).tolist() for i in (0, 1))
     return heating, cooling, notes
 

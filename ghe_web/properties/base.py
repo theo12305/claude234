@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
+from ..i18n import t
+
 # "points": a list of (x, y) borehole positions in metres.
 # "hourly": {"heating": [8760 values], "cooling": [8760 values]} in kW.
 # "layers": {"use": bool, "rows": [{"top", "bottom", "rock", "k_s", "C", ...}]}, depths in m below ground.
@@ -41,34 +43,38 @@ class Property:
             for key in ("heating", "cooling"):
                 series = value.get(key) if isinstance(value, dict) else None
                 if series is None or len(series) != 8760:
-                    errors.append(f"{self.label}: {key} needs 8760 hourly values.")
+                    errors.append(t("{label}: the {load} demand needs 8760 hourly values.", label=t(self.label),
+                                    load=t(key)))
                 elif min(series) < 0:
-                    errors.append(f"{self.label}: {key} demand cannot be negative.")
+                    errors.append(t("{label}: the {load} demand cannot be negative.", label=t(self.label),
+                                    load=t(key)))
             return errors
         if self.kind == "layers":
             if not isinstance(value, dict):
-                return [f"{self.label}: not a layer table."]
+                return [t("{label}: not a layer table.", label=t(self.label))]
             if value.get("use"):
                 from ..strata.predict import check_rows
-                errors.extend(f"{self.label}: {msg}" for msg in check_rows(list(value.get("rows") or [])))
+                errors.extend(f"{t(self.label)}: {msg}" for msg in check_rows(list(value.get("rows") or [])))
             return errors
         if self.kind == "points":
             if len(value) == 0:
-                errors.append(f"{self.label}: at least one borehole is needed.")
+                errors.append(t("{label}: at least one borehole is needed.", label=t(self.label)))
             elif any(len(p) != 2 or any(not isinstance(c, (int, float)) or c != c for c in p) for p in value):
-                errors.append(f"{self.label}: every borehole needs a numeric x and y.")
+                errors.append(t("{label}: every borehole needs a numeric x and y coordinate.", label=t(self.label)))
             return errors
         values = value if self.kind == "monthly" else [value]
         if self.kind == "monthly" and len(values) != 12:
-            errors.append(f"{self.label}: expected 12 monthly values, got {len(values)}.")
+            errors.append(t("{label}: 12 monthly values are needed, found {n}.", label=t(self.label), n=len(values)))
         if self.kind == "choice" and value not in self.options:
-            errors.append(f"{self.label}: '{value}' is not one of {list(self.options)}.")
+            errors.append(t("{label}: '{value}' is not one of the options.", label=t(self.label), value=t(str(value))))
         for v in values:
             if self.min is not None and v < self.min:
-                errors.append(f"{self.label}: {v} is below the minimum of {self.min} {self.unit}.".strip())
+                errors.append(t("{label}: {value:g} is below the minimum of {limit:g} {unit}.", label=t(self.label),
+                                value=v, limit=self.min, unit=t(self.unit)).strip())
                 break
             if self.max is not None and v > self.max:
-                errors.append(f"{self.label}: {v} is above the maximum of {self.max} {self.unit}.".strip())
+                errors.append(t("{label}: {value:g} is above the maximum of {limit:g} {unit}.", label=t(self.label),
+                                value=v, limit=self.max, unit=t(self.unit)).strip())
                 break
         return errors
 
@@ -106,7 +112,7 @@ class Variant:
         errors = []
         for p in self.properties:
             if p.key not in values:
-                errors.append(f"{p.label}: missing value.")
+                errors.append(t("{label}: no value given.", label=t(p.label)))
             else:
                 errors.extend(p.validate(values[p.key]))
         if not errors:

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from GHEtool import CoaxialPipe, DoubleUTube, SingleUTube
 
 from ..catalog import GROUT, PIPES
+from ..i18n import t
 from .base import PresetGroup, Property, Section, Variant
 from .registry import register
 
@@ -13,7 +14,8 @@ U_PROPS = (
     Property("r_in_mm", "Pipe inner radius", 13.1, "mm", min=2.0, max=50.0, step=0.1),
     Property("r_out_mm", "Pipe outer radius", 16.0, "mm", min=3.0, max=60.0, step=0.5),
     K_P,
-    Property("D_s_mm", "Distance pipe centre to borehole centre", 35.0, "mm", min=5.0, max=150.0, step=1.0),
+    Property("D_s_mm", "Shank spacing (pipe centre to borehole centre)", 35.0, "mm", min=5.0, max=150.0,
+             step=1.0),
 )
 U_PRESETS = (PresetGroup("Pipe", PIPES), PresetGroup("Grout", GROUT))
 
@@ -26,7 +28,7 @@ class ConstantRb:
 
 def _radii_ok(v):
     if v["r_out_mm"] <= v["r_in_mm"]:
-        return "Pipe outer radius must be larger than the inner radius."
+        return t("The outer radius of the pipe must be larger than its inner radius.")
 
 
 def _u_kwargs(v):
@@ -36,7 +38,8 @@ def _u_kwargs(v):
 
 def _coaxial_ok(v):
     if not v["r_in_in_mm"] < v["r_in_out_mm"] < v["r_out_in_mm"] < v["r_out_out_mm"]:
-        return "Coaxial radii must increase: inner pipe inside < inner pipe outside < outer pipe inside < outside."
+        return t("The coaxial radii must increase from the inside out: inner pipe inner < inner pipe outer < outer "
+                 "pipe inner < outer pipe outer.")
 
 
 register(Section(

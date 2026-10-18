@@ -4,6 +4,7 @@ import pygfunction as gt
 
 from ..catalog import BOREHOLES
 from ..geometry import closest_pair
+from ..i18n import t
 from .base import PresetGroup, Property, Section, Variant
 from .registry import register
 
@@ -25,18 +26,19 @@ def _custom(v):
 def _no_overlap(v):
     pair = closest_pair(v["points"])
     if pair and pair[0] < 2 * v["r_b_mm"] / 1000:
-        return f"Boreholes {pair[1]} and {pair[2]} overlap ({pair[0]:.2f} m apart)."
+        return t("Boreholes {a} and {b} overlap ({d:.2f} m apart).", a=pair[1], b=pair[2], d=pair[0])
 
 
 def _rect_spacing_warning(v):
     if min(v["B_1"], v["B_2"]) < 4.5 and v["N_1"] * v["N_2"] > 1:
-        return "Spacing below 4.5 m makes boreholes influence each other strongly; 5 to 8 m is common."
+        return t("With a spacing below 4.5 m the boreholes influence each other strongly; 5 to 8 m is common.")
 
 
 def _custom_spacing_warning(v):
     pair = closest_pair(v["points"])
     if pair and 2 * v["r_b_mm"] / 1000 <= pair[0] < 4.5:
-        return f"Boreholes {pair[1]} and {pair[2]} are only {pair[0]:.1f} m apart; 5 to 8 m is common."
+        return t("Boreholes {a} and {b} are only {d:.1f} m apart; 5 to 8 m is common.", a=pair[1], b=pair[2],
+                 d=pair[0])
 
 
 def _example_field():
@@ -50,8 +52,10 @@ def _example_field():
 COMMON = (
     Property("H", "Borehole length", 100.0, "m", min=10.0, max=1000.0, step=5.0,
              help="Start value; sizing calculates the required length."),
-    Property("D", "Buried depth", 0.7, "m", min=0.0, max=20.0, step=0.1),
-    Property("r_b_mm", "Borehole radius", 75.0, "mm", min=20.0, max=200.0, step=1.0),
+    Property("D", "Buried depth", 0.7, "m", min=0.0, max=20.0, step=0.1,
+             help="Depth of the top of the borehole below ground level."),
+    Property("r_b_mm", "Borehole radius", 75.0, "mm", min=20.0, max=200.0, step=1.0,
+             help="Half the drilling diameter."),
 )
 
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from ..i18n import t
 from . import rocks
 
 
@@ -88,14 +89,14 @@ def predict(boreholes: list[Borehole], x: float, y: float, depth: float, radius:
     near = [(b, d) for b, d in logged if d <= radius][:max_boreholes]
     notes = []
     if logged and not near:
-        notes.append(f"The nearest log ({logged[0][0].name}) is {logged[0][1]:,.0f} m away, outside the search "
-                     "radius. Increase the radius to use it.")
+        notes.append(t("The nearest log ({name}) is {d:,.0f} m away, outside the search radius. Increase the "
+                       "radius to use it.", name=logged[0][0].name, d=logged[0][1]))
     if not near:
         rock = bedrock or surface_rock or rocks.UNKNOWN
-        notes.append("No borehole logs within the search radius. The rock of the geological map at the surface "
-                     "is used for the whole depth: please check it, e.g. against a log from the state's borehole "
-                     "portal." if surface_rock else
-                     "No borehole logs and no geological map data: enter the layers yourself.")
+        notes.append(t("No borehole logs within the search radius. The rock of the geological map at the surface "
+                       "is used for the whole depth: please check it, e.g. against a log from the state's borehole "
+                       "portal.") if surface_rock else
+                     t("No borehole logs and no geological map data: enter the layers yourself."))
         votes = [(depth, rock, 0.2 if surface_rock else 0.0, "geological map" if surface_rock else "assumed")]
         layers = _merge_steps([(0.0, *votes[0][1:])], step=depth, end=depth)
         return Prediction(_with_thermal(layers, groundwater), [], notes, surface_rock)
@@ -126,13 +127,15 @@ def predict(boreholes: list[Borehole], x: float, y: float, depth: float, radius:
     layers = _merge_steps(steps, step, depth)
     layers = _drop_thin(layers, min_thickness)
     if deepest < depth:
-        notes.append(f"The deepest log nearby ends at {deepest:.0f} m. Below that, the last rock type is assumed "
-                     "to continue" + (f" ({bedrock})." if bedrock else "; set the rock below the logs if you know it."))
+        notes.append(t("The deepest log nearby ends at {d:.0f} m. Below that, {rock} is assumed.", d=deepest,
+                       rock=t(bedrock)) if bedrock else
+                     t("The deepest log nearby ends at {d:.0f} m. Below that, the last rock type is assumed to "
+                       "continue; set the rock below the logs if you know it.", d=deepest))
     if groundwater is None:
         levels = [b.groundwater for b, _ in near if b.groundwater is not None]
         if levels:
             groundwater = sum(levels) / len(levels)
-            notes.append(f"Groundwater table from the logs: about {groundwater:.1f} m below ground.")
+            notes.append(t("Groundwater table from the logs: about {d:.1f} m below ground.", d=groundwater))
     return Prediction(_with_thermal(layers, groundwater), used, notes, surface_rock)
 
 
@@ -240,24 +243,42 @@ def check_rows(rows: list[dict]) -> list[str]:
     """Problems with a layer table: gaps, overlaps, missing or impossible values."""
     problems = []
     if not rows:
-        return ["Layered ground is switched on, but there are no layers."]
+        return [t("Layered ground is switched on, but there are no layers.")]
     if abs(float(rows[0]["top"])) > 1e-6:
-        problems.append("The first layer has to start at the surface (0 m).")
+        problems.append(t("The first layer has to start at the surface (0 m)."))
     for i, r in enumerate(rows):
         try:
             top, bottom, k, c = (float(r[key]) for key in ("top", "bottom", "k_s", "C"))
         except (KeyError, TypeError, ValueError):
-            problems.append(f"Layer {i + 1}: every layer needs a depth, a conductivity and a heat capacity.")
+            problems.append(t("Layer {n}: every layer needs a depth, a conductivity and a heat capacity.", n=i + 1))
             continue
         if bottom <= top:
-            problems.append(f"Layer {i + 1}: the bottom ({bottom:g} m) has to be below the top ({top:g} m).")
+            problems.append(t("Layer {n}: the bottom ({bottom:g} m) has to be below the top ({top:g} m).", n=i + 1,
+                              bottom=bottom, top=top))
         if not 0.1 <= k <= 10:
-            problems.append(f"Layer {i + 1}: a conductivity of {k:g} W/(m·K) is outside 0.1 to 10.")
+            problems.append(t("Layer {n}: a thermal conductivity of {k:g} W/(m·K) is outside 0.1 to 10.", n=i + 1,
+                              k=k))
         if not 0.5 <= c <= 5:
-            problems.append(f"Layer {i + 1}: a heat capacity of {c:g} MJ/(m³·K) is outside 0.5 to 5.")
+            problems.append(t("Layer {n}: a heat capacity of {c:g} MJ/(m³·K) is outside 0.5 to 5.", n=i + 1, c=c))
         if i and abs(float(rows[i - 1]["bottom"]) - top) > 1e-6:
-            problems.append(f"Layer {i + 1} starts at {top:g} m, but layer {i} ends at {rows[i - 1]['bottom']:g} m.")
+            problems.append(t("Layer {n} starts at {top:g} m, but layer {prev} ends at {bottom:g} m.", n=i + 1,
+                              top=top, prev=i, bottom=float(rows[i - 1]["bottom"])))
     return problems
+
+
+def describe_basis(basis: str) -> str:
+    """The stored basis of a layer ("4 logs, above groundwater", "extrapolated") in the current language."""
+    if not basis:
+        return ""
+    parts = []
+    for part in str(basis).split(", "):
+        words = part.split(" ", 1)
+        if words[0].isdigit() and len(words) == 2:
+            n = int(words[0])
+            parts.append(t("{n} log", n=n) if n == 1 else t("{n} logs", n=n))
+        else:
+            parts.append(t(part))
+    return ", ".join(parts)
 
 
 def rows_from_table(entries: list[tuple[float, str, float | None, float | None]]) -> list[dict]:

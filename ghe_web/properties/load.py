@@ -9,9 +9,9 @@ MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", 
 HOURS_PER_MONTH = (744, 672, 744, 720, 744, 720, 744, 744, 720, 744, 720, 744)
 
 PERIOD = Property("simulation_period", "Simulation period", 50, "years", kind="int", min=1, max=100, step=1)
-PEAK_EXTRACTION_HOURS = Property("peak_extraction_hours", "Duration of heating peak", 6, "h", min=1, max=24, step=1,
+PEAK_EXTRACTION_HOURS = Property("peak_extraction_hours", "Duration of the heating peak", 6, "h", min=1, max=24, step=1,
                                  help="How long the peak load lasts (as in EED). GHEtool's default is 6 h.")
-PEAK_INJECTION_HOURS = Property("peak_injection_hours", "Duration of cooling peak", 6, "h", min=1, max=24, step=1)
+PEAK_INJECTION_HOURS = Property("peak_injection_hours", "Duration of the cooling peak", 6, "h", min=1, max=24, step=1)
 SCOP = Property("scop", "SCOP heating", 4.0, min=1.0, max=10.0, step=0.1,
                 help="Seasonal efficiency of the heat pump in heating. Ground extraction = heating × (1 − 1/SCOP). "
                      "Not used when Heat pump efficiency is set to depend on the fluid temperature.")

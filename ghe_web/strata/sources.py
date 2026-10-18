@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 from pyproj import Transformer
 
+from ..i18n import t
 from ..siteplan import lookup
 from ..siteplan.lookup import LookupError_
 from . import rocks
@@ -41,7 +42,8 @@ def surface_geology(x: float, y: float) -> list[dict]:
             "spatialRel": "esriSpatialRelIntersects", "outFields": "*", "returnGeometry": "false", "f": "json"})
         data = r.json()
         if "error" in data:
-            raise LookupError_(f"The geological map service answered with an error: {data['error'].get('message')}")
+            raise LookupError_(t("The geological map service answered with an error: {error}",
+                                 error=data["error"].get("message")))
         for f in data.get("features", []):
             a = f.get("attributes", {})
             material = a.get("material") or a.get("materialPortrayal") or ""
@@ -98,9 +100,10 @@ def parse_bml(content: bytes, source: str = "BoreholeML") -> list[Borehole]:
     try:
         root = ET.fromstring(content)
     except ET.ParseError as exc:
-        raise LookupError_(f"This is not a readable BoreholeML file ({exc}).") from exc
+        raise LookupError_(t("This is not a readable BoreholeML file ({error}).", error=exc)) from exc
     if _local(root.tag) in ("ExceptionReport", "ServiceExceptionReport"):
-        raise LookupError_("The borehole service reported an error: " + " ".join(root.itertext()).strip()[:200])
+        raise LookupError_(t("The borehole service reported an error: {error}",
+                             error=" ".join(root.itertext()).strip()[:200]))
     out = []
     holes = [el for el in root.iter() if _local(el.tag) == "Borehole"]
     for hole in holes:
@@ -225,11 +228,11 @@ def read_table(name: str, content: bytes, epsg: int | None = None, site: tuple[f
             text = content.decode("utf-8-sig", errors="replace")
             df = pd.read_csv(io.StringIO(text), sep=None, engine="python")
     except Exception as exc:
-        raise TableError(f"Could not read {name}: {exc}") from exc
+        raise TableError(t("Could not read {name}: {error}", name=name, error=exc)) from exc
     cols = {role: _column(df, role) for role in _ALIASES}
     if cols["bottom"] is None or cols["text"] is None:
-        raise TableError("The table needs at least a column for the bottom depth (e.g. 'bottom' or 'bis') and one "
-                         "for the rock (e.g. 'description', 'petrographie' or 'code'). Download the template.")
+        raise TableError(t("The table needs at least a column for the bottom depth (e.g. 'bottom' or 'bis') and "
+                           "one for the rock (e.g. 'description', 'petrographie' or 'code'). Download the template."))
     notes = []
     df = df.copy()
     for role in ("x", "y", "lon", "lat", "top", "bottom", "groundwater"):
@@ -259,10 +262,10 @@ def read_table(name: str, content: bytes, epsg: int | None = None, site: tuple[f
         xy = _table_position(rows, cols, epsg)
         if xy is None:
             if site is None:
-                raise TableError(f"Borehole {hole_name} has no coordinates. Set the site location first, or add "
-                                 "x and y columns.")
+                raise TableError(t("Borehole {name} has no coordinates. Set the site location first, or add x and y "
+                                   "columns.", name=hole_name))
             xy = site
-            notes.append(f"{hole_name}: no coordinates, so it is placed on the site.")
+            notes.append(t("{name}: no coordinates, so it is placed on the site.", name=hole_name))
         gw = None
         if cols["groundwater"] is not None:
             levels = rows[cols["groundwater"]].dropna()
@@ -270,10 +273,10 @@ def read_table(name: str, content: bytes, epsg: int | None = None, site: tuple[f
         out.append(Borehole(str(hole_name), xy[0], xy[1], layers, f"upload ({name})", gw))
     unknown = sorted({l.text for b in out for l in b.layers if l.rock == rocks.UNKNOWN and l.text})
     if unknown:
-        notes.append("Not recognised (set to Unknown, k = 2.0 W/(m·K)): " + ", ".join(unknown[:8]) +
-                     (" ..." if len(unknown) > 8 else ""))
+        notes.append(t("Not recognised (set to Unknown, k = 2.0 W/(m·K)): {which}",
+                       which=", ".join(unknown[:8]) + (" ..." if len(unknown) > 8 else "")))
     if not out:
-        raise TableError("No layers found in the table.")
+        raise TableError(t("No layers found in the table."))
     return out, notes
 
 

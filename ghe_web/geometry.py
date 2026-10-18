@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 
 import shapefile  # pyshp
 
+from .i18n import t
+
 EARTH_RADIUS = 6_371_000.0  # m
 FOOT = 0.3048
 POINT_TYPES = {shapefile.POINT, shapefile.POINTZ, shapefile.POINTM,
@@ -35,33 +37,34 @@ def read_shapefile(files: dict[str, bytes]) -> ReadResult:
     parts = _collect_parts(files)
     for ext in ("shp", "shx", "dbf"):
         if ext not in parts:
-            raise GeometryError(f"The .{ext} file is missing. A shapefile needs at least .shp, .shx and .dbf.")
+            raise GeometryError(t("The .{ext} file is missing. A shapefile needs at least .shp, .shx and .dbf.",
+                                  ext=ext))
 
     try:
         reader = shapefile.Reader(shp=io.BytesIO(parts["shp"]), shx=io.BytesIO(parts["shx"]),
                                   dbf=io.BytesIO(parts["dbf"]))
         shapes = reader.shapes()
     except Exception as exc:
-        raise GeometryError(f"Could not read the shapefile: {exc}") from exc
+        raise GeometryError(t("Could not read the shapefile: {error}", error=exc)) from exc
 
     if reader.shapeType not in POINT_TYPES:
-        raise GeometryError(f"The shapefile contains {reader.shapeTypeName.lower()} features. "
-                            "Each borehole must be a point.")
+        raise GeometryError(t("The shapefile contains {kind} features. Each borehole must be a point.",
+                              kind=reader.shapeTypeName.lower()))
     raw = [tuple(p[:2]) for s in shapes for p in s.points]
     if not raw:
-        raise GeometryError("The shapefile contains no points.")
+        raise GeometryError(t("The shapefile contains no points."))
 
     notes = []
     prj = parts.get("prj", b"").decode(errors="ignore").strip().upper()
     if not prj:
-        notes.append("No .prj file found, so the coordinates are assumed to be in metres.")
+        notes.append(t("No .prj file found, so the coordinates are assumed to be in metres."))
         points = raw
     elif prj.startswith("GEOGCS") or prj.startswith("GEOGCRS"):
         points = _degrees_to_metres(raw)
-        notes.append("Coordinates were in degrees and have been converted to metres.")
+        notes.append(t("The coordinates were in degrees and have been converted to metres."))
     elif "FOOT" in prj or "FEET" in prj:
         points = [(x * FOOT, y * FOOT) for x, y in raw]
-        notes.append("Coordinates were in feet and have been converted to metres.")
+        notes.append(t("The coordinates were in feet and have been converted to metres."))
     else:
         points = raw
 
@@ -79,13 +82,14 @@ def _collect_parts(files: dict[str, bytes]) -> dict[str, bytes]:
                     shp_names = [n for n in zf.namelist() if n.lower().endswith(".shp")
                                  and not n.startswith("__MACOSX")]
                     if len(shp_names) != 1:
-                        raise GeometryError(f"The zip file must contain exactly one .shp file, found {len(shp_names)}.")
+                        raise GeometryError(t("The zip file must contain exactly one .shp file, found {n}.",
+                                              n=len(shp_names)))
                     stem = shp_names[0][:-4]
                     for n in zf.namelist():
                         if n[:-4] == stem:
                             parts[n[-3:].lower()] = zf.read(n)
             except zipfile.BadZipFile as exc:
-                raise GeometryError("The zip file could not be opened.") from exc
+                raise GeometryError(t("The zip file could not be opened.")) from exc
         else:
             parts[name.rsplit(".", 1)[-1].lower()] = content
     return parts
