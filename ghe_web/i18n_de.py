@@ -462,6 +462,10 @@ DE: dict[str, str] = {
     "8760 h, heating {heat:,.0f} MWh (peak {heat_peak:,.0f} kW), cooling {cool:,.0f} MWh (peak {cool_peak:,.0f} kW)":
         "8760 h, Heizen {heat:,.0f} MWh (Spitze {heat_peak:,.0f} kW), Kühlen {cool:,.0f} MWh (Spitze {cool_peak:,.0f} kW)",
     "Address": "Adresse",
+    "Flurstück number": "Flurstücksnummer",
+    "Click on the map": "Klick in die Karte",
+    "Draw the outline": "Umriss zeichnen",
+    "Upload outline": "Umriss hochladen",
     "Address not found.": "Adresse nicht gefunden.",
     "Aerial image (Esri, worldwide)": "Luftbild (Esri, weltweit)",
     "Aerial image {state} (DOP)": "Luftbild {state} (DOP)",
