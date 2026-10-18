@@ -1349,27 +1349,17 @@ DE: dict[str, str] = {
     "🔮 Predict the layers from nearby borehole logs and the geological map":
         "🔮 Schichten aus nahen Bohrungen und der geologischen Karte prognostizieren",
 
-    # ------------------------------------------------------------ examples, share link, design check, borefield map
+    # ------------------------------------------------------------ share link, design check, borefield map
     '**Design check**':
         '**Planungsprüfung**',
     '**Design check: {summary}**':
         '**Planungsprüfung: {summary}**',
-    '**New here? Start from an example**':
-        '**Neu hier? Mit einem Beispiel beginnen**',
     '**Share this project**':
         '**Dieses Projekt teilen**',
-    '10 kW heat pump for heating and hot water, three boreholes in sandy clay.':
-        '10-kW-Wärmepumpe für Heizung und Warmwasser, drei Sonden in sandigem Ton.',
-    '24 flats, 60 kW heating and hot water, 25 boreholes in sandstone.':
-        '24 Wohnungen, 60 kW Heizung und Warmwasser, 25 Sonden im Sandstein.',
-    '400 MWh heating and 150 MWh cooling a year; cooling in summer puts heat back. 64 boreholes.':
-        '400 MWh Heizen und 150 MWh Kühlen pro Jahr; das Kühlen im Sommer bringt Wärme zurück. 64 Sonden.',
     'Antifreeze':
         'Frostschutz',
     'Anyone with the link opens the site with your inputs filled in. The project is stored in the link itself; nothing is saved on the server. Copy it with the button at the right of the box.':
         'Wer den Link öffnet, sieht die Seite mit Ihren Eingaben. Das Projekt steckt im Link selbst; auf dem Server wird nichts gespeichert. Kopieren Sie ihn mit der Schaltfläche rechts im Feld.',
-    'Apartment building':
-        'Mehrfamilienhaus',
     'Borefield map':
         'Sondenfeld-Karte',
     'Calculating each borehole...':
@@ -1382,12 +1372,8 @@ DE: dict[str, str] = {
         'Planungsprüfung',
     'Download the table (CSV)':
         'Tabelle herunterladen (CSV)',
-    'Each example opens with every input filled in and is calculated straight away. Change anything and size again.':
-        'Jedes Beispiel öffnet sich mit allen Eingaben und wird sofort berechnet. Ändern Sie, was Sie möchten, und berechnen Sie neu.',
     'Every check in one place. The temperature, flow, antifreeze and balance checks appear after a calculation.':
         'Alle Prüfungen an einem Ort. Temperatur, Strömung, Frostschutz und Bilanz werden nach einer Berechnung geprüft.',
-    'Example projects':
-        'Beispielprojekte',
     'Finite line source with the mirror image at the surface, one segment per borehole (the same model as the g-function). Numbers as in the input table of the borefield.':
         'Finite Linienquelle mit Spiegelquelle an der Oberfläche, ein Segment pro Sonde (dasselbe Modell wie die g-Funktion). Nummern wie in der Eingabetabelle des Sondenfelds.',
     'Flow in the borehole':
@@ -1402,34 +1388,24 @@ DE: dict[str, str] = {
         'Wärmeleitfähigkeit des Untergrunds',
     'Hardest-working borehole':
         'Am stärksten belastete Sonde',
-    'Heating only, 48 boreholes in an L along the schoolyard, ground temperature rising with depth.':
-        'Nur Heizen, 48 Sonden in L-Form am Schulhof, Untergrundtemperatur steigt mit der Tiefe.',
     'How much the yearly imbalance warms (red) or cools (blue) the ground at each borehole wall, with the same heat from every borehole. Boreholes in the middle change most, because their neighbours add up; a larger spacing there, or moving boreholes to the edge, helps.':
         'Wie stark das jährliche Ungleichgewicht den Untergrund an jeder Bohrlochwand erwärmt (rot) oder abkühlt (blau), bei gleicher Leistung aller Sonden. Sonden in der Mitte ändern sich am stärksten, weil sich ihre Nachbarn addieren; ein größerer Abstand dort oder Sonden am Rand helfen.',
     'Least-loaded borehole':
         'Am wenigsten belastete Sonde',
     'No. {n}':
         'Nr. {n}',
-    'Office with cooling':
-        'Büro mit Kühlung',
-    'Open example':
-        'Beispiel öffnen',
     'Open the design check':
         'Planungsprüfung öffnen',
     'Opened the project from the link. Hourly demand files are not part of links: upload it again if the project uses one.':
         'Projekt aus dem Link geöffnet. Stündliche Bedarfsdateien sind nicht Teil von Links: Laden Sie die Datei erneut hoch, falls das Projekt eine verwendet.',
     'Re = {re:,.0f} ({regime}) at the coldest fluid.':
         'Re = {re:,.0f} ({regime}) beim kältesten Fluid.',
-    'School':
-        'Schule',
     'Share link':
         'Link teilen',
     'Share of the load':
         'Anteil an der Last',
     'Share of the load [%]':
         'Anteil an der Last [%]',
-    'Single-family house':
-        'Einfamilienhaus',
     'Spacing between boreholes':
         'Sondenabstand',
     'Temperature change':

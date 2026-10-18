@@ -26,7 +26,7 @@ def _drop_stale_package():
 
 _drop_stale_package()
 
-from ghe_web import analysis, checks, examples, export, geometry, hourly, i18n, model, plots, properties, report, share
+from ghe_web import analysis, checks, export, geometry, hourly, i18n, model, plots, properties, report, share
 from ghe_web.i18n import fmt, t
 from ghe_web.siteplan import page as siteplan_page
 from ghe_web.strata import page as strata_page
@@ -166,33 +166,6 @@ if st.session_state.pop("opened_link", False):
 if st.session_state.pop("link_error", False):
     st.error(t("This link does not contain a readable project. Ask for a new link or the project file."),
              icon=":material/link_off:")
-
-
-def open_example(key: str) -> None:
-    example = examples.get(key)
-    st.session_state.project = (t(example.title), example.inputs())
-    st.session_state.generation += 1
-    st.session_state.calc_example = True  # sized as soon as the inputs are read
-
-
-def example_cards() -> None:
-    st.caption(t("Each example opens with every input filled in and is calculated straight away. Change anything "
-                 "and size again."))
-    for col, example in zip(st.columns(len(examples.EXAMPLES)), examples.EXAMPLES):
-        with col, st.container(border=True, height="stretch"):
-            st.markdown(f"### {example.icon}\n**{t(example.title)}**")
-            st.caption(t(example.description))
-            st.button(t("Open example"), key=f"example.{example.key}", on_click=open_example, args=(example.key,),
-                      type="primary", icon=":material/play_arrow:")
-
-
-if "result_json" in st.session_state:
-    with st.expander(t("Example projects"), icon=":material/apartment:"):
-        example_cards()
-else:
-    with st.container(border=True):
-        st.markdown(t("**New here? Start from an example**"))
-        example_cards()
 
 
 # ---------------------------------------------------------------- inputs
@@ -564,8 +537,6 @@ def show_design_check(found: list[checks.Check]) -> None:
 
 
 found_checks = design_checks()
-if st.session_state.pop("calc_example", False) and not errors:
-    calculate()
 
 with calc_slot:
     st.header(t("Calculation"))

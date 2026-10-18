@@ -1,24 +1,34 @@
-"""Example projects, share links, the design check and the per-borehole map."""
+"""Share links, the design check and the per-borehole map."""
 import base64
 import json
 import zlib
 
 import pytest
 
-from ghe_web import analysis, checks, examples, model, share
+from ghe_web import analysis, checks, model, properties, share
 from ghe_web.properties import SectionInput
 
 
-@pytest.mark.parametrize("example", examples.EXAMPLES, ids=lambda e: e.key)
-def test_examples_are_valid_and_size_to_a_sensible_length(example):
-    inputs = example.inputs()
-    assert not model.validate(inputs)
-    result = model.size(inputs)
-    assert 60 < result.borehole_length < 150  # realistic, and no warning about deep drilling for most
+def _irregular_field() -> dict:
+    inputs = model.default_inputs()
+    values = {**properties.get("borefield").variant("custom").defaults(),
+              "points": tuple((x * 7.0, y * 7.0) for x in range(6) for y in range(3))}
+    inputs["borefield"] = SectionInput("custom", values)
+    return inputs
+
+
+def _small_house() -> dict:
+    inputs = model.default_inputs()
+    inputs["borefield"].values.update(N_1=3, N_2=1, B_1=8.0)
+    inputs["load"] = SectionInput("annual_building", {
+        **properties.get("load").variant("annual_building").defaults(), "annual_heating_mwh": 18.0,
+        "peak_heating_kw": 10.0, "annual_cooling_mwh": 0.0, "peak_cooling_kw": 0.0, "dhw_mwh": 3.0})
+    inputs["limits"].values["T_min"] = -1.5
+    return inputs
 
 
 def test_share_link_round_trip_keeps_the_project_and_language():
-    inputs = examples.get("school").inputs()
+    inputs = _irregular_field()
     text = model.to_json(inputs, "School", language="de")
     url, dropped = share.link("https://example.org/app/?x=1", text)
     assert url.startswith("https://example.org/app/?p=") and not dropped
@@ -30,7 +40,6 @@ def test_share_link_round_trip_keeps_the_project_and_language():
 
 def test_share_link_leaves_out_the_hourly_file():
     inputs = model.default_inputs()
-    from ghe_web import properties
     inputs["load"] = SectionInput("hourly_building", properties.get("load").variant("hourly_building").defaults())
     url, dropped = share.link("https://x/", model.to_json(inputs))
     assert dropped and len(url) < 3000
@@ -60,7 +69,7 @@ def test_design_check_flags_inputs_and_results():
 
 
 def test_design_check_after_sizing():
-    inputs = examples.get("house").inputs()
+    inputs = _small_house()
     result = model.size(inputs)
     found = checks.result_checks(result, inputs, analysis.key_results(result, inputs))
     titles = {c.title: c.level for c in found}
