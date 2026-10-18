@@ -30,6 +30,7 @@ PIPE_UP = "#2e86ab"  # return
 # Loads: heating / extraction red, cooling / injection blue, in every chart. (Temperatures use blue for cold.)
 HEATING = PIPE_DOWN
 COOLING = PIPE_UP
+NEUTRAL = "#8a8f98"  # labels and markers on charts, readable on light and dark pages
 
 
 def _load_colors(heating: str, cooling: str) -> alt.Scale:
@@ -429,8 +430,8 @@ def _limit_rules(limits: dict, field: str = "Temperature") -> alt.Chart:
                            "Label": [t("min. limit {x:g} °C", x=limits["T_min"]),
                                      t("max. limit {x:g} °C", x=limits["T_max"])]})
     base = alt.Chart(bounds)
-    rules = base.mark_rule(strokeDash=[6, 4], color="#666").encode(y=f"{field}:Q")
-    text = base.mark_text(align="right", dx=-4, dy=-7, fontSize=11, color="#555").encode(
+    rules = base.mark_rule(strokeDash=[6, 4], color=NEUTRAL).encode(y=f"{field}:Q")
+    text = base.mark_text(align="right", dx=-4, dy=-7, fontSize=11, color=NEUTRAL).encode(
         y=f"{field}:Q", x=alt.value("width"), text="Label:N")
     return rules + text
 
@@ -444,9 +445,9 @@ def _extreme_marks(data: pd.DataFrame, x: str, x_type: str = "Q") -> alt.Chart:
                                     fmt("{x:.1f} °C", x=round(hi["Temperature"], 1) + 0.0)],
                           "dy": [14, -10]})
     base = alt.Chart(marks).encode(x=f"{x}:{x_type}", y="Temperature:Q")
-    return base.mark_point(filled=True, size=60, color="black") + \
-        base.mark_text(fontSize=11, fontWeight="bold", dy=14).encode(text="Label:N").transform_filter("datum.dy > 0") + \
-        base.mark_text(fontSize=11, fontWeight="bold", dy=-10).encode(text="Label:N").transform_filter("datum.dy < 0")
+    return base.mark_point(filled=True, size=60, color=NEUTRAL) + \
+        base.mark_text(fontSize=11, fontWeight="bold", dy=14, color=NEUTRAL).encode(text="Label:N").transform_filter("datum.dy > 0") + \
+        base.mark_text(fontSize=11, fontWeight="bold", dy=-10, color=NEUTRAL).encode(text="Label:N").transform_filter("datum.dy < 0")
 
 
 def temperature_chart(temps: pd.DataFrame, limits: dict) -> alt.Chart:
@@ -630,8 +631,8 @@ def pressure_drop_chart(df: pd.DataFrame, flow: float, dp: float) -> alt.Chart:
         tooltip=[alt.Tooltip("Flow:Q", format=".3f", title="l/s"), alt.Tooltip("Drop:Q", format=".1f", title="kPa")])
     point = pd.DataFrame({"Flow": [flow], "Drop": [dp], "Label": [t("design: {dp:.1f} kPa", dp=dp)]})
     base = alt.Chart(point).encode(x="Flow:Q", y="Drop:Q")
-    return (line + base.mark_point(filled=True, size=80, color="black")
-            + base.mark_text(align="left", dx=8, dy=-8, fontWeight="bold").encode(text="Label:N")).properties(
+    return (line + base.mark_point(filled=True, size=80, color=NEUTRAL)
+            + base.mark_text(align="left", dx=8, dy=-8, fontWeight="bold", color=NEUTRAL).encode(text="Label:N")).properties(
         height=300, title=t("Pressure drop against flow rate"))
 
 
