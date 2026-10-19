@@ -35,6 +35,8 @@ class Property:
     help: str = ""
     # True for loads that should grow and shrink with the building demand (used by the sensitivity check).
     scales_with_load: bool = False
+    # printf-style number format for the field, e.g. "%.1e" for values over several orders of magnitude
+    format: str | None = None
 
     def validate(self, value: Any) -> list[str]:
         """Return a list of human readable problems with ``value`` (empty if fine)."""
@@ -128,6 +130,8 @@ class Section:
     help: str = ""
     order: int = 100
     group: str = ""  # page step the section is shown in, e.g. "Site"; empty puts it under "More inputs"
+    # heat source the section belongs to: "closed" (borehole heat exchangers), "open" (groundwater wells) or "" (both)
+    system: str = ""
 
     def variant(self, key: str | None = None) -> Variant:
         if key is None:

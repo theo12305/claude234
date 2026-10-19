@@ -1614,4 +1614,593 @@ DE: dict[str, str] = {
         'kein Schichtenverzeichnis',
     '{service}: {n} borehole(s) within {radius:,.0f} m, shown on the map below.':
         '{service}: {n} Bohrung(en) im Umkreis von {radius:,.0f} m, in der Karte unten.',
+    # groundwater wells (open loop)
+    '**Downloads**':
+        '**Downloads**',
+    '1. **⓪ Site plan** (optional): find the parcel.\n2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted layers), the aquifer and the water analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n6. Press **Size the wells** in the sidebar. The **📊 Results** tab shows the flow, wells, water levels, temperatures, the site map, the well construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected water and a planar plume) are written for this tool; GHEtool has no open-loop model.':
+        '1. **⓪ Lageplan** (optional): das Flurstück finden.\n2. **① Untergrund & Grundwasserleiter**: Brunnen als Wärmequelle wählen, die Untergrundtemperatur (oder vorhergesagte Schichten), den Grundwasserleiter und die Wasseranalyse.\n3. **② Brunnen**: Bohrdurchmesser, Brunnenverluste, und ob die Brunnen ausgelegt oder vorgegebene Brunnen geprüft werden.\n4. **③ Lasten**: die dem Grundwasser entzogene und zugeführte Wärme oder der Gebäudebedarf.\n5. **④ Grenzwerte & Berechnung**: Temperaturspreizung und die Grenzwerte der Wasserbehörde.\n6. **Brunnen auslegen** in der Seitenleiste drücken. Der Reiter **📊 Ergebnisse** zeigt Förderstrom, Brunnen, Wasserstände, Temperaturen, den Lageplan, den Brunnenausbau und die Downloads.\n\nDie Brunnenhydraulik (Thiem, Dupuit-Jacob, Sichardt) und das thermische Modell (Fließwege des eingeleiteten Wassers und eine ebene Temperaturfahne) sind für dieses Werkzeug geschrieben; GHEtool hat kein Modell für offene Systeme.',
+    '2 m below the lowest water level':
+        '2 m unter dem tiefsten Wasserstand',
+    'A change of {k:g} K reaches {x:.0f} m downstream, beyond the parcel border at {b:g} m. The water authority may ask for a plume model; the estimate leaves out the heat exchange with the layers above and below, so the real plume is shorter.':
+        'Eine Änderung um {k:g} K reicht {x:.0f} m abstromig, über die Grundstücksgrenze bei {b:g} m hinaus. Die Wasserbehörde kann eine Modellierung der Temperaturfahne verlangen; die Abschätzung lässt den Wärmeaustausch mit den Schichten darüber und darunter weg, die echte Fahne ist also kürzer.',
+    'A change of {k:g} K stays within {x:.0f} m, inside the parcel border at {b:g} m.':
+        'Eine Änderung um {k:g} K bleibt innerhalb von {x:.0f} m, also innerhalb der Grundstücksgrenze bei {b:g} m.',
+    'A clay or marl layer covers the aquifer; the water level in a well rises above the aquifer top.':
+        'Eine Ton- oder Mergelschicht deckt den Grundwasserleiter ab; der Wasserspiegel im Brunnen steigt über die Oberkante des Grundwasserleiters.',
+    'Across the flow [m]':
+        'Quer zur Strömung [m]',
+    'Allowed change of the production temperature':
+        'Zulässige Änderung der Fördertemperatur',
+    'Along the flow [m]':
+        'In Strömungsrichtung [m]',
+    'Aquiclude':
+        'Grundwassernichtleiter',
+    'Aquifer':
+        'Grundwasserleiter',
+    'Aquifer bottom':
+        'Unterkante Grundwasserleiter',
+    'Aquifer top':
+        'Oberkante Grundwasserleiter',
+    'Aquifer type':
+        'Art des Grundwasserleiters',
+    'Average flow while running':
+        'Mittlerer Förderstrom im Betrieb',
+    'Between {lo:.1f} and {hi:.1f} °C.':
+        'Zwischen {lo:.1f} und {hi:.1f} °C.',
+    'Borehole heat exchangers (closed loop)':
+        'Erdwärmesonden (geschlossen)',
+    'Borehole heat exchangers circulate a fluid in closed pipes. Groundwater wells pump groundwater through the heat pump and return it to the aquifer through an injection well.':
+        'Erdwärmesonden führen ein Wärmeträgermedium in geschlossenen Rohren. Brunnenanlagen fördern Grundwasser durch die Wärmepumpe und leiten es über einen Schluckbrunnen in den Grundwasserleiter zurück.',
+    'Calculating the wells and tracing the flow paths...':
+        'Brunnen werden berechnet und Fließwege verfolgt...',
+    'Check given wells':
+        'Vorgegebene Brunnen prüfen',
+    'Check the wells':
+        'Brunnen prüfen',
+    'Chloride':
+        'Chlorid',
+    'Chloride {cl:g} mg/l or sulfate {so4:g} mg/l is high: check the heat exchanger material with the heat pump maker.':
+        'Chlorid {cl:g} mg/l oder Sulfat {so4:g} mg/l ist hoch: den Werkstoff des Wärmeübertragers mit dem Wärmepumpenhersteller klären.',
+    'Chloride {cl:g} mg/l, pH {ph:g}: stainless steel heat exchangers are at risk. Use an intermediate circuit with a titanium or suitable heat exchanger and ask the heat pump maker.':
+        'Chlorid {cl:g} mg/l, pH {ph:g}: Wärmeübertrager aus Edelstahl sind gefährdet. Einen Zwischenkreis mit einem Titan- oder anderen geeigneten Wärmeübertrager vorsehen und den Wärmepumpenhersteller fragen.',
+    'Chloride, sulfate and pH are in the usual range for stainless steel heat exchangers.':
+        'Chlorid, Sulfat und pH liegen im üblichen Bereich für Wärmeübertrager aus Edelstahl.',
+    'Clogging (ochre)':
+        'Verockerung',
+    'Coarse sand':
+        'Grobsand',
+    'Confined (below a sealing layer)':
+        'Gespannt (unter einer Deckschicht)',
+    'Corrosion and scaling':
+        'Korrosion und Ablagerungen',
+    'Depth and screen':
+        'Tiefe und Filterstrecke',
+    'Depth of the bottom of the sealing layer.':
+        'Tiefe der Unterkante der Deckschicht.',
+    'Depth of the first poorly permeable layer below the aquifer (clay, marl, solid rock). The wells usually end there.':
+        'Tiefe der ersten gering durchlässigen Schicht unter dem Grundwasserleiter (Ton, Mergel, Festgestein). Dort enden die Brunnen meist.',
+    'Depth to the groundwater':
+        'Flurabstand des Grundwassers',
+    'Diameter of the drilled hole with the gravel pack; the water enters the well there.':
+        'Durchmesser der Bohrung mit der Kiesschüttung; dort tritt das Wasser in den Brunnen ein.',
+    'Direction the groundwater flows to, clockwise from north (90° = to the east). Only used to draw the maps.':
+        'Richtung, in die das Grundwasser fließt, im Uhrzeigersinn von Norden (90° = nach Osten). Nur für die Karten.',
+    'Distance between production and injection':
+        'Abstand zwischen Förder- und Schluckbrunnen',
+    'Distance between the wells':
+        'Abstand der Brunnen',
+    'Distance from the production well [m]':
+        'Abstand vom Förderbrunnen [m]',
+    'Distance to the parcel border downstream':
+        'Abstand zur Grundstücksgrenze im Abstrom',
+    'Distances tried':
+        'Geprüfte Abstände',
+    'Downstream is best: the injected water flows away from the production wells.':
+        'Im Abstrom ist am besten: das eingeleitete Wasser fließt von den Förderbrunnen weg.',
+    'Drawdown':
+        'Absenkung',
+    'Drawdown / rise (lines)':
+        'Absenkung / Aufhöhung (Linien)',
+    'Drawdown at peak':
+        'Absenkung bei Spitzenlast',
+    'Drawdown on average':
+        'Absenkung im Mittel',
+    'E':
+        'O',
+    'Each distance gets the fewest wells that keep the water levels and the entrance velocity within the limits; the first distance where the production temperature also stays within the limit wins.':
+        'Jeder Abstand bekommt die kleinste Zahl Brunnen, bei der Wasserstände und Eintrittsgeschwindigkeit in den Grenzen bleiben; der erste Abstand, bei dem auch die Fördertemperatur in der Grenze bleibt, wird gewählt.',
+    'Effective porosity':
+        'Effektive Porosität',
+    'Electric power':
+        'Elektrische Leistung',
+    'Entrance velocity':
+        'Eintrittsgeschwindigkeit',
+    'Excel workbook':
+        'Excel-Arbeitsmappe',
+    'Extra drawdown C·Q² in the well itself (screen, gravel pack). About 1800 s²/m⁵ for a properly built well (Walton); from a step drawdown test if there is one.':
+        'Zusätzliche Absenkung C·Q² im Brunnen selbst (Filter, Kiesschüttung). Etwa 1800 s²/m⁵ für einen fachgerecht gebauten Brunnen (Walton); aus einem Leistungspumpversuch, falls vorhanden.',
+    'Extracted [kWh]':
+        'Entzogen [kWh]',
+    'Fill in the four input steps, then press **Size the wells** on the left. Every field has a question mark with an explanation; the drop-downs fill in typical values.':
+        'Die vier Eingabeschritte ausfüllen, dann links **Brunnen auslegen** drücken. Jedes Feld hat ein Fragezeichen mit einer Erklärung; die Auswahllisten setzen typische Werte ein.',
+    'Fill in the inputs and press **Size the wells** in the sidebar.':
+        'Die Eingaben ausfüllen und in der Seitenleiste **Brunnen auslegen** drücken.',
+    'Finds the number of wells and the shortest distance between production and injection that keeps the production temperature and the water levels within the limits.':
+        'Findet die Zahl der Brunnen und den kürzesten Abstand zwischen Förder- und Schluckbrunnen, bei dem Fördertemperatur und Wasserstände in den Grenzen bleiben.',
+    'Fine sand':
+        'Feinsand',
+    'Fractured sandstone':
+        'Klüftiger Sandstein',
+    'From a pumping test if you have one; the drop-down gives typical values. Wells need about 1e-4 m/s or more.':
+        'Aus einem Pumpversuch, wenn vorhanden; die Auswahlliste gibt typische Werte. Brunnen brauchen etwa 1e-4 m/s oder mehr.',
+    'From the injection wells to the parcel border in the flow direction; the plume is checked against it.':
+        'Von den Schluckbrunnen bis zur Grundstücksgrenze in Fließrichtung; die Temperaturfahne wird damit verglichen.',
+    'Gravel, clean':
+        'Kies, sauber',
+    'Groundwater flow direction':
+        'Grundwasserfließrichtung',
+    'Groundwater flow to {dir} ({deg:g}°), {v:.2f} m/day':
+        'Grundwasser fließt nach {dir} ({deg:g}°), {v:.2f} m/Tag',
+    'Groundwater quality':
+        'Grundwasserbeschaffenheit',
+    'Groundwater well sizing':
+        'Auslegung von Grundwasserbrunnen',
+    'Groundwater wells (open loop)':
+        'Grundwasserbrunnen (offen)',
+    'Groundwater wells use the SCOP and SEER under Ground load; the COP curve applies to borehole heat exchangers only.':
+        'Brunnenanlagen verwenden SCOP und SEER unter Wärmeentzug und -eintrag; die COP-Kennlinie gilt nur für Erdwärmesonden.',
+    'Groundwater wells: {name}':
+        'Grundwasserbrunnen: {name}',
+    'Have a sample analysed before planning: it decides whether wells work at the site and which heat exchanger material is needed.':
+        'Vor der Planung eine Probe analysieren lassen: sie entscheidet, ob Brunnen am Standort funktionieren und welcher Werkstoff für den Wärmeübertrager nötig ist.',
+    'Heat pump electricity':
+        'Strom der Wärmepumpe',
+    'Heat source':
+        'Wärmequelle',
+    'Highest injection temperature':
+        'Höchste Einleittemperatur',
+    'How much the heat pump cools (or the cooling warms) the groundwater. Sets the flow: a larger spread needs less water.':
+        'Wie stark die Wärmepumpe das Grundwasser abkühlt (oder die Kühlung es erwärmt). Bestimmt den Förderstrom: eine größere Spreizung braucht weniger Wasser.',
+    'How the distance was found':
+        'Wie der Abstand gefunden wurde',
+    'Hydraulic conductivity kf':
+        'Durchlässigkeitsbeiwert kf',
+    'Hydraulic gradient':
+        'Hydraulisches Gefälle',
+    'Injected [kWh]':
+        'Eingetragen [kWh]',
+    'Injected water flows back and changes the production temperature by up to {dt:.1f} K (allowed {a:g} K). Move the wells further apart or place the injection downstream.':
+        'Eingeleitetes Wasser fließt zurück und ändert die Fördertemperatur um bis zu {dt:.1f} K (zulässig {a:g} K). Die Brunnen weiter auseinander setzen oder den Schluckbrunnen in den Abstrom legen.',
+    'Injected water reaches the production well after {y:.1f} years, but the production temperature changes by only {dt:.2f} K.':
+        'Eingeleitetes Wasser erreicht den Förderbrunnen nach {y:.1f} Jahren, die Fördertemperatur ändert sich aber nur um {dt:.2f} K.',
+    'Injection [°C]':
+        'Einleitung [°C]',
+    'Injection across the flow':
+        'Schluckbrunnen quer zur Strömung',
+    'Injection downstream':
+        'Schluckbrunnen im Abstrom',
+    'Injection reserve for clogging':
+        'Reserve für Kolmation am Schluckbrunnen',
+    'Injection temperature':
+        'Einleittemperatur',
+    'Injection water level at least below ground':
+        'Wasserstand im Schluckbrunnen mindestens unter Gelände',
+    'Injection well':
+        'Schluckbrunnen',
+    'Injection wells':
+        'Schluckbrunnen',
+    'Injection wells lose capacity over the years; the rise in the injection well is multiplied by this factor. 1.5 to 2 is usual.':
+        'Schluckbrunnen verlieren mit den Jahren an Leistung; die Aufhöhung im Schluckbrunnen wird mit diesem Faktor multipliziert. Üblich sind 1,5 bis 2.',
+    'Inner diameter of the screen and casing. DN 150 takes a 4 or 6 inch pump.':
+        'Innendurchmesser von Filter- und Vollrohr. In DN 150 passt eine 4- oder 6-Zoll-Pumpe.',
+    'Iron (dissolved)':
+        'Eisen (gelöst)',
+    'Iron and manganese are below the guide values.':
+        'Eisen und Mangan liegen unter den Richtwerten.',
+    'Iron and manganese with oxygen clog wells (ochre); chloride and a low pH corrode the heat exchanger.':
+        'Eisen und Mangan mit Sauerstoff verockern Brunnen; Chlorid und ein niedriger pH greifen den Wärmeübertrager an.',
+    'Iron {fe:g} mg/l and manganese {mn:g} mg/l together with {o2:g} mg/l oxygen precipitate in the wells and the heat exchanger. Keep the system closed to air (pressure held, no free fall in the injection well) or treat the water; ask a well builder.':
+        'Eisen {fe:g} mg/l und Mangan {mn:g} mg/l fallen zusammen mit {o2:g} mg/l Sauerstoff in den Brunnen und im Wärmeübertrager aus. Die Anlage luftdicht halten (Druckhaltung, kein freier Fall im Schluckbrunnen) oder das Wasser aufbereiten; einen Brunnenbauer fragen.',
+    'Iron {fe:g} mg/l or manganese {mn:g} mg/l is above the guide value ({fe_max:g} and {mn_max:g} mg/l). Little oxygen keeps it dissolved: keep air out of the whole loop.':
+        'Eisen {fe:g} mg/l oder Mangan {mn:g} mg/l liegt über dem Richtwert ({fe_max:g} und {mn_max:g} mg/l). Wenig Sauerstoff hält es gelöst: Luft aus dem ganzen Kreislauf fernhalten.',
+    'K':
+        'K',
+    'Karstified limestone':
+        'Verkarsteter Kalkstein',
+    'Largest change from the natural temperature':
+        'Größte Abweichung von der natürlichen Temperatur',
+    'Largest daily volume':
+        'Größte Tagesmenge',
+    'Largest possible distance between the wells':
+        'Größtmöglicher Abstand der Brunnen',
+    'Level [m]':
+        'Wasserstand [m]',
+    'Limits for the groundwater':
+        'Grenzwerte für das Grundwasser',
+    'Longitudinal dispersivity':
+        'Longitudinale Dispersivität',
+    'Lowest injection temperature':
+        'Niedrigste Einleittemperatur',
+    'Lowest production temperature':
+        'Niedrigste Fördertemperatur',
+    'Manganese (dissolved)':
+        'Mangan (gelöst)',
+    'Mean change at injection [K]':
+        'Mittlere Änderung bei der Einleitung [K]',
+    'Medium sand':
+        'Mittelsand',
+    'Monthly average temperature of the water the production wells deliver and of the water that goes back. A rising or falling production temperature over the years means injected water flows back to the production wells.':
+        'Monatsmittel der Temperatur des geförderten und des zurückgeleiteten Wassers. Steigt oder fällt die Fördertemperatur über die Jahre, fließt eingeleitetes Wasser zu den Förderbrunnen zurück.',
+    'N':
+        'N',
+    'NE':
+        'NO',
+    'NW':
+        'NW',
+    'Natural groundwater':
+        'Natürliches Grundwasser',
+    'Needs a productive aquifer at a shallow depth and a permit from the water authority (wasserrechtliche Erlaubnis). Ground temperature and layers come from the section Ground.':
+        'Braucht einen ergiebigen Grundwasserleiter in geringer Tiefe und eine wasserrechtliche Erlaubnis. Untergrundtemperatur und Schichten kommen aus dem Abschnitt Untergrund.',
+    'No analysis yet':
+        'Noch keine Analyse',
+    'No design found':
+        'Keine Auslegung gefunden',
+    'No injected water reaches the production wells within the simulation period.':
+        'Im Simulationszeitraum erreicht kein eingeleitetes Wasser die Förderbrunnen.',
+    'No number of wells meets all limits within the largest possible distance of {d:g} m. The figures below are for that distance.':
+        'Keine Zahl von Brunnen hält alle Grenzen innerhalb des größtmöglichen Abstands von {d:g} m ein. Die Werte unten gelten für diesen Abstand.',
+    'No water analysis yet. Iron, manganese and oxygen decide whether the wells clog; chloride and pH decide the heat exchanger material.':
+        'Noch keine Wasseranalyse. Eisen, Mangan und Sauerstoff entscheiden, ob die Brunnen verockern; Chlorid und pH entscheiden über den Werkstoff des Wärmeübertragers.',
+    'Of the injected water against the undisturbed groundwater.':
+        'Des eingeleiteten Wassers gegenüber dem ungestörten Grundwasser.',
+    'Oxygen':
+        'Sauerstoff',
+    'PDF report':
+        'PDF-Bericht',
+    'Path of the injected water':
+        'Weg des eingeleiteten Wassers',
+    'Peak flow':
+        'Spitzenförderstrom',
+    'Pipe and heat exchanger losses':
+        'Verluste in Rohren und Wärmeübertrager',
+    'Plume ({k:g} K)':
+        'Temperaturfahne ({k:g} K)',
+    'Plume limit at the parcel border':
+        'Grenze der Temperaturfahne an der Grundstücksgrenze',
+    'Position of the injection wells':
+        'Lage der Schluckbrunnen',
+    'Pressure loss of the pipes, valves and the heat exchanger at design flow, as water column (10 m = 1 bar).':
+        'Druckverlust von Rohren, Armaturen und Wärmeübertrager beim Auslegungsförderstrom, als Wassersäule (10 m = 1 bar).',
+    'Production / injection wells':
+        'Förder- / Schluckbrunnen',
+    'Production [°C]':
+        'Förderung [°C]',
+    'Production well':
+        'Förderbrunnen',
+    'Production wells':
+        'Förderbrunnen',
+    'Production wells pump the groundwater to the heat pump; injection wells return it to the aquifer.':
+        'Förderbrunnen pumpen das Grundwasser zur Wärmepumpe; Schluckbrunnen leiten es in den Grundwasserleiter zurück.',
+    'Pump':
+        'Pumpe',
+    'Pump [kWh]':
+        'Pumpe [kWh]',
+    'Pump depth':
+        'Einbautiefe der Pumpe',
+    'Pump efficiency (wire to water)':
+        'Wirkungsgrad der Pumpe (gesamt)',
+    'Pump energy':
+        'Pumpenstrom',
+    'Pumped groundwater per month':
+        'Gefördertes Grundwasser je Monat',
+    'Pumped water [m³]':
+        'Gefördertes Wasser [m³]',
+    'Resting water level below ground at the site (lowest level of the year for the design).':
+        'Ruhewasserspiegel unter Gelände am Standort (für die Auslegung der tiefste Stand im Jahr).',
+    'Result':
+        'Ergebnis',
+    'Rise at peak':
+        'Aufhöhung bei Spitzenlast',
+    'Rise in the injection well':
+        'Aufhöhung im Schluckbrunnen',
+    'Running':
+        'In Betrieb',
+    'S':
+        'S',
+    'SE':
+        'SO',
+    'SW':
+        'SW',
+    'Sandy gravel':
+        'Sandiger Kies',
+    'Screen':
+        'Filterstrecke',
+    'Screen diameter':
+        'Filterdurchmesser',
+    'Screen diameter (DN)':
+        'Filterdurchmesser (DN)',
+    'Seal the annulus above the aquifer (clay or cement) so no surface water gets down, and keep the injection pipe below the water level so no air gets in.':
+        'Den Ringraum über dem Grundwasserleiter abdichten (Ton oder Zement), damit kein Oberflächenwasser eindringt, und das Einleitrohr unter dem Wasserspiegel enden lassen, damit keine Luft eingetragen wird.',
+    'Seasonal performance factor':
+        'Jahresarbeitszahl',
+    'Seen from above, the groundwater flows from left to right. Blue lines: where the injected water goes. Shaded: the temperature change of the yearly net heat (planar model without heat exchange with the layers above and below, so on the safe side).':
+        'Von oben gesehen fließt das Grundwasser von links nach rechts. Blaue Linien: wohin das eingeleitete Wasser fließt. Schattiert: die Temperaturänderung durch die jährliche Nettowärme (ebenes Modell ohne Wärmeaustausch mit den Schichten darüber und darunter, also auf der sicheren Seite).',
+    'Silty sand':
+        'Schluffiger Sand',
+    'Site map':
+        'Lageplan',
+    'Size the wells':
+        'Brunnen auslegen',
+    'Slope of the groundwater table, from the groundwater contour map of the state (in ‰: 2 ‰ = 2 m per km).':
+        'Gefälle des Grundwasserspiegels, aus dem Grundwassergleichenplan des Landes (in ‰: 2 ‰ = 2 m je km).',
+    'Spacing between wells of the same kind':
+        'Abstand zwischen Brunnen derselben Art',
+    'Spreading across the flow, about 1/10 of the longitudinal value.':
+        'Ausbreitung quer zur Strömung, etwa 1/10 des longitudinalen Werts.',
+    'Spreading of the plume along the flow. Often taken as about 1/10 of the distance looked at.':
+        'Ausbreitung der Fahne in Strömungsrichtung. Oft etwa 1/10 der betrachteten Entfernung.',
+    'Steady state of the pumped and injected water (Thiem, summed over all wells), without the well losses. Unconfined aquifers are corrected for the changing water column (Dupuit-Jacob).':
+        'Stationärer Zustand von Förderung und Einleitung (Thiem, über alle Brunnen summiert), ohne Brunnenverluste. Ungespannte Grundwasserleiter sind für die veränderte Wassersäule korrigiert (Dupuit-Jacob).',
+    'Sulfate':
+        'Sulfat',
+    'Temperature and water level limits':
+        'Grenzen für Temperatur und Wasserstand',
+    'Temperature change allowed at the parcel border (often 1 K).':
+        'Zulässige Temperaturänderung an der Grundstücksgrenze (oft 1 K).',
+    'Temperature plume':
+        'Temperaturfahne',
+    'Temperature spread at the heat pump':
+        'Temperaturspreizung an der Wärmepumpe',
+    'The aquifer bottom ({b:g} m) must be at least 1 m below {what} ({a:g} m).':
+        'Die Unterkante des Grundwasserleiters ({b:g} m) muss mindestens 1 m unter {what} ({a:g} m) liegen.',
+    'The groundwater table lies in the aquifer itself (typical for sand and gravel in river valleys).':
+        'Der Grundwasserspiegel liegt im Grundwasserleiter selbst (typisch für Sand und Kies in Flusstälern).',
+    'The injected water is between {lo:.1f} and {hi:.1f} °C; allowed are {a:g} to {b:g} °C and at most {c:g} K from the natural {tg:.1f} °C. A smaller spread helps.':
+        'Das eingeleitete Wasser hat {lo:.1f} bis {hi:.1f} °C; zulässig sind {a:g} bis {b:g} °C und höchstens {c:g} K Abweichung von den natürlichen {tg:.1f} °C. Eine kleinere Spreizung hilft.',
+    'The share of the volume the groundwater flows through. Sets how fast water and heat move.':
+        'Der Anteil des Volumens, durch den das Grundwasser fließt. Bestimmt, wie schnell sich Wasser und Wärme bewegen.',
+    'The water level in the production well drops {s:.1f} m; at most {a:.1f} m are possible. Add production wells or use a smaller flow (larger spread).':
+        'Der Wasserspiegel im Förderbrunnen sinkt um {s:.1f} m; höchstens {a:.1f} m sind möglich. Förderbrunnen ergänzen oder den Förderstrom verkleinern (größere Spreizung).',
+    'The water level is below the aquifer top, so the aquifer is not confined at the site. Choose unconfined.':
+        'Der Wasserstand liegt unter der Oberkante des Grundwasserleiters, er ist am Standort also nicht gespannt. Ungespannt wählen.',
+    'The water rises {r:.1f} m (with the clogging reserve); only {a:.1f} m are possible before it gets too close to the surface. Add injection wells.':
+        'Das Wasser steigt um {r:.1f} m (mit Kolmationsreserve); nur {a:.1f} m sind möglich, bevor es der Geländeoberfläche zu nahe kommt. Schluckbrunnen ergänzen.',
+    'The water-bearing layer the wells pump from and inject into. Thermal conductivity and heat capacity are taken from Ground.':
+        'Die wasserführende Schicht, aus der die Brunnen fördern und in die sie einleiten. Wärmeleitfähigkeit und Wärmekapazität kommen aus Untergrund.',
+    'The workbook has the summary, the monthly water and energy and the temperatures of every month; the report adds the site map and the well construction.':
+        'Die Arbeitsmappe enthält die Zusammenfassung, Wasser und Energie je Monat und die Temperaturen jedes Monats; der Bericht ergänzt Lageplan und Brunnenausbau.',
+    'Thermal breakthrough':
+        'Thermischer Durchbruch',
+    'Thermal short circuit':
+        'Thermischer Kurzschluss',
+    'These results belong to earlier inputs. Press the button in the sidebar to update them.':
+        'Diese Ergebnisse gehören zu früheren Eingaben. Zum Aktualisieren die Schaltfläche in der Seitenleiste drücken.',
+    'Through injected water that flows back to the production wells, over the simulation period.':
+        'Durch eingeleitetes Wasser, das zu den Förderbrunnen zurückfließt, über den Simulationszeitraum.',
+    'Total head':
+        'Förderhöhe',
+    'Transmissivity':
+        'Transmissivität',
+    'Transverse dispersivity':
+        'Transversale Dispersivität',
+    'Typical values; kf varies a lot within one type.':
+        'Typische Werte; kf schwankt innerhalb einer Art stark.',
+    'Unconfined (free water table)':
+        'Ungespannt (freier Grundwasserspiegel)',
+    'Used when more than one production or injection well is needed; they stand in a row across the flow.':
+        'Gilt, wenn mehr als ein Förder- oder Schluckbrunnen nötig ist; sie stehen in einer Reihe quer zur Strömung.',
+    'W':
+        'W',
+    'Water [m³]':
+        'Wasser [m³]',
+    'Water analysis':
+        'Wasseranalyse',
+    'Water and energy':
+        'Wasser und Energie',
+    'Water level below ground [m]':
+        'Wasserstand unter Gelände [m]',
+    'Water level between the wells at peak flow (aquifer only)':
+        'Wasserstand zwischen den Brunnen bei Spitzenförderung (nur Grundwasserleiter)',
+    'Water per year':
+        'Wasser je Jahr',
+    'Water temperatures in the months the system runs':
+        'Wassertemperaturen in den Betriebsmonaten',
+    'Well construction':
+        'Brunnenausbau',
+    'Well construction (not to scale across)':
+        'Brunnenausbau (quer nicht maßstäblich)',
+    'Well depth':
+        'Brunnentiefe',
+    'Well loss coefficient C':
+        'Brunnenverlustbeiwert C',
+    'Well pump electricity':
+        'Strom der Brunnenpumpe',
+    'Wells':
+        'Brunnen',
+    'Wells, flow paths and temperature plume after {y} years':
+        'Brunnen, Fließwege und Temperaturfahne nach {y} Jahren',
+    'What fits on the parcel.':
+        'Was auf das Grundstück passt.',
+    'What the water authority and the heat pump allow. The values differ between the states: ask the Untere Wasserbehörde.':
+        'Was Wasserbehörde und Wärmepumpe zulassen. Die Werte unterscheiden sich zwischen den Ländern: bei der Unteren Wasserbehörde nachfragen.',
+    'after {x:.1f} years':
+        'nach {x:.1f} Jahren',
+    'all production pumps at peak flow':
+        'alle Förderpumpen bei Spitzenförderung',
+    'allowed {x:.2f} mm/s (Sichardt)':
+        'zulässig {x:.2f} mm/s (Sichardt)',
+    'change of the production temperature at most {x:.2f} K':
+        'Änderung der Fördertemperatur höchstens {x:.2f} K',
+    'depth {x:.1f} m':
+        'Tiefe {x:.1f} m',
+    'downstream of the injection wells after {n} years':
+        'abstromig der Schluckbrunnen nach {n} Jahren',
+    'fine':
+        'in Ordnung',
+    'for the water right application':
+        'für den Antrag auf wasserrechtliche Erlaubnis',
+    'from Ground, at the screen':
+        'aus Untergrund, auf Höhe der Filterstrecke',
+    'given':
+        'vorgegeben',
+    'heat pump and well pumps together':
+        'Wärmepumpe und Brunnenpumpen zusammen',
+    'in the months with load':
+        'in den Monaten mit Last',
+    'incl. clogging reserve':
+        'inkl. Kolmationsreserve',
+    'kf = {kf:.1e} m/s is low for wells: each well yields little water and the drawdown is large. Check closed-loop boreholes as well.':
+        'kf = {kf:.1e} m/s ist für Brunnen gering: jeder Brunnen liefert wenig Wasser und die Absenkung ist groß. Auch Erdwärmesonden prüfen.',
+    'lift + drawdown + pipe and heat exchanger losses':
+        'Förderhöhe + Absenkung + Verluste in Rohren und Wärmeübertrager',
+    'm/s':
+        'm/s',
+    'max. injection {x:g} °C':
+        'max. Einleitung {x:g} °C',
+    'mg/l':
+        'mg/l',
+    'min. injection {x:g} °C':
+        'min. Einleitung {x:g} °C',
+    'no backflow from {x:.0f} m (injection downstream)':
+        'kein Rückfluss ab {x:.0f} m (Schluckbrunnen im Abstrom)',
+    'no groundwater flow':
+        'keine Grundwasserströmung',
+    'none in {n} years':
+        'keiner in {n} Jahren',
+    'of {x:.1f} m':
+        'von {x:.1f} m',
+    'pH':
+        'pH',
+    'peak flow for 24 h':
+        'Spitzenförderstrom über 24 h',
+    'problem':
+        'Problem',
+    'rest water level {x:.1f} m':
+        'Ruhewasserspiegel {x:.1f} m',
+    'screen from {a:.1f} m':
+        'Filter ab {a:.1f} m',
+    'screen {a:.1f}–{b:.1f} m':
+        'Filter {a:.1f}–{b:.1f} m',
+    'sized':
+        'ausgelegt',
+    's²/m⁵':
+        's²/m⁵',
+    'the aquifer top':
+        'der Oberkante des Grundwasserleiters',
+    'the groundwater':
+        'dem Grundwasser',
+    'to the aquifer bottom':
+        'bis zur Unterkante des Grundwasserleiters',
+    'warning':
+        'Warnung',
+    'well loss {x:.2f} m':
+        'Brunnenverlust {x:.2f} m',
+    'with gravel pack':
+        'mit Kiesschüttung',
+    '{n} problem(s): see the design check.':
+        '{n} Problem(e): siehe Auslegungsprüfung.',
+    '{p} + {i} wells, {d:g} m apart':
+        '{p} + {i} Brunnen, {d:g} m Abstand',
+    '{p} production and {i} injection well(s), {d:g} m apart, {q:.1f} m³/h at peak, {depth:.0f} m deep.':
+        '{p} Förder- und {i} Schluckbrunnen, {d:g} m Abstand, {q:.1f} m³/h in der Spitze, {depth:.0f} m tief.',
+    '{q:.1f} m³/h at peak':
+        '{q:.1f} m³/h in der Spitze',
+    '{r:.1f} m with the clogging reserve ({a:.1f} m possible).':
+        '{r:.1f} m mit Kolmationsreserve ({a:.1f} m möglich).',
+    '{s:.1f} m at peak flow ({a:.1f} m possible).':
+        '{s:.1f} m bei Spitzenförderung ({a:.1f} m möglich).',
+    '{v:.2f} mm/s at the borehole wall ({a:.2f} mm/s allowed after Sichardt).':
+        '{v:.2f} mm/s an der Bohrlochwand ({a:.2f} mm/s zulässig nach Sichardt).',
+    '{v:.2f} mm/s at the borehole wall is more than the {a:.2f} mm/s Sichardt allows: sand and fines get into the well. Use a larger drilling diameter or more wells.':
+        '{v:.2f} mm/s an der Bohrlochwand ist mehr als die {a:.2f} mm/s nach Sichardt: Sand und Feinteile gelangen in den Brunnen. Einen größeren Bohrdurchmesser oder mehr Brunnen wählen.',
+    '{x:+.2f} K over the period':
+        '{x:+.2f} K über den Zeitraum',
+    '{x:.1f} m long':
+        '{x:.1f} m lang',
+    '{x:.1f} m³/h per production well':
+        '{x:.1f} m³/h je Förderbrunnen',
+    '°':
+        '°',
+    '‰':
+        '‰',
+    '① Ground & aquifer':
+        '① Untergrund & Grundwasserleiter',
+    '② Wells':
+        '② Brunnen',
+    'The layer table under Ground has a permeable stretch ({rocks}) from {top:.1f} to {bottom:.1f} m below ground, kf about {kf:.1e} m/s (typical values for these rocks).':
+        'Die Schichtentabelle unter Untergrund hat einen durchlässigen Abschnitt ({rocks}) von {top:.1f} bis {bottom:.1f} m unter Gelände, kf etwa {kf:.1e} m/s (typische Werte dieser Gesteine).',
+    'Use these values':
+        'Diese Werte übernehmen',
+    '##### Site plan: from a Flurstück to well positions':
+        '##### Lageplan: vom Flurstück zu den Brunnenstandorten',
+    '**What the well calculation is based on**':
+        '**Worauf die Brunnenberechnung beruht**',
+    'Backflow (thermal short circuit)':
+        'Rückfluss (thermischer Kurzschluss)',
+    'Calculation sources':
+        'Berechnungsgrundlagen',
+    'Direction the groundwater flows to, clockwise from north (90° = to the east). Taken from Aquifer; changing it here changes it there too when you use the positions.':
+        'Richtung, in die das Grundwasser fließt, im Uhrzeigersinn von Norden (90° = nach Osten). Aus Grundwasserleiter; eine Änderung hier gilt dort auch, wenn die Standorte übernommen werden.',
+    'Drawdown and rise':
+        'Absenkung und Aufhöhung',
+    'Extra drawdown in the well itself C·Q²; about 1800 s²/m⁵ for a properly built well.':
+        'Zusätzliche Absenkung im Brunnen selbst C·Q²; etwa 1800 s²/m⁵ für einen fachgerecht gebauten Brunnen.',
+    'Flow from the load':
+        'Förderstrom aus der Last',
+    'GHEtool has no open-loop model; these methods are written for this tool and tested against the textbook results.':
+        'GHEtool hat kein Modell für offene Systeme; diese Verfahren sind für dieses Werkzeug geschrieben und an Lehrbuchergebnissen geprüft.',
+    'Groundwater flow direction [°]':
+        'Grundwasserfließrichtung [°]',
+    'Guide values for clogging (iron, manganese with oxygen) and for the heat exchanger material (chloride, sulfate, pH). Heat pump makers publish their own limits; theirs apply.':
+        'Richtwerte für Verockerung (Eisen, Mangan mit Sauerstoff) und für den Werkstoff des Wärmeübertragers (Chlorid, Sulfat, pH). Wärmepumpenhersteller nennen eigene Grenzwerte; diese gelten.',
+    'Largest velocity at the borehole wall √kf / 15 (m/s); at injection wells the velocity is multiplied by the clogging reserve first.':
+        'Größte Geschwindigkeit an der Bohrlochwand √kf / 15 (m/s); an Schluckbrunnen wird die Geschwindigkeit vorher mit der Kolmationsreserve multipliziert.',
+    'One point per well (production first), ETRS89 / UTM 32N.':
+        'Ein Punkt je Brunnen (Förderbrunnen zuerst), ETRS89 / UTM 32N.',
+    'Optional. Find your parcel, check the buildings on the aerial image, set the distances, and get the production wells as far upstream and the injection wells as far downstream as the parcel allows.':
+        'Optional. Flurstück finden, Gebäude im Luftbild prüfen, Abstände setzen und die Förderbrunnen so weit im Anstrom und die Schluckbrunnen so weit im Abstrom setzen, wie das Grundstück erlaubt.',
+    'Peak flow = peak ground load / (ρc of water × temperature spread); the volume per month from the monthly energy in the same way.':
+        'Spitzenförderstrom = Spitzenlast / (ρc des Wassers × Temperaturspreizung); die Monatsmenge ebenso aus der Monatsenergie.',
+    'Placing the wells...':
+        'Brunnen werden gesetzt...',
+    'Pumping test':
+        'Pumpversuch',
+    'Red: production wells, upstream. Blue: injection wells, downstream (flow to {deg:g}°, {dx:+.2f} east, {dy:+.2f} north). The sizing takes the distance and the border distance; it places the wells of one kind in a row across the flow.':
+        'Rot: Förderbrunnen im Anstrom. Blau: Schluckbrunnen im Abstrom (Fließrichtung {deg:g}°, {dx:+.2f} Ost, {dy:+.2f} Nord). Die Auslegung übernimmt den Abstand und den Grenzabstand; Brunnen derselben Art stellt sie in eine Reihe quer zur Strömung.',
+    'Sets the numbers of wells, their distance (largest possible distance when sizing), the border distance and the flow direction.':
+        'Setzt die Zahl der Brunnen, ihren Abstand (bei der Auslegung den größtmöglichen Abstand), den Grenzabstand und die Fließrichtung.',
+    'Spacing between wells of the same kind [m]':
+        'Abstand zwischen Brunnen derselben Art [m]',
+    'The injected water is traced along the streamlines of the wells plus the regional groundwater flow (complex potential of sources and sinks in a uniform flow). Streamlines that end in a production well bring the injected water back after the hydraulic travel time × C_aquifer / (n · C_water): the rock takes up heat as the water passes. The production temperature follows month by month. Checked against the doublet breakthrough π n b L² / 3Q and the critical distance 2Q / (π b q) without backflow.':
+        'Das eingeleitete Wasser wird entlang der Stromlinien der Brunnen und der regionalen Grundwasserströmung verfolgt (komplexes Potenzial von Quellen und Senken in einer Parallelströmung). Stromlinien, die in einem Förderbrunnen enden, bringen das eingeleitete Wasser nach der hydraulischen Fließzeit × C_Grundwasserleiter / (n · C_Wasser) zurück: das Gestein nimmt beim Durchfluss Wärme auf. Daraus folgt die Fördertemperatur Monat für Monat. Geprüft am Durchbruch einer Dublette π n b L² / 3Q und am kritischen Abstand 2Q / (π b q) ohne Rückfluss.',
+    "The thinner (or thicker) water column is taken into account with the Dupuit-Jacob correction s = b − √(b² − 2bs').":
+        "Die dünnere (oder dickere) Wassersäule wird mit der Dupuit-Jacob-Korrektur s = b − √(b² − 2bs') berücksichtigt.",
+    'The wells do not fit with these distances. Fewer wells of one kind, a smaller spacing or smaller distances help.':
+        'Die Brunnen passen mit diesen Abständen nicht. Weniger Brunnen einer Art, ein kleinerer Brunnenabstand oder kleinere Abstände helfen.',
+    'The yearly net heat spreads from the injection wells with the groundwater: a continuous line source over the aquifer thickness with advection, longitudinal and transverse dispersion and thermal retardation (planar advective heat transport model). The heat exchange with the layers above and below is left out, so the plume comes out longer than it is.':
+        'Die jährliche Nettowärme breitet sich von den Schluckbrunnen mit dem Grundwasser aus: eine kontinuierliche Linienquelle über die Mächtigkeit des Grundwasserleiters mit Advektion, longitudinaler und transversaler Dispersion und thermischer Retardation (ebenes advektives Wärmetransportmodell). Der Wärmeaustausch mit den Schichten darüber und darunter fehlt, die Fahne wird also länger berechnet, als sie ist.',
+    "Thiem's steady-state equation for every well, summed (superposition). Pumping and injection are equal, so the radius of influence drops out and the result is exact for a homogeneous aquifer.":
+        'Die stationäre Gleichung nach Thiem für jeden Brunnen, summiert (Superposition). Förderung und Einleitung sind gleich groß, daher fällt die Reichweite heraus und das Ergebnis ist für einen homogenen Grundwasserleiter exakt.',
+    'Transmissivity and storage from the straight line of drawdown against log time (Cooper-Jacob).':
+        'Transmissivität und Speicherkoeffizient aus der Geraden der Absenkung über der logarithmischen Zeit (Cooper-Jacob).',
+    'Typical aquifer values':
+        'Typische Werte des Grundwasserleiters',
+    'Unconfined aquifers':
+        'Ungespannte Grundwasserleiter',
+    'Used when there is more than one production or injection well.':
+        'Gilt, wenn es mehr als einen Förder- oder Schluckbrunnen gibt.',
+    'Water quality':
+        'Wasserbeschaffenheit',
+    'Well losses':
+        'Brunnenverluste',
+    'Well shapefile (.zip)':
+        'Brunnen-Shapefile (.zip)',
+    'Wells ({n})':
+        'Brunnen ({n})',
+    'Wells set from the site plan: {p} production and {i} injection well(s), {d:.0f} m apart, {b:.0f} m to the parcel border downstream.':
+        'Brunnen aus dem Lageplan übernommen: {p} Förder- und {i} Schluckbrunnen, {d:.0f} m Abstand, {b:.0f} m bis zur Grundstücksgrenze im Abstrom.',
+    "kf and effective porosity per rock type are the middle of the usual ranges; dispersivity about 1/10 of the distance looked at. Use a pumping test and the state's groundwater maps where you have them.":
+        'kf und effektive Porosität je Gesteinsart sind die Mitte der üblichen Bereiche; Dispersivität etwa 1/10 der betrachteten Entfernung. Wo vorhanden, Pumpversuch und Grundwasserkarten des Landes verwenden.',
+    '{x:.1f} m along the flow':
+        '{x:.1f} m in Strömungsrichtung',
 }

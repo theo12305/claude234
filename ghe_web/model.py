@@ -22,10 +22,16 @@ def default_inputs() -> dict[str, SectionInput]:
     return {s.key: SectionInput(s.variant().key, s.variant().defaults()) for s in properties.sections()}
 
 
+def system(inputs: dict[str, SectionInput]) -> str:
+    """The heat source: "closed" (borehole heat exchangers) or "open" (groundwater wells)."""
+    chosen = inputs.get("system")
+    return chosen.variant if chosen is not None else "closed"
+
+
 def warnings(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
     """Soft warnings per section key: unusual but allowed inputs."""
     out = {}
-    for section in properties.sections():
+    for section in properties.sections(system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             continue
@@ -38,9 +44,10 @@ def warnings(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
 
 
 def validate(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
-    """Return errors per section key. An empty dict means everything is valid."""
+    """Return errors per section key, for the sections of the chosen heat source. An empty dict means everything is
+    valid."""
     errors = {}
-    for section in properties.sections():
+    for section in properties.sections(system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             errors[section.key] = [t("{section}: no input given.", section=t(section.label))]
@@ -48,7 +55,7 @@ def validate(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
         problems = section.variant(chosen.variant).validate(chosen.values)
         if problems:
             errors[section.key] = problems
-    if not errors:
+    if not errors and system(inputs) == "closed":
         for key, msg in _cross_errors(inputs):
             errors.setdefault(key, []).append(msg)
     return errors
@@ -94,6 +101,16 @@ def temperature_dependent_cop(inputs: dict[str, SectionInput]) -> bool:
 def cross_warnings(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
     """Warnings that need more than one section."""
     out = {}
+    if system(inputs) == "open":
+        if "heat_pump" in inputs and inputs["heat_pump"].variant == "curve":
+            out["heat_pump"] = [t("Groundwater wells use the SCOP and SEER under Ground load; the COP curve applies to "
+                                  "borehole heat exchangers only.")]
+        aquifer = inputs.get("aquifer")
+        if aquifer is not None and aquifer.variant == "confined" and \
+                aquifer.values["water_depth"] > aquifer.values["top"]:
+            out["aquifer"] = [t("The water level is below the aquifer top, so the aquifer is not confined at the "
+                                "site. Choose unconfined.")]
+        return out
     if "heat_pump" in inputs and inputs["heat_pump"].variant == "curve" and not uses_building_load(inputs):
         out["heat_pump"] = [t("The ground load is entered directly (monthly energy), so there is no heat pump to "
                               "apply this to. Choose yearly or hourly building demand under Ground load to use it.")]

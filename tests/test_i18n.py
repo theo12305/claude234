@@ -11,6 +11,7 @@ from ghe_web.i18n import fmt, t
 from ghe_web.i18n_de import DE
 from ghe_web.siteplan import page as siteplan_page, states
 from ghe_web.strata import rocks, sources
+from ghe_web.wells import page as wells_page, plots as wells_plots, sources as wells_sources
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -76,6 +77,8 @@ def _data_texts() -> set[str]:
         for kind in ("heating", "cooling"):
             texts.add(f"{who} {kind} [MWh]")
     texts |= {"Month", "Heating demand", "Cooling demand", "Ground extraction", "Ground injection"}
+    texts |= set(wells_page.VIEWS.values()) | set(wells_plots.COMPASS) | {"problem", "warning", "fine"}
+    texts |= {text for topic, method, _ in wells_sources.SOURCES for text in (topic, method)}
     return texts
 
 

@@ -77,6 +77,41 @@ Under Ground in step ① the panel **Predict the layers** estimates the layers a
   layers over the borehole length while sizing. The Results get a **Layers** view with the borehole log, each layer's
   share of the heat exchange, the average conductivity for other lengths and a comparison with a single value.
 
+## Groundwater wells (open loop)
+
+Under step ① **Heat source** switch from borehole heat exchangers to **Groundwater wells (open loop)**: production
+wells pump groundwater through the heat pump and injection wells return it to the aquifer. The site plan, the ground
+temperature, the predicted layers and the loads stay the same; the steps change to ① Ground & aquifer, ② Wells,
+③ Loads and ④ Limits.
+
+- **Aquifer**: unconfined or confined, depth to the groundwater, aquifer bottom (and top), kf, porosity, gradient and
+  flow direction, dispersivity. When the layer table under Ground has permeable layers below the groundwater, the
+  page offers their depth and a typical kf (`ghe_web/wells/aquifer.py`).
+- **Groundwater quality**: iron, manganese, oxygen, pH, chloride and sulfate against the usual guide values
+  (clogging, heat exchanger material).
+- **Wells**: size them (number of wells and the shortest distance that keeps the production temperature within the
+  limit) or check given wells; drilling and screen diameter, well loss, clogging reserve for injection, pump.
+- **Limits**: temperature spread at the heat pump, injection temperature range, largest change from the natural
+  temperature, allowed change of the production temperature, plume limit at the parcel border.
+- **Site plan** (⓪, with wells as heat source): places the production wells as far upstream and the injection wells
+  as far downstream as the allowed area permits, each group in a row across the flow; **Use in the sizing** sets the
+  numbers of wells, their distance (the largest possible distance when sizing), the border distance downstream and
+  the flow direction. More wells: sizing adds production or injection wells by itself when the drawdown, the rise or
+  the entrance velocity is too large; with **Check given wells** (or the site plan) you set the numbers.
+- **Calculation sources**: a button in the sidebar and on the results lists the method and literature of every part
+  (`ghe_web/wells/sources.py`); the PDF report has them on a page of their own.
+
+The calculation (`ghe_web/wells/`, GHEtool has no open-loop model): the flow follows from the ground load and the
+spread; drawdown and rise from Thiem summed over all wells (exact in the steady state of equal pumping and
+injection), with the Dupuit-Jacob correction for unconfined aquifers, well losses C·Q² and the clogging reserve; the
+entrance velocity is checked after Sichardt. The injected water is traced along the streamlines of the wells plus
+the regional flow; streamlines that reach a production well bring it back after the thermal travel time, which
+gives the production temperature month by month over the simulation period. The plume is a planar advection and
+dispersion model of the yearly net heat. Both leave out the heat exchange with the layers above and below, so they
+are on the safe side. Results: verdict and key numbers (flow, water per year for the water right, wells, water
+levels, pump, temperatures, breakthrough, plume), hydraulics, temperatures, site map, well construction drawing,
+water and energy, design check, Excel workbook and PDF report.
+
 ## Hourly heating and cooling demand
 
 Under Ground load choose **Hourly building demand** and upload a CSV or Excel file with 8760 rows:
@@ -169,6 +204,8 @@ ghe_web/share.py           project packed into a share link
 ghe_web/report.py          PDF report
 ghe_web/export.py          Excel workbook and zip export
 ghe_web/catalog.py         typical values for rock, grout, pipes, drilling diameters, fluids, load profiles
+ghe_web/wells/             groundwater wells: aquifer values, hydraulics, thermal model, sizing, checks, charts,
+                           report and the results page
 ghe_web/properties/
   base.py                  Property, Variant, Section: the building blocks
   registry.py              list of all sections
@@ -181,6 +218,7 @@ ghe_web/properties/
   heat_pump.py             heat pump efficiency: fixed SCOP/SEER or COP/EER curves over fluid temperature
   calculation.py           size or check a given length
   limits.py                min/max average fluid temperature
+  wells.py                 heat source switch, aquifer, groundwater quality, wells, groundwater limits
 tests/
 ```
 
@@ -189,7 +227,8 @@ tests/
   that turns its values into a GHEtool object. Optional `checks` validate several fields together,
   `warnings` flag unusual but allowed values, and `presets` add drop-downs with typical values.
 - **Section**: a topic on the page with one or more variants; the user picks the variant. Its `group`
-  (Site, Borehole, Loads, Design) decides which input step it appears in.
+  (Site, Borehole, Loads, Design) decides which input step it appears in. Its `system` ("closed", "open" or empty for
+  both) decides for which heat source it is shown.
 
 ## How to extend
 

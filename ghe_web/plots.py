@@ -137,7 +137,7 @@ def ground_rows(inputs: dict[str, SectionInput]) -> tuple[list[dict], bool]:
     rows = list((v.get("layers") or {}).get("rows") or ())
     if rows:
         return rows, layered(v)
-    depth = inputs["borefield"].values["H"] + inputs["borefield"].values["D"]
+    depth = _drawn_depth(inputs)[0] + _drawn_depth(inputs)[1]
     return [{"top": 0.0, "bottom": max(depth, 1.0), "rock": "Uniform ground", "k_s": v["k_s"],
              "C": v["volumetric_heat_capacity"]}], False
 
@@ -197,12 +197,20 @@ def borehole_log(rows: list[dict], length: float, buried: float = 0.0, title: st
     return fig
 
 
+def _drawn_depth(inputs: dict[str, SectionInput]) -> tuple[float, float]:
+    """Length and buried depth of what is drawn in the ground: the boreholes, or the wells down to the aquifer
+    bottom."""
+    if inputs.get("system") is not None and inputs["system"].variant == "open" and "aquifer" in inputs:
+        return float(inputs["aquifer"].values["bottom"]), 0.0
+    bf = inputs["borefield"].values
+    return bf["H"], bf["D"]
+
+
 def ground_log_drawing(inputs: dict[str, SectionInput]) -> plt.Figure:
     rows, used = ground_rows(inputs)
-    bf = inputs["borefield"].values
     title = t("Ground layers") if used else (t("Ground layers (not used: switch on the layered calculation)")
                                              if rows[0].get("rock") != "Uniform ground" else t("Uniform ground"))
-    return borehole_log(rows, bf["H"], bf["D"], title)
+    return borehole_log(rows, *_drawn_depth(inputs), title)
 
 
 def conductivity_with_length(rows: list[dict], buried: float, lengths, sized: float | None = None) -> alt.Chart:

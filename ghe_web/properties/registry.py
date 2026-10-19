@@ -13,8 +13,10 @@ def register(section: Section) -> Section:
     return section
 
 
-def sections() -> list[Section]:
-    return sorted(_SECTIONS.values(), key=lambda s: s.order)
+def sections(system: str | None = None) -> list[Section]:
+    """All sections in page order; with ``system`` ("closed" or "open") only those that belong to it."""
+    found = [s for s in _SECTIONS.values() if system is None or s.system in ("", system)]
+    return sorted(found, key=lambda s: s.order)
 
 
 def get(key: str) -> Section:
