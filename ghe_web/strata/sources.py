@@ -3,6 +3,9 @@
 - BGR, geological map of Germany 1:250,000 (GÜK250, INSPIRE lithology): the rock at the surface, all of Germany.
 - Geologischer Dienst NRW, borehole database (DABO) as BoreholeML web feature service: layered logs of released
   boreholes in North Rhine-Westphalia.
+- Borehole points of seven more state surveys (Berlin, Brandenburg, Hessen, Mecklenburg-Vorpommern, Niedersachsen,
+  Sachsen, Schleswig-Holstein): location, depth and a link to the log, which these states publish only as a picture
+  or web page, so the user reads it and types the layers in.
 - Uploads: BoreholeML files (the exchange format of the German state surveys, which most portals export) and
   tables (CSV or Excel) with one row per layer.
 
@@ -13,6 +16,7 @@ from __future__ import annotations
 import io
 import re
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 
 import pandas as pd
 from pyproj import Transformer
@@ -180,6 +184,274 @@ def boreholes_online(state_key: str | None, x: float, y: float, radius: float) -
     return []
 
 
+# ---------------------------------------------------------------- borehole points of the other states
+
+@dataclass
+class BoreholePoint:
+    """A borehole of a state survey without machine-readable layers: where it is, how deep, and where to see the
+    log (a picture or web page)."""
+    name: str
+    x: float  # EPSG:25832
+    y: float
+    depth: float | None
+    link: str | None
+    source: str
+    note: str = ""
+    distance: float = 0.0
+
+
+def _prop(props: dict, *names):
+    """The first of the named properties that is set (services rename fields between field names and aliases)."""
+    lower = {str(k).lower(): v for k, v in props.items()}
+    for n in names:
+        v = props.get(n, lower.get(n.lower()))
+        if v not in (None, "", "null"):
+            return v
+    return None
+
+
+def _float(v) -> float | None:
+    if v is None:
+        return None
+    try:
+        return float(str(v).replace(",", "."))
+    except ValueError:
+        return None
+
+
+def _wgs_point(geometry: dict | None) -> tuple[float, float] | None:
+    """The first lon/lat point of a GeoJSON geometry, in UTM 32N."""
+    if not geometry:
+        return None
+    coords = geometry.get("coordinates")
+    while isinstance(coords, list) and coords and isinstance(coords[0], list):
+        coords = coords[0]
+    if not coords or len(coords) < 2:
+        return None
+    lon, lat = float(coords[0]), float(coords[1])
+    if abs(lon) > 180 or abs(lat) > 90:
+        return None
+    return lookup.to_utm(lon, lat)
+
+
+@dataclass(frozen=True)
+class PointService:
+    """One state's borehole points. ``fields`` name the properties: name, depth, link, x, y (with ``epsg``)."""
+    state: str
+    label: str
+    url: str
+    kind: str  # "wfs-json", "wfs-gml", "arcgis", "wms-info"
+    layer: str
+    epsg: int
+    fields: dict
+    link_note: str
+    version: str = "2.0.0"
+    output: str = "application/geo+json"
+
+
+POINT_SERVICES = {s.state: s for s in (
+    PointService("BW", "LGRB Baden-Württemberg, borehole database (WFS)", "https://services.lgrb-bw.de/ms/lgrb_adb",
+                 "wfs-gml", "ms:adb_et", 25832,
+                 {"name": ("Aufschlussname", "Archivnummer"), "depth": ("Tiefe",), "link": (), "x": ("Ost",),
+                  "y": ("Nord",), "ref": ("TK25", "Archivnummer"), "logged": ("Schichtdaten",)},
+                 "Layer log in LGRBbohrungen (search for the BO number)", output="text/xml; subtype=gml/3.2.1"),
+    PointService("BB", "LBGR Brandenburg, borehole points with logs (WFS)", "https://inspire.brandenburg.de/services/bpk_wfs",
+                 "wfs-json", "app:bpk_m_sch", 25833,
+                 {"name": ("Bohrungsname", "Bohrungs_ID"), "depth": ("Teufe_in_m",),
+                  "link": ("Schichtenverzeichnis_grafisch",), "x": ("Ostwert",), "y": ("Nordwert",)},
+                 "Log as a picture"),
+    PointService("BE", "Berlin, borehole data (WFS)", "https://gdi.berlin.de/services/wfs/bohrdaten",
+                 "wfs-json", "bohrdaten:bohrpunkte", 25833,
+                 {"name": ("langname", "schluessel"), "depth": ("endteufe",), "link": ("profil_lang", "profil"),
+                  "x": ("xcoord",), "y": ("ycoord",)},
+                 "Log as a picture", output="application/json"),
+    PointService("SN", "LfULG Sachsen, boreholes (ArcGIS)",
+                 "https://luis.sachsen.de/arcgis/rest/services/geologie/bohrungen/MapServer/0/query",
+                 "arcgis", "0", 25833,
+                 {"name": ("AKBEZ", "IDENT"), "depth": ("ENDTEUFE",), "link": ("URL",), "x": (), "y": ()},
+                 "Data sheet in the GeODin portal"),
+    PointService("HE", "HLNUG Hessen, archive boreholes (ArcGIS)",
+                 "https://geodienste-umwelt.hessen.de/arcgis/rest/services/geologie/bohrdatenportal/MapServer/1/query",
+                 "arcgis", "1", 25832,
+                 {"name": ("ANAME", "Name", "ARNUM", "Archivnummer"), "depth": ("ET", "Endteufe [m]"), "link": (),
+                  "x": (), "y": (), "groundwater": ("GW", "Grundwasser angetroffen [m]"),
+                  "unit": ("FORMATION", "Geologische Einheit")},
+                 "No log online; ask HLNUG for it"),
+    PointService("SH", "LfU Schleswig-Holstein, borehole points (WFS)",
+                 "https://umweltgeodienste.schleswig-holstein.de/WFS_UWAT", "wfs-json", "app:bohrpunkte", 25832,
+                 {"name": ("Archivnummer",), "depth": ("Endtiefe-m",), "link": ("LinkzurProfilsäulendarstellung",),
+                  "x": ("X-Koordinate-UTM",), "y": ("Y-Koordinate-UTM",)},
+                 "Log column in the GeODin portal"),
+    PointService("MV", "LUNG Mecklenburg-Vorpommern, state borehole archive (WFS)",
+                 "https://umweltkarten.lung-mv.de/dienste/gg_lbds", "wfs-json", "bohrdaten", 5650,
+                 {"name": ("LONGNAME", "BO_IDENT"), "depth": ("ZCOORDE",), "link": ("SVZ_URL",), "x": ("RW",),
+                  "y": ("HW",), "unit": ("STRAT_EH",)},
+                 "Log (Schichtenverzeichnis) on the LUNG map server", version="1.1.0",
+                 output="application/vnd.geo+json"),
+    PointService("NI", "LBEG Niedersachsen, NIBIS boreholes (WMS feature info)",
+                 "https://nibis.lbeg.de/net3/public/ogc.ashx", "wms-info",
+                 ",".join(f"L104:{i}" for i in range(1, 11)), 25832,
+                 {"name": ("LONGNAME", "BID"), "depth": ("ZCOORDE",), "link": ("LINK",), "x": ("OST",),
+                  "y": ("NORD",)},
+                 "Log column in the NIBIS map server", version="1.1.1"),
+)}
+
+
+def _point_request(svc: PointService, x: float, y: float, radius: float, limit: int):
+    if svc.epsg == 25832:
+        x0, y0, x1, y1 = x - radius, y - radius, x + radius, y + radius
+    else:
+        tr = Transformer.from_crs(25832, 25833, always_xy=True)
+        (x0, x1), (y0, y1) = tr.transform([x - radius, x + radius], [y - radius, y + radius])
+    if svc.epsg == 5650:  # UTM 33N with the zone in front of the easting
+        x0, x1 = x0 + 33_000_000, x1 + 33_000_000
+    if svc.kind == "arcgis":
+        return {"geometry": f"{x0},{y0},{x1},{y1}", "geometryType": "esriGeometryEnvelope",
+                "inSR": 25833 if svc.epsg != 25832 else 25832, "spatialRel": "esriSpatialRelIntersects",
+                "outFields": "*", "returnGeometry": "true", "outSR": 25832, "resultRecordCount": limit, "f": "json"}
+    if svc.kind == "wms-info":  # one pixel covering the whole search square returns every point in it
+        return {"NodeId": 145, "SERVICE": "WMS", "VERSION": svc.version, "REQUEST": "GetFeatureInfo",
+                "LAYERS": svc.layer, "QUERY_LAYERS": svc.layer, "STYLES": "", "SRS": "EPSG:25832",
+                "BBOX": f"{x0},{y0},{x1},{y1}", "WIDTH": 1, "HEIGHT": 1, "X": 0, "Y": 0, "FEATURE_COUNT": limit,
+                "INFO_FORMAT": "application/geo+json"}
+    params = {"SERVICE": "WFS", "VERSION": svc.version, "REQUEST": "GetFeature", "OUTPUTFORMAT": svc.output}
+    if svc.version.startswith("2"):
+        params |= {"TYPENAMES": svc.layer, "COUNT": limit,
+                   "BBOX": f"{x0},{y0},{x1},{y1},urn:ogc:def:crs:EPSG::{svc.epsg}"}
+    else:
+        params |= {"TYPENAME": svc.layer, "MAXFEATURES": limit, "BBOX": f"{x0},{y0},{x1},{y1}"}
+    return params
+
+
+def gml_features(content: bytes) -> dict:
+    """A WFS GML answer as {"features": [{"properties": {...}, "geometry": {"x", "y"}}]} (simple point features)."""
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError as exc:
+        raise LookupError_(t("The borehole service did not answer with data ({error}).", error=exc)) from exc
+    if _local(root.tag) in ("ExceptionReport", "ServiceExceptionReport"):
+        raise LookupError_(t("The borehole service reported an error: {error}",
+                             error=" ".join(root.itertext()).strip()[:200]))
+    features = []
+    for member in root:
+        if _local(member.tag) not in ("member", "featureMember", "featureMembers"):
+            continue
+        for feature in member:
+            props, geometry = {}, {}
+            for child in feature:
+                pos = _find(child, "pos")
+                if pos is not None and pos.text:
+                    x, y = (float(v) for v in pos.text.split()[:2])
+                    geometry = {"x": x, "y": y}
+                elif len(child) == 0:
+                    props[_local(child.tag)] = (child.text or "").strip()
+            features.append({"properties": props, "geometry": geometry})
+    return {"features": features}
+
+
+def parse_points(state_key: str, data: dict) -> list[BoreholePoint]:
+    """Borehole points from a service answer (GeoJSON or ArcGIS JSON), in UTM 32N."""
+    svc = POINT_SERVICES[state_key]
+    f = svc.fields
+    if "error" in data:
+        raise LookupError_(t("The borehole service reported an error: {error}",
+                             error=str(data["error"].get("message", data["error"]))[:200]))
+    out = []
+    for feature in data.get("features", []):
+        props = feature.get("attributes") if "attributes" in feature else feature.get("properties") or {}
+        geom = feature.get("geometry") or {}
+        xy = None
+        px, py = _float(_prop(props, *f["x"])), _float(_prop(props, *f["y"]))
+        if px is not None and py is not None:
+            xy = to_utm32(px - (33_000_000 if px > 33_000_000 else 0), py, 25833) if svc.epsg in (25833, 5650) \
+                else to_utm32(px, py)
+        elif "x" in geom and "y" in geom:  # ArcGIS (asked for in UTM 32N) or GML in the service's system
+            xy = float(geom["x"]), float(geom["y"])
+        if xy is None:
+            xy = _wgs_point(geom)
+        if xy is None:
+            continue
+        name = _prop(props, *f["name"])
+        depth = _float(_prop(props, *f["depth"]))
+        link = _prop(props, *f["link"]) if f["link"] else None
+        notes = []
+        if f.get("ref") and all(_prop(props, n) is not None for n in f["ref"]):
+            notes.append("BO " + "/".join(str(_prop(props, n)) for n in f["ref"]))
+        if f.get("logged"):
+            logged = str(_prop(props, *f["logged"])) in ("1", "1.0", "true")
+            notes.append(t("layer log in the portal") if logged else t("no layer log"))
+            if logged and not link:
+                link = PORTALS[state_key][1]
+        if f.get("unit") and _prop(props, *f["unit"]):
+            notes.append(str(_prop(props, *f["unit"])))
+        if f.get("groundwater") and _float(_prop(props, *f["groundwater"])) is not None:
+            notes.append(t("groundwater at {gw:.1f} m", gw=_float(_prop(props, *f["groundwater"]))))
+        out.append(BoreholePoint(str(name or feature.get("id") or "?"), xy[0], xy[1], depth,
+                                 str(link) if link else None, svc.label, ", ".join(notes)))
+    return out
+
+
+def borehole_points(state_key: str | None, x: float, y: float, radius: float, limit: int = 300
+                    ) -> list[BoreholePoint]:
+    """Boreholes of the state survey within ``radius`` of the site, nearest first."""
+    svc = POINT_SERVICES.get(state_key or "")
+    if svc is None:
+        return []
+    r = lookup._get(svc.url, _point_request(svc, x, y, radius, limit))
+    if svc.kind == "wfs-gml":
+        return _near(parse_points(state_key, gml_features(r.content)), x, y, radius)
+    try:
+        data = r.json()
+    except ValueError as exc:
+        raise LookupError_(t("The borehole service did not answer with data ({error}).",
+                             error=r.text.strip()[:120] or type(exc).__name__)) from exc
+    return _near(parse_points(state_key, data), x, y, radius)
+
+
+def _near(points: list[BoreholePoint], x: float, y: float, radius: float) -> list[BoreholePoint]:
+    for p in points:
+        p.distance = ((p.x - x) ** 2 + (p.y - y) ** 2) ** 0.5
+    return sorted((p for p in points if p.distance <= radius), key=lambda p: p.distance)
+
+
+# What each state survey offers, for the page's overview (state key -> survey, portal, what is open)
+PORTALS = {
+    "BW": ("LGRB Baden-Württemberg (LGRBbohrungen)", "https://bohrungen.lgrb-bw.de",
+           "Connected: boreholes with depth and BO number; layer logs in LGRBbohrungen."),
+    "BY": ("LfU Bayern", "https://www.umweltatlas.bayern.de",
+           "Boreholes in the UmweltAtlas (Geologie); no open download service."),
+    "BE": ("Senatsverwaltung Berlin", "https://gdi.berlin.de",
+           "Connected: boreholes with a picture of the log."),
+    "BB": ("LBGR Brandenburg", "https://lbgr.brandenburg.de",
+           "Connected: boreholes with a picture of the log."),
+    "HB": ("Geologischer Dienst für Bremen", "https://www.gdfb.de",
+           "No open borehole service found; ask the survey."),
+    "HH": ("Geologisches Landesamt Hamburg",
+           "https://www.hamburg.de/politik-und-verwaltung/behoerden/bukea/themen/boden-und-geologie/geologie/"
+           "geologische-daten-und-archiv", "No open borehole service found; ask the survey."),
+    "HE": ("HLNUG Hessen", "https://www.hlnug.de",
+           "Connected: archive boreholes with depth, unit and groundwater; logs on request."),
+    "MV": ("LUNG Mecklenburg-Vorpommern", "https://www.umweltkarten.mv-regierung.de",
+           "Connected: boreholes with a link to the released log."),
+    "NI": ("LBEG Niedersachsen (NIBIS)", "https://nibis.lbeg.de/cardomap3/",
+           "Connected: boreholes with a picture of the log column."),
+    "NW": ("Geologischer Dienst NRW", "https://www.gd.nrw.de",
+           "Connected: logs with layers (BoreholeML), used for the prediction directly."),
+    "RP": ("LGB Rheinland-Pfalz", "https://www.lgb-rlp.de",
+           "Boreholes in the LGB map viewer; no open download service."),
+    "SL": ("LUA Saarland", "https://www.saarland.de/lvgl/DE/GeoportalSaarland/geoportalsaarland_node",
+           "No open borehole service found; ask the survey."),
+    "SN": ("LfULG Sachsen", "https://www.umwelt.sachsen.de",
+           "Connected: boreholes with a data sheet link."),
+    "ST": ("LAGB Sachsen-Anhalt", "https://lagb.sachsen-anhalt.de/service/landesbohrdatenbank/",
+           "Map of the state borehole database; logs on request."),
+    "SH": ("LfU Schleswig-Holstein", "https://umweltportal.schleswig-holstein.de/portal/",
+           "Connected: boreholes with a link to the log column."),
+    "TH": ("TLUBN Thüringen", "https://tlubn.thueringen.de",
+           "No open borehole service found; ask the survey."),
+}
+
+
 # ---------------------------------------------------------------- tables
 
 _ALIASES = {
@@ -300,10 +572,10 @@ def to_utm32(x: float, y: float, epsg: int | None = None) -> tuple[float, float]
     if epsg is None:
         if abs(x) <= 180 and abs(y) <= 90:
             epsg = 4326
-        elif x > 32_000_000:
-            x, epsg = x - 32_000_000, 25832
         elif x > 33_000_000:
             x, epsg = x - 33_000_000, 25833
+        elif x > 32_000_000:
+            x, epsg = x - 32_000_000, 25832
         elif 2_000_000 < x < 6_000_000 and 5_000_000 < y < 6_200_000:
             epsg = 31464 + int(x // 1_000_000)
         else:

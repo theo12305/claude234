@@ -472,8 +472,6 @@ DE: dict[str, str] = {
     "Allowed area": "Zulässige Fläche",
     "Allowed area: {a:,.0f} m2": "Zulässige Fläche: {a:,.0f} m²",
     "An address": "Eine Adresse",
-    "Ask the open data services (BGR geological map of Germany; borehole logs of GD NRW)":
-        "Offene Datendienste abfragen (Geologische Karte der BGR; Bohrungsdatenbank des GD NRW)",
     "Asking the geological services...": "Geologische Dienste werden abgefragt …",
     "At least the deepest borehole you consider; the last layer continues below.":
         "Mindestens die tiefste betrachtete Sonde; die letzte Schicht setzt sich nach unten fort.",
@@ -929,10 +927,6 @@ DE: dict[str, str] = {
         "die ganze Tiefe verwendet: Bitte prüfen, z. B. anhand einer Bohrung aus dem Bohrungsportal des Landes.",
     "No layers found in the table.": "Keine Schichten in der Tabelle gefunden.",
     "No layout found: {error}": "Keine Anordnung gefunden: {error}",
-    "No open service with borehole logs is connected for this state yet. Most state surveys show logs in their map portals (often as BoreholeML download): upload them above to use them.":
-        "Für dieses Bundesland ist noch kein offener Dienst mit Schichtenverzeichnissen angebunden. Die meisten "
-        "geologischen Landesdienste zeigen Bohrungen in ihren Kartenportalen (oft als BoreholeML-Download): Laden "
-        "Sie diese oben hoch, um sie zu nutzen.",
     "No published value found for the Saarland; 5 m is the conservative LAWA value. VDI 4640 Blatt 2 is commonly cited with 3 m to the border; LAWA recommends 5 m.":
         "Für das Saarland wurde kein veröffentlichter Wert gefunden; 5 m ist der vorsichtige LAWA-Wert. VDI 4640 "
         "Blatt 2 wird meist mit 3 m zur Grundstücksgrenze zitiert; die LAWA empfiehlt 5 m.",
@@ -1468,4 +1462,156 @@ DE: dict[str, str] = {
         '{w:.0f} W/m in der Spitze liegt über dem Richtwert der VDI 4640 (30 bis 60 W/m). Die Simulation lässt das zu, prüfen Sie aber die Spitzenlast und die Untergrundwerte.',
     '{x:.0f} % of the average load':
         '{x:.0f} % der mittleren Last',
+    'Ask the open data services (BGR geological map of Germany; borehole data of the state surveys)':
+        'Offene Datendienste abfragen (Geologische Karte der BGR; Bohrdaten der Landesdienste)',
+    'Berlin, borehole data (WFS)':
+        'Berlin, Bohrdaten (WFS)',
+    'Borehole data of the 16 state surveys':
+        'Bohrdaten der 16 Landesdienste',
+    'Boreholes in the LGB map viewer; no open download service.':
+        'Bohrungen im Kartenviewer des LGB; kein offener Downloaddienst.',
+    'Boreholes in the UmweltAtlas (Geologie); no open download service.':
+        'Bohrungen im UmweltAtlas (Geologie); kein offener Downloaddienst.',
+    'Connected: archive boreholes with depth, unit and groundwater; logs on request.':
+        'Angebunden: Archivbohrungen mit Endteufe, Einheit und Grundwasser; Schichtenverzeichnisse auf Anfrage.',
+    'Connected: boreholes with a data sheet link.':
+        'Angebunden: Bohrungen mit Link zum Datenblatt.',
+    'Connected: boreholes with a link to the log column.':
+        'Angebunden: Bohrungen mit Link zur Profilsäule.',
+    'Connected: boreholes with a link to the released log.':
+        'Angebunden: Bohrungen mit Link zum freigegebenen Schichtenverzeichnis.',
+    'Connected: boreholes with a picture of the log column.':
+        'Angebunden: Bohrungen mit Bild der Profilsäule.',
+    'Connected: boreholes with a picture of the log.':
+        'Angebunden: Bohrungen mit Bild des Schichtenverzeichnisses.',
+    'Connected: logs with layers (BoreholeML), used for the prediction directly.':
+        'Angebunden: Schichtenverzeichnisse mit Schichten (BoreholeML), fließen direkt in die Vorhersage ein.',
+    'Data sheet in the GeODin portal':
+        'Datenblatt im GeODin-Portal',
+    'Everywhere else: the BGR geological map gives the rock at the surface, and logs you get from the survey (BoreholeML or a table) can be uploaded. Drilling companies and earlier geothermal projects nearby are often the quickest source of a log.':
+        'Überall sonst: Die geologische Karte der BGR liefert das Gestein an der Oberfläche, und Schichtenverzeichnisse vom Landesdienst (BoreholeML oder Tabelle) können hochgeladen werden. Bohrfirmen und frühere Erdwärmeprojekte in der Nähe sind oft die schnellste Quelle für ein Schichtenverzeichnis.',
+    'HLNUG Hessen, archive boreholes (ArcGIS)':
+        'HLNUG Hessen, Archivbohrungen (ArcGIS)',
+    'LBEG Niedersachsen, NIBIS boreholes (WMS feature info)':
+        'LBEG Niedersachsen, NIBIS-Bohrungen (WMS-Sachdatenabfrage)',
+    'LBGR Brandenburg, borehole points with logs (WFS)':
+        'LBGR Brandenburg, Bohrpunkte mit Schichtenverzeichnis (WFS)',
+    'LUNG Mecklenburg-Vorpommern, state borehole archive (WFS)':
+        'LUNG Mecklenburg-Vorpommern, Landesbohrdatenspeicher (WFS)',
+    'LfU Schleswig-Holstein, borehole points (WFS)':
+        'LfU Schleswig-Holstein, Bohrpunkte (WFS)',
+    'LfULG Sachsen, boreholes (ArcGIS)':
+        'LfULG Sachsen, Bohrungen (ArcGIS)',
+    'Log':
+        'Schichtenverzeichnis',
+    'Log (Schichtenverzeichnis) on the LUNG map server':
+        'Schichtenverzeichnis auf dem Kartenserver des LUNG',
+    'Log as a picture':
+        'Schichtenverzeichnis als Bild',
+    'Log column in the GeODin portal':
+        'Profilsäule im GeODin-Portal',
+    'Log column in the NIBIS map server':
+        'Profilsäule im NIBIS-Kartenserver',
+    'Map of the state borehole database; logs on request.':
+        'Karte der Landesbohrdatenbank; Schichtenverzeichnisse auf Anfrage.',
+    'No log online; ask HLNUG for it':
+        'Kein Schichtenverzeichnis online; beim HLNUG anfragen',
+    'No open borehole service found; ask the survey.':
+        'Kein offener Bohrdatendienst gefunden; beim Landesdienst anfragen.',
+    'Notes':
+        'Hinweise',
+    'Survey':
+        'Landesdienst',
+    'The borehole service did not answer with data ({error}).':
+        'Der Bohrdatendienst hat keine Daten geliefert ({error}).',
+    'This state survey has no open borehole service that the app can ask. See the overview of the state portals below; logs you get from them can be uploaded above.':
+        'Dieser Landesdienst hat keinen offenen Bohrdatendienst, den die App abfragen kann. Siehe die Übersicht der Landesportale unten; Schichtenverzeichnisse von dort können oben hochgeladen werden.',
+    'What the app gets':
+        'Was die App erhält',
+    'groundwater at {gw:.1f} m':
+        'Grundwasser bei {gw:.1f} m',
+    'open':
+        'öffnen',
+    '{service}: {error}':
+        '{service}: {error}',
+    '**{name}** ({source}, {n} layers{gw})':
+        '**{name}** ({source}, {n} Schichten{gw})',
+    ', groundwater {gw:.1f} m':
+        ', Grundwasser {gw:.1f} m',
+    'Check the depths and rocks; the logs are used in the prediction below.':
+        'Prüfen Sie Tiefen und Gesteine; die Schichtenverzeichnisse fließen in die Vorhersage unten ein.',
+    "Choose a location first, or give the borehole's position.":
+        'Wählen Sie zuerst einen Standort oder geben Sie die Lage der Bohrung an.',
+    'Could not open the PDF ({error}).':
+        'Das PDF ließ sich nicht öffnen ({error}).',
+    'Description':
+        'Beschreibung',
+    "No layers found. Each layer needs its depth at the start of a line, e.g. '0,40 - 6,50 m Sand, kiesig' or 'bis 6,50 m Sand'.":
+        "Keine Schichten gefunden. Jede Schicht braucht ihre Tiefe am Zeilenanfang, z. B. '0,40 - 6,50 m Sand, kiesig' oder 'bis 6,50 m Sand'.",
+    'Pasted log':
+        'Eingefügtes Schichtenverzeichnis',
+    'Read the log':
+        'Schichtenverzeichnis lesen',
+    'Remove':
+        'Entfernen',
+    'Where is the borehole? (optional)':
+        'Wo liegt die Bohrung? (optional)',
+    'latitude, longitude or x, y; empty: at the site':
+        'Breite, Länge oder x, y; leer: am Standort',
+    'pasted text':
+        'eingefügter Text',
+    'read from {name}':
+        'gelesen aus {name}',
+    '**Boreholes near the site** ({n})':
+        '**Bohrungen nahe dem Standort** ({n})',
+    '**{name}** ({source}), {d:.0f} m deep':
+        '**{name}** ({source}), {d:.0f} m tief',
+    '**{name}**: {depth} deep, {d:,.0f} m from the site':
+        '**{name}**: {depth} tief, {d:,.0f} m vom Standort',
+    'Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: boreholes of the state survey (darker = deeper, grey = under 30 m); their logs are pictures or web pages and are not in the prediction until you enter them.':
+        'Klicken Sie auf eine Bohrung für ihre Daten. Grün: Schichtenverzeichnisse mit Schichten, in der Vorhersage verwendet. Blau: Bohrungen des Landesdienstes (dunkler = tiefer, grau = unter 30 m); ihre Schichtenverzeichnisse sind Bilder oder Webseiten und fließen erst in die Vorhersage ein, wenn Sie sie eingeben.',
+    'Click the borehole on the map below to fill this in; nearer logs weigh more.':
+        'Klicken Sie die Bohrung in der Karte unten an, um dies auszufüllen; nähere Bohrungen zählen mehr.',
+    'Connected: boreholes with depth and BO number; layer logs in LGRBbohrungen.':
+        'Angebunden: Bohrungen mit Endteufe und BO-Nummer; Schichtenverzeichnisse in LGRBbohrungen.',
+    'Copy the layer list from the portal (or download its PDF) and the layers are read from it. Pictures and scans cannot be read for free; type their layers into the box.':
+        'Kopieren Sie die Schichtliste aus dem Portal (oder laden Sie das PDF herunter); die Schichten werden daraus gelesen. Bilder und Scans lassen sich nicht kostenlos lesen; tippen Sie deren Schichten in das Feld.',
+    'Enter a log from text or a PDF (e.g. copied from LGRBbohrungen)':
+        'Schichtenverzeichnis aus Text oder PDF eingeben (z. B. aus LGRBbohrungen kopiert)',
+    'Enter its layers':
+        'Schichten eingeben',
+    'LGRB Baden-Württemberg, borehole database (WFS)':
+        'LGRB Baden-Württemberg, Bohrdatenbank (WFS)',
+    'Layer log in LGRBbohrungen (search for the BO number)':
+        'Schichtenverzeichnis in LGRBbohrungen (nach der BO-Nummer suchen)',
+    'Open the log':
+        'Schichtenverzeichnis öffnen',
+    'Opens the box above, placed at this borehole: paste or type the layers from its log.':
+        'Öffnet das Feld oben, an dieser Bohrung verortet: Schichten aus ihrem Schichtenverzeichnis einfügen oder eintippen.',
+    'Or a PDF or text file of the log':
+        'Oder ein PDF bzw. eine Textdatei des Schichtenverzeichnisses',
+    'Paste the layer list':
+        'Schichtliste einfügen',
+    'Pictures cannot be read for free. Type the layers into the box instead.':
+        'Bilder lassen sich nicht kostenlos lesen. Tippen Sie die Schichten stattdessen in das Feld.',
+    'Read its layers':
+        'Schichten lesen',
+    'Reads the layer list from the linked page, if it has one as text, and adds it to the prediction.':
+        'Liest die Schichtliste von der verlinkten Seite, sofern sie dort als Text steht, und nimmt sie in die Vorhersage auf.',
+    'Show all {n} boreholes as a table':
+        'Alle {n} Bohrungen als Tabelle zeigen',
+    'Site':
+        'Standort',
+    'The linked page has no layer list the app can read. Open the link instead.':
+        'Die verlinkte Seite hat keine Schichtliste, die die App lesen kann. Öffnen Sie stattdessen den Link.',
+    'The log behind this link is a picture, which cannot be read for free. Open the link and type its layers into the box.':
+        'Hinter diesem Link liegt ein Bild, das sich nicht kostenlos lesen lässt. Öffnen Sie den Link und tippen Sie die Schichten in das Feld.',
+    'This PDF is a scan without text, so it cannot be read. Type its layers into the box instead.':
+        'Dieses PDF ist ein Scan ohne Text und lässt sich nicht lesen. Tippen Sie die Schichten stattdessen in das Feld.',
+    'layer log in the portal':
+        'Schichtenverzeichnis im Portal',
+    'no layer log':
+        'kein Schichtenverzeichnis',
+    '{service}: {n} borehole(s) within {radius:,.0f} m, shown on the map below.':
+        '{service}: {n} Bohrung(en) im Umkreis von {radius:,.0f} m, in der Karte unten.',
 }

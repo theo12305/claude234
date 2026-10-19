@@ -57,6 +57,8 @@ def _data_texts() -> set[str]:
     """Names that come from data tables or result columns and are translated where they are shown."""
     texts = set(rocks.NAMES) | set(catalog.FLUIDS) | set(catalog.MONTHLY_PROFILES)
     texts |= {s.border_note for s in states.STATES} | set(sources.EPSG_CHOICES) | set(sources.LOG_SERVICES.values())
+    texts |= {s.label for s in sources.POINT_SERVICES.values()} | {s.link_note for s in sources.POINT_SERVICES.values()}
+    texts |= {note for _, _, note in sources.PORTALS.values()}
     texts |= set(siteplan_page.HOW.values())
     texts |= set(analysis.OBJECTIVES.values()) | set(report.METHOD.values())
     texts |= {title for title, _ in plots.DRAWINGS.values()} | set(plots.SERIES_COLORS)

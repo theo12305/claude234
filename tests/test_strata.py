@@ -1,6 +1,7 @@
 import pytest
 
 from ghe_web import analysis, export, model, plots, report
+from ghe_web.siteplan import states
 from ghe_web.strata import predict, rocks, sources
 from ghe_web.strata.predict import Borehole, LogLayer
 
@@ -140,3 +141,149 @@ def test_table_without_coordinates_goes_on_the_site():
     assert (holes[0].x, holes[0].y) == (1.0, 2.0) and holes[0].layers[1].rock == "Marl"
     with pytest.raises(sources.TableError):
         sources.read_table("log.csv", content)
+
+
+# Answers of the state services as they came back when they were checked (2026-10-18), shortened
+STATE_ANSWERS = {
+    "BB": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "bpk_m_sch_50419", "geometry": {
+        "type": "MultiPoint", "coordinates": [[13.094439129726357, 52.343431736087446]]}, "properties": {
+        "Bohrungs_ID": 364400258, "Schichtenverzeichnis_grafisch": "https://geo.brandenburg.de/karten/bpk24/x364400258.png",
+        "Bohrungsname": "Hy BghRb 11/67", "HoeheNN_in_m": 33.6, "Ostwert": 370191.7, "Nordwert": 5800946.0,
+        "Teufe_in_m": 8.2, "Aufschlussart": "MS", "Schichtenverzeichnis": 1}}]},
+    "BE": {"type": "FeatureCollection", "crs": {"type": "name", "properties": {"name": "urn:ogc:def:crs:EPSG::25833"}},
+           "features": [{"type": "Feature", "id": "bohrpunkte.413A00103", "geometry": {
+               "type": "Point", "coordinates": [391000.0, 5819000.0]}, "properties": {
+               "schluessel": "413A00103", "xcoord": 391000.0, "ycoord": 5819000.0, "endteufe": 12,
+               "ansatzhoehe": "34.32", "langname": None, "profil": "https://example.invalid/p.jpg",
+               "profil_lang": None}}]},
+    "SN": {"features": [{"attributes": {"IDENT": 591302, "AKBEZ": "6....1....2016", "RECHTSWERT": 411420.31,
+                                        "HOCHWERT": 5656933.11, "ENDTEUFE": 10.0, "HAT_FACHDATEN": 1.0,
+                                        "URL": "https://www.umwelt.sachsen.de/umwelt/infosysteme/geodin/getportalpage"},
+                         "geometry": {"x": 350000.0, "y": 5660000.0}}]},
+    "HE": {"features": [{"attributes": {"ARNUM": 5151, "ANAME": "5151 BK 2/97", "OSTWERT": 476808.365,
+                                        "NORDWERT": 5551366.571, "ET": 40, "FORMATION": "AQT", "GW": 12.87},
+                         "geometry": {"x": 476808.365, "y": 5551366.571}}]},
+    "SH": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "ID_LONGNAME.2323/0017/W", "geometry": {
+        "type": "Point", "coordinates": [9.633403761462434, 53.67374556296559]}, "properties": {
+        "Archivnummer": "2323/0017/W", "X-Koordinate-UTM": 3.254184304E7, "Y-Koordinate-UTM": 5947409.77,
+        "Endtiefe-m": 11.5, "LinkzurProfilsäulendarstellung": "http://141.91.161.241/geodin/getportalpage"}}]},
+    "MV": {"type": "FeatureCollection", "features": [{"type": "Feature", "id": "bohrdaten.654", "geometry": {
+        "type": "Point", "coordinates": [12.053038, 54.108252]}, "properties": {
+        "BO_IDENT": 183800879, "LONGNAME": "Hy R 5/1995", "RW": 33307356, "HW": 5999581, "STRAT_EH": None,
+        "SVZ_URL": "https://www.umweltkarten.mv-regierung.de/atlas/lbds_svz_overview.php?prj_id=TA6AQC&locid=206",
+        "ZCOORDB": 21.75, "ZCOORDE": 8.1}}]},
+    "NI": {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {
+        "BID": "3624BV0654", "LONGNAME": "BV 654", "OST": 32550000.0, "NORD": 5800000.0, "ZCOORDE": 25.0,
+        "LINK": "http://nibis.lbeg.de/DetailseitenKartenserver/DetailSeitenBohrsaeulenGeodin/Bohrungsseite.aspx"}}]},
+}
+
+
+# LGRB Baden-Württemberg answers in GML; element names as the service gave them on 2026-10-19
+BW_GML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<wfs:FeatureCollection xmlns:ms="http://mapserver.gis.umn.edu/mapserver" xmlns:gml="http://www.opengis.net/gml/3.2"
+    xmlns:wfs="http://www.opengis.net/wfs/2.0" numberMatched="unknown" numberReturned="1">
+  <wfs:member>
+    <ms:adb_et gml:id="adb_et.633333">
+      <gml:boundedBy><gml:Envelope srsName="urn:ogc:def:crs:EPSG::25832"><gml:lowerCorner>412639.52 5318959.32
+      </gml:lowerCorner><gml:upperCorner>412639.52 5318959.32</gml:upperCorner></gml:Envelope></gml:boundedBy>
+      <ms:msGeometry><gml:Point gml:id="adb_et.633333.1" srsName="urn:ogc:def:crs:EPSG::25832">
+        <gml:pos>412639.520000 5318959.320000</gml:pos></gml:Point></ms:msGeometry>
+      <ms:TK25>7912</ms:TK25><ms:Archivnummer>1713</ms:Archivnummer>
+      <ms:Aufschlussname>LW-Br./EB 2/25 Im Ochsenstein Freiburg</ms:Aufschlussname>
+      <ms:Ost>412639.520</ms:Ost><ms:Nord>5318959.320</ms:Nord><ms:Tiefe>16</ms:Tiefe>
+      <ms:Ansatzhoehe>240.04</ms:Ansatzhoehe><ms:Hoehenfindung>E</ms:Hoehenfindung>
+      <ms:Koordinatenfindung>X</ms:Koordinatenfindung><ms:Schichtdaten>1</ms:Schichtdaten>
+    </ms:adb_et>
+  </wfs:member>
+</wfs:FeatureCollection>"""
+STATE_ANSWERS["BW"] = sources.gml_features(BW_GML)
+
+
+def test_lgrb_boreholes():
+    [p] = sources.parse_points("BW", sources.gml_features(BW_GML))
+    assert p.name.startswith("LW-Br.") and p.depth == 16 and (p.x, p.y) == (412639.52, 5318959.32)
+    assert p.note.startswith("BO 7912/1713") and p.link == sources.PORTALS["BW"][1]
+
+
+@pytest.mark.parametrize("state", list(STATE_ANSWERS))
+def test_state_borehole_points(state):
+    [p] = sources.parse_points(state, STATE_ANSWERS[state])
+    assert p.name and p.name != "?" and p.depth > 0
+    assert 280_000 < p.x < 920_000 and 5_200_000 < p.y < 6_120_000  # Germany in UTM 32N
+    if state != "HE":
+        assert p.link.startswith("http")
+    if state in ("BB", "SH", "MV"):  # the stated coordinates and the lon/lat geometry agree
+        x, y = sources._wgs_point(STATE_ANSWERS[state]["features"][0]["geometry"])
+        assert abs(p.x - x) < 5 and abs(p.y - y) < 5
+    if state == "HE":
+        assert "12.9" in p.note and "AQT" in p.note
+
+
+def test_every_state_is_in_the_overview_and_requests_are_built(monkeypatch):
+    assert set(sources.PORTALS) == {s.key for s in states.STATES}
+    assert set(sources.POINT_SERVICES) | set(sources.LOG_SERVICES) <= set(sources.PORTALS)
+    asked = []
+
+    class Answer:
+        def __init__(self, state):
+            self.state = state
+
+        def json(self):
+            return STATE_ANSWERS[self.state]
+
+        @property
+        def content(self):
+            return BW_GML
+
+    for state, svc in sources.POINT_SERVICES.items():
+        monkeypatch.setattr(sources.lookup, "_get", lambda url, params, s=state: asked.append(params) or Answer(s))
+        [p] = sources.parse_points(state, STATE_ANSWERS[state])
+        found = sources.borehole_points(state, p.x + 30, p.y + 40, 500)
+        assert len(found) == 1 and found[0].distance == pytest.approx(50, abs=1)
+        assert sources.borehole_points(state, p.x + 3000, p.y, 500) == []
+    assert sources.borehole_points("BY", 0, 0, 500) == []
+    mv = asked[[*sources.POINT_SERVICES].index("MV") * 2]
+    assert mv["BBOX"].startswith("33")  # MV wants the zone in front of the easting
+
+
+def test_utm33_with_zone_prefix():
+    x, y = sources.to_utm32(33_307_356, 5_999_581)
+    assert x == pytest.approx(sources.to_utm32(307_356, 5_999_581, 25833)[0])
+
+
+LOG_TEXT = """Schichtenverzeichnis BK 3/12
+0,00 - 0,30 m  Mutterboden, humos
+0,30 - 2,10 m  Schluff, tonig,
+   feinsandig, braun
+2,10 - 8,40 m  Kies, sandig
+bis 25,00 m  Tonstein, grau
+Ruhewasserspiegel: 3,20 m u. GOK
+"""
+
+
+def test_read_log_text_html_and_pdf():
+    from ghe_web.strata import reader
+    hole = reader.layers_from_text(LOG_TEXT, "BK", 1.0, 2.0)
+    assert [(l.top, l.bottom, l.rock) for l in hole.layers] == [
+        (0, 0.3, "Topsoil / humus"), (0.3, 2.1, "Silt / loess"), (2.1, 8.4, "Gravel"),
+        (8.4, 25.0, "Claystone / siltstone")]
+    assert hole.layers[1].text.endswith("braun") and hole.groundwater == 3.2 and (hole.x, hole.y) == (1.0, 2.0)
+    page = "<table><tr><td>0,00</td><td>0,30</td><td>Mutterboden</td></tr><tr><td>0,30</td><td>12,00</td>" \
+           "<td>Geschiebemergel</td></tr></table>"
+    assert [l.rock for l in reader.layers_from_text(reader.html_text(page)).layers] == \
+        ["Topsoil / humus", "Till / boulder clay"]
+    with pytest.raises(reader.ReadError):
+        reader.layers_from_text("no depths here")
+    # a PDF with a text layer is read without the reading service
+    import io
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    for i, line in enumerate(LOG_TEXT.splitlines()):
+        fig.text(0.05, 0.9 - i * 0.08, line)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="pdf")
+    plt.close(fig)
+    hole = reader.read_file("log.pdf", buf.getvalue(), 0.0, 0.0)
+    assert hole.layers[-1].bottom == 25.0
+    with pytest.raises(reader.ReadError, match="free"):  # no paid reading of pictures
+        reader.read_file("shot.png", b"\x89PNG", 0, 0)
