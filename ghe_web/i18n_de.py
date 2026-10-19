@@ -2131,4 +2131,76 @@ DE: dict[str, str] = {
         'Die Schichtentabelle unter Untergrund hat einen durchlässigen Abschnitt ({rocks}) von {top:.1f} bis {bottom:.1f} m unter Gelände, kf etwa {kf:.1e} m/s (typische Werte dieser Gesteine).',
     'Use these values':
         'Diese Werte übernehmen',
+    '##### Site plan: from a Flurstück to well positions':
+        '##### Lageplan: vom Flurstück zu den Brunnenstandorten',
+    '**What the well calculation is based on**':
+        '**Worauf die Brunnenberechnung beruht**',
+    'Backflow (thermal short circuit)':
+        'Rückfluss (thermischer Kurzschluss)',
+    'Calculation sources':
+        'Berechnungsgrundlagen',
+    'Direction the groundwater flows to, clockwise from north (90° = to the east). Taken from Aquifer; changing it here changes it there too when you use the positions.':
+        'Richtung, in die das Grundwasser fließt, im Uhrzeigersinn von Norden (90° = nach Osten). Aus Grundwasserleiter; eine Änderung hier gilt dort auch, wenn die Standorte übernommen werden.',
+    'Drawdown and rise':
+        'Absenkung und Aufhöhung',
+    'Extra drawdown in the well itself C·Q²; about 1800 s²/m⁵ for a properly built well.':
+        'Zusätzliche Absenkung im Brunnen selbst C·Q²; etwa 1800 s²/m⁵ für einen fachgerecht gebauten Brunnen.',
+    'Flow from the load':
+        'Förderstrom aus der Last',
+    'GHEtool has no open-loop model; these methods are written for this tool and tested against the textbook results.':
+        'GHEtool hat kein Modell für offene Systeme; diese Verfahren sind für dieses Werkzeug geschrieben und an Lehrbuchergebnissen geprüft.',
+    'Groundwater flow direction [°]':
+        'Grundwasserfließrichtung [°]',
+    'Guide values for clogging (iron, manganese with oxygen) and for the heat exchanger material (chloride, sulfate, pH). Heat pump makers publish their own limits; theirs apply.':
+        'Richtwerte für Verockerung (Eisen, Mangan mit Sauerstoff) und für den Werkstoff des Wärmeübertragers (Chlorid, Sulfat, pH). Wärmepumpenhersteller nennen eigene Grenzwerte; diese gelten.',
+    'Largest velocity at the borehole wall √kf / 15 (m/s); at injection wells the velocity is multiplied by the clogging reserve first.':
+        'Größte Geschwindigkeit an der Bohrlochwand √kf / 15 (m/s); an Schluckbrunnen wird die Geschwindigkeit vorher mit der Kolmationsreserve multipliziert.',
+    'One point per well (production first), ETRS89 / UTM 32N.':
+        'Ein Punkt je Brunnen (Förderbrunnen zuerst), ETRS89 / UTM 32N.',
+    'Optional. Find your parcel, check the buildings on the aerial image, set the distances, and get the production wells as far upstream and the injection wells as far downstream as the parcel allows.':
+        'Optional. Flurstück finden, Gebäude im Luftbild prüfen, Abstände setzen und die Förderbrunnen so weit im Anstrom und die Schluckbrunnen so weit im Abstrom setzen, wie das Grundstück erlaubt.',
+    'Peak flow = peak ground load / (ρc of water × temperature spread); the volume per month from the monthly energy in the same way.':
+        'Spitzenförderstrom = Spitzenlast / (ρc des Wassers × Temperaturspreizung); die Monatsmenge ebenso aus der Monatsenergie.',
+    'Placing the wells...':
+        'Brunnen werden gesetzt...',
+    'Pumping test':
+        'Pumpversuch',
+    'Red: production wells, upstream. Blue: injection wells, downstream (flow to {deg:g}°, {dx:+.2f} east, {dy:+.2f} north). The sizing takes the distance and the border distance; it places the wells of one kind in a row across the flow.':
+        'Rot: Förderbrunnen im Anstrom. Blau: Schluckbrunnen im Abstrom (Fließrichtung {deg:g}°, {dx:+.2f} Ost, {dy:+.2f} Nord). Die Auslegung übernimmt den Abstand und den Grenzabstand; Brunnen derselben Art stellt sie in eine Reihe quer zur Strömung.',
+    'Sets the numbers of wells, their distance (largest possible distance when sizing), the border distance and the flow direction.':
+        'Setzt die Zahl der Brunnen, ihren Abstand (bei der Auslegung den größtmöglichen Abstand), den Grenzabstand und die Fließrichtung.',
+    'Spacing between wells of the same kind [m]':
+        'Abstand zwischen Brunnen derselben Art [m]',
+    'The injected water is traced along the streamlines of the wells plus the regional groundwater flow (complex potential of sources and sinks in a uniform flow). Streamlines that end in a production well bring the injected water back after the hydraulic travel time × C_aquifer / (n · C_water): the rock takes up heat as the water passes. The production temperature follows month by month. Checked against the doublet breakthrough π n b L² / 3Q and the critical distance 2Q / (π b q) without backflow.':
+        'Das eingeleitete Wasser wird entlang der Stromlinien der Brunnen und der regionalen Grundwasserströmung verfolgt (komplexes Potenzial von Quellen und Senken in einer Parallelströmung). Stromlinien, die in einem Förderbrunnen enden, bringen das eingeleitete Wasser nach der hydraulischen Fließzeit × C_Grundwasserleiter / (n · C_Wasser) zurück: das Gestein nimmt beim Durchfluss Wärme auf. Daraus folgt die Fördertemperatur Monat für Monat. Geprüft am Durchbruch einer Dublette π n b L² / 3Q und am kritischen Abstand 2Q / (π b q) ohne Rückfluss.',
+    "The thinner (or thicker) water column is taken into account with the Dupuit-Jacob correction s = b − √(b² − 2bs').":
+        "Die dünnere (oder dickere) Wassersäule wird mit der Dupuit-Jacob-Korrektur s = b − √(b² − 2bs') berücksichtigt.",
+    'The wells do not fit with these distances. Fewer wells of one kind, a smaller spacing or smaller distances help.':
+        'Die Brunnen passen mit diesen Abständen nicht. Weniger Brunnen einer Art, ein kleinerer Brunnenabstand oder kleinere Abstände helfen.',
+    'The yearly net heat spreads from the injection wells with the groundwater: a continuous line source over the aquifer thickness with advection, longitudinal and transverse dispersion and thermal retardation (planar advective heat transport model). The heat exchange with the layers above and below is left out, so the plume comes out longer than it is.':
+        'Die jährliche Nettowärme breitet sich von den Schluckbrunnen mit dem Grundwasser aus: eine kontinuierliche Linienquelle über die Mächtigkeit des Grundwasserleiters mit Advektion, longitudinaler und transversaler Dispersion und thermischer Retardation (ebenes advektives Wärmetransportmodell). Der Wärmeaustausch mit den Schichten darüber und darunter fehlt, die Fahne wird also länger berechnet, als sie ist.',
+    "Thiem's steady-state equation for every well, summed (superposition). Pumping and injection are equal, so the radius of influence drops out and the result is exact for a homogeneous aquifer.":
+        'Die stationäre Gleichung nach Thiem für jeden Brunnen, summiert (Superposition). Förderung und Einleitung sind gleich groß, daher fällt die Reichweite heraus und das Ergebnis ist für einen homogenen Grundwasserleiter exakt.',
+    'Transmissivity and storage from the straight line of drawdown against log time (Cooper-Jacob).':
+        'Transmissivität und Speicherkoeffizient aus der Geraden der Absenkung über der logarithmischen Zeit (Cooper-Jacob).',
+    'Typical aquifer values':
+        'Typische Werte des Grundwasserleiters',
+    'Unconfined aquifers':
+        'Ungespannte Grundwasserleiter',
+    'Used when there is more than one production or injection well.':
+        'Gilt, wenn es mehr als einen Förder- oder Schluckbrunnen gibt.',
+    'Water quality':
+        'Wasserbeschaffenheit',
+    'Well losses':
+        'Brunnenverluste',
+    'Well shapefile (.zip)':
+        'Brunnen-Shapefile (.zip)',
+    'Wells ({n})':
+        'Brunnen ({n})',
+    'Wells set from the site plan: {p} production and {i} injection well(s), {d:.0f} m apart, {b:.0f} m to the parcel border downstream.':
+        'Brunnen aus dem Lageplan übernommen: {p} Förder- und {i} Schluckbrunnen, {d:.0f} m Abstand, {b:.0f} m bis zur Grundstücksgrenze im Abstrom.',
+    "kf and effective porosity per rock type are the middle of the usual ranges; dispersivity about 1/10 of the distance looked at. Use a pumping test and the state's groundwater maps where you have them.":
+        'kf und effektive Porosität je Gesteinsart sind die Mitte der üblichen Bereiche; Dispersivität etwa 1/10 der betrachteten Entfernung. Wo vorhanden, Pumpversuch und Grundwasserkarten des Landes verwenden.',
+    '{x:.1f} m along the flow':
+        '{x:.1f} m in Strömungsrichtung',
 }

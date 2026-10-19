@@ -244,3 +244,84 @@ def check(points, site: Site, rules: Rules) -> list[str]:
         problems.append(t("{n} borehole(s) are closer than {d:g} m to another: {which}", n=len(close),
                           d=rules.spacing, which=", ".join(map(str, close[:20]))))
     return problems
+
+
+# ---------------------------------------------------------------- groundwater wells
+
+@dataclass
+class WellPlacement:
+    production: list[tuple[float, float]]
+    injection: list[tuple[float, float]]
+    distance: float  # m, between the centres of the two groups
+    along_flow: float  # m, the part of it in the flow direction
+    border_downstream: float  # m, from the injection wells to the parcel border in the flow direction
+
+
+def flow_vector(direction: float) -> tuple[float, float]:
+    """Unit vector (east, north) of the groundwater flow, ``direction`` in degrees clockwise from north."""
+    a = math.radians(direction)
+    return math.sin(a), math.cos(a)
+
+
+def _row(cx: float, cy: float, n: int, spacing: float, v: tuple[float, float]) -> list[tuple[float, float]]:
+    return [(cx + v[0] * spacing * (i - (n - 1) / 2), cy + v[1] * spacing * (i - (n - 1) / 2)) for i in range(n)]
+
+
+def place_wells(area, parcel, direction: float, n_production: int = 1, n_injection: int = 1,
+                spacing: float = 15.0) -> WellPlacement | None:
+    """Production wells as far upstream and injection wells as far downstream as the allowed area permits, each
+    group in a row across the flow, so the injected water flows away from the production wells. None when the
+    groups do not fit."""
+    if area is None or area.is_empty:
+        return None
+    area = shapely.make_valid(area)
+    u = flow_vector(direction)
+    v = (-u[1], u[0])
+    minx, miny, maxx, maxy = area.bounds
+    step = max(0.5, math.sqrt(area.area / 4000))
+    xs, ys = np.meshgrid(np.arange(minx, maxx + step, step), np.arange(miny, maxy + step, step))
+    xs, ys = xs.ravel(), ys.ravel()
+    inside = _inside(area, xs, ys)
+    xs, ys = xs[inside], ys[inside]
+    if not len(xs):
+        return None
+
+    def fitting(n):
+        ok = np.ones(len(xs), bool)
+        for k in range(n):
+            off = spacing * (k - (n - 1) / 2)
+            ok &= _inside(area, xs + v[0] * off, ys + v[1] * off)
+        return np.flatnonzero(ok)
+
+    prod, inj = fitting(n_production), fitting(n_injection)
+    if not len(prod) or not len(inj):
+        return None
+    s = xs * u[0] + ys * u[1]  # position along the flow
+    lat = xs * v[0] + ys * v[1]
+    prod = prod[np.argsort(s[prod])][:60]
+    inj = inj[np.argsort(-s[inj])][:60]
+    best = None
+    for i in prod:
+        rows_p = _row(xs[i], ys[i], n_production, spacing, v)
+        for j in inj:
+            along = s[j] - s[i]
+            if along <= 0:
+                continue
+            score = along - 0.5 * abs(lat[j] - lat[i])
+            if best is not None and score <= best[0]:
+                continue
+            rows_i = _row(xs[j], ys[j], n_injection, spacing, v)
+            if min(math.dist(a, b) for a in rows_p for b in rows_i) < spacing:
+                continue
+            best = (score, rows_p, rows_i, along, i, j)
+    if best is None:
+        return None
+    _, rows_p, rows_i, along, i, j = best
+    centre_i = (float(xs[j]), float(ys[j]))
+    ray = shapely.LineString([centre_i, (centre_i[0] + u[0] * 1e5, centre_i[1] + u[1] * 1e5)])
+    hit = ray.intersection(parcel.boundary)
+    border = min((Point(centre_i).distance(g) for g in getattr(hit, "geoms", [hit]) if not g.is_empty),
+                 default=0.0)
+    r2 = lambda pts: [(round(float(x), 2), round(float(y), 2)) for x, y in pts]  # noqa: E731
+    return WellPlacement(r2(rows_p), r2(rows_i), round(math.dist((xs[i], ys[i]), centre_i), 1), round(float(along), 1),
+                         round(float(border), 1))

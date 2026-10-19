@@ -93,6 +93,13 @@ temperature, the predicted layers and the loads stay the same; the steps change 
   limit) or check given wells; drilling and screen diameter, well loss, clogging reserve for injection, pump.
 - **Limits**: temperature spread at the heat pump, injection temperature range, largest change from the natural
   temperature, allowed change of the production temperature, plume limit at the parcel border.
+- **Site plan** (⓪, with wells as heat source): places the production wells as far upstream and the injection wells
+  as far downstream as the allowed area permits, each group in a row across the flow; **Use in the sizing** sets the
+  numbers of wells, their distance (the largest possible distance when sizing), the border distance downstream and
+  the flow direction. More wells: sizing adds production or injection wells by itself when the drawdown, the rise or
+  the entrance velocity is too large; with **Check given wells** (or the site plan) you set the numbers.
+- **Calculation sources**: a button in the sidebar and on the results lists the method and literature of every part
+  (`ghe_web/wells/sources.py`); the PDF report has them on a page of their own.
 
 The calculation (`ghe_web/wells/`, GHEtool has no open-loop model): the flow follows from the ground load and the
 spread; drawdown and rise from Thiem summed over all wells (exact in the steady state of equal pumping and

@@ -2,6 +2,7 @@
 import hashlib
 import html
 import io
+import math
 import pathlib
 import sys
 
@@ -419,6 +420,10 @@ for step, sections in grouped.items():
         if step == STEPS["Site"] and "site_plan_done" in st.session_state:
             st.success(t("Borefield set to an irregular field with the {n} positions from the site plan.",
                          n=st.session_state.pop("site_plan_done")), icon=":material/check_circle:")
+        if step == STEPS["Borehole"] and "well_plan_done" in st.session_state:
+            st.success(t("Wells set from the site plan: {p} production and {i} injection well(s), {d:.0f} m apart, "
+                         "{b:.0f} m to the parcel border downstream.", **st.session_state.pop("well_plan_done")),
+                       icon=":material/check_circle:")
         for section in sections:
             inputs[section.key], target = section_inputs(section)
             section_step[section.key] = step
@@ -491,10 +496,60 @@ if "site_plan_points" in st.session_state:
     st.session_state.site_plan_done = len(pts)
     st.rerun()
 
+
+
+def use_well_plan(placement, direction: float) -> None:
+    """Called from the site plan for groundwater wells: numbers, distance, border distance and flow direction."""
+    st.session_state.well_plan = (placement, direction)
+    st.rerun()
+
+
+if "well_plan" in st.session_state:
+    placement, direction = st.session_state.pop("well_plan")
+    w = inputs["wells"]
+    values = {**w.values, "border": float(placement.border_downstream), "orientation": "Injection downstream"}
+    if len(placement.production) > 1 or len(placement.injection) > 1:
+        spacings = [math.dist(a, b) for group in (placement.production, placement.injection)
+                    for a, b in zip(group, group[1:])]
+        values["spacing"] = round(min(spacings), 1)
+    if w.variant == "check":
+        values.update(n_production=len(placement.production), n_injection=len(placement.injection),
+                      distance=float(placement.distance))
+    else:
+        values["max_distance"] = float(placement.distance)
+    aquifer_input = inputs["aquifer"]
+    st.session_state.project = (name, {**inputs, "wells": SectionInput(w.variant, values),
+                                       "aquifer": SectionInput(aquifer_input.variant,
+                                                               {**aquifer_input.values, "direction": direction})})
+    st.session_state.generation += 1
+    st.session_state.goto_step = "Borehole"
+    st.session_state.well_plan_done = {"p": len(placement.production), "i": len(placement.injection),
+                                       "d": placement.distance, "b": placement.border_downstream}
+    st.rerun()
+
+
+def well_plan_defaults() -> dict:
+    """What the site plan starts from for wells: the flow direction, the spacing and the numbers of wells (given, or
+    from the last sizing)."""
+    w = inputs["wells"].values
+    n_p, n_i = w.get("n_production", 1), w.get("n_injection", 1)
+    if inputs["wells"].variant == "size" and "result_json" in st.session_state:
+        try:
+            d = wells_page.cached_design(st.session_state.result_json)
+            n_p, n_i = d.n_production, d.n_injection
+        except Exception:
+            pass
+    return {"direction": inputs["aquifer"].values["direction"], "spacing": w["spacing"], "n_production": n_p,
+            "n_injection": n_i}
+
+
 with step_tabs[SITE_PLAN]:
     # Only drawn while open: the map and the data services are slow.
     if st.session_state.get("step") == SITE_PLAN:
-        siteplan_page.page(use_site_plan)
+        if system == "open":
+            siteplan_page.page(use_well_plan, well_plan_defaults())
+        else:
+            siteplan_page.page(use_site_plan)
 
 with save_slot:
     st.download_button(t("Save project"), model.to_json(inputs, name, language=lang).encode(),

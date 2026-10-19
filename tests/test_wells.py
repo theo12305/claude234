@@ -136,3 +136,25 @@ def test_exports_and_project_round_trip():
     assert report.pdf(d, inputs, "Test")[:4] == b"%PDF"
     _, loaded = model.from_json(model.to_json(inputs))
     assert model.system(loaded) == "open"
+
+
+def test_site_plan_puts_injection_downstream():
+    from shapely.geometry import box
+    from ghe_web.siteplan.layout import Rules, Site, allowed_area, place_wells
+    parcel = box(0, 0, 60, 30)
+    area = allowed_area(Site(parcel), Rules(border_distance=3))
+    placed = place_wells(area, parcel, direction=90)  # flow to the east
+    (px, _), (ix, _) = placed.production[0], placed.injection[0]
+    assert px < 5 and ix > 55
+    assert placed.border_downstream == pytest.approx(60 - ix, abs=0.1)
+    two = place_wells(area, parcel, direction=270, n_production=2, n_injection=2, spacing=10)
+    assert two.production[0][0] > two.injection[0][0]  # flow to the west: injection on the west side
+    assert math.dist(*two.production) == pytest.approx(10)
+    assert place_wells(area, parcel, 90, n_production=5, spacing=10) is None  # five in a row do not fit across
+
+
+def test_sources_cover_every_model():
+    from ghe_web.wells import sources
+    text = sources.markdown()
+    for name in ("Thiem", "Sichardt", "Gringarten", "Clyde", "Hähnlein", "Jacob"):
+        assert name in text

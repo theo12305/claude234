@@ -16,7 +16,7 @@ from ..export import inputs_table  # noqa: E402
 from ..i18n import fmt, t  # noqa: E402
 from ..properties import SectionInput  # noqa: E402
 from ..report import A4, _today  # noqa: E402
-from . import checks, design, plots  # noqa: E402
+from . import checks, design, plots, sources  # noqa: E402
 
 
 def key_groups(d: design.Design, inputs: dict[str, SectionInput]) -> dict[str, list[tuple[str, str, str]]]:
@@ -138,6 +138,7 @@ def pdf(d: design.Design, inputs: dict[str, SectionInput], name: str = "") -> by
                 y -= 0.016
         pdf_file.savefig(fig)
         plt.close(fig)
+        _sources_page(pdf_file)
         for draw in (lambda: plots.site_map(d, aquifer),
                      lambda: plots.well_section(d, aquifer, list(inputs["ground"].values["layers"]["rows"])
                                                 if layered(inputs["ground"].values) else None)):
@@ -146,3 +147,23 @@ def pdf(d: design.Design, inputs: dict[str, SectionInput], name: str = "") -> by
             pdf_file.savefig(fig)
             plt.close(fig)
     return buf.getvalue()
+
+
+def _sources_page(pdf_file: PdfPages) -> None:
+    fig = plt.figure(figsize=A4)
+    y = 0.95
+    fig.text(0.08, y, t("Calculation sources"), fontsize=13, weight="bold")
+    y -= 0.035
+    for topic, text, refs in sources.rows():
+        fig.text(0.08, y, topic, fontsize=9, weight="bold")
+        y -= 0.016
+        for line in textwrap.wrap(text, 115):
+            fig.text(0.08, y, line, fontsize=7.5)
+            y -= 0.013
+        for ref in refs:
+            for k, line in enumerate(textwrap.wrap(ref, 112)):
+                fig.text(0.09, y, ("– " if k == 0 else "  ") + line, fontsize=7, color="#444")
+                y -= 0.012
+        y -= 0.008
+    pdf_file.savefig(fig)
+    plt.close(fig)

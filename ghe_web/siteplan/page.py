@@ -16,7 +16,7 @@ from streamlit_folium import st_folium
 from .. import i18n
 from ..i18n import fmt, t
 from . import export, lookup
-from .layout import Rules, Site, allowed_area, check, place_boreholes
+from .layout import Rules, Site, allowed_area, check, flow_vector, place_boreholes, place_wells
 from .states import STATES, by_key
 
 K = "siteplan."  # session state prefix
@@ -251,7 +251,8 @@ def _geojson(geom):
     return json.loads(shapely.to_geojson(lookup.geom_to_wgs84(geom)))
 
 
-def _site_map(state, parcel, buildings, ignored, drawn, allowed, points):
+def _site_map(state, parcel, buildings, ignored, drawn, allowed, points, kinds=None):
+    """``kinds``: for wells, "production" or "injection" per point; None for boreholes."""
     lon, lat = lookup.to_wgs84(*parcel.centroid.coords[0])
     m = folium.Map(location=(lat, lon), zoom_start=19, max_zoom=21, tiles=None)
     _base_layers(m, state)
@@ -277,11 +278,14 @@ def _site_map(state, parcel, buildings, ignored, drawn, allowed, points):
         folium.GeoJson(_geojson(g), style_function=lambda _: {"color": "#ff8c1a", "weight": 2,
                                                              "fillColor": "#ff8c1a", "fillOpacity": 0.35}).add_to(fd)
     fd.add_to(m)
-    fp = folium.FeatureGroup(name=t("Boreholes ({n})", n=len(points)))
+    fp = folium.FeatureGroup(name=t("Wells ({n})", n=len(points)) if kinds else t("Boreholes ({n})", n=len(points)))
     for i, (x, y) in enumerate(points, start=1):
         plon, plat = lookup.to_wgs84(x, y)
-        folium.CircleMarker((plat, plon), radius=4, color="#ffffff", weight=1.5, fill=True, fill_color="#1f6fff",
-                            fill_opacity=1, tooltip=t("BHE {n}", n=i)).add_to(fp)
+        kind = kinds[i - 1] if kinds else None
+        colour = {"production": "#d1495b", "injection": "#2e86ab"}.get(kind, "#1f6fff")
+        tip = {"production": t("Production well"), "injection": t("Injection well")}.get(kind, t("BHE {n}", n=i))
+        folium.CircleMarker((plat, plon), radius=7 if kind else 4, color="#ffffff", weight=1.5, fill=True,
+                            fill_color=colour, fill_opacity=1, tooltip=tip).add_to(fp)
     fp.add_to(m)
     Draw(export=False, position="topleft",
          draw_options={"polyline": False, "circlemarker": False, "marker": False,
@@ -318,11 +322,19 @@ def _drawn_shapes(features) -> list:
 
 # ---------------------------------------------------------------- page
 
-def page(handoff) -> None:
-    """``handoff(points)`` hands the positions (EPSG:25832) to the borefield step."""
-    st.markdown(t("##### Site plan: from a Flurstück to borehole positions"))
-    st.caption(t("Optional. Find your parcel, check the buildings on the aerial image, set the distances, and get "
-                 "the largest number of boreholes that fit, as a shapefile for the irregular borefield."))
+def page(handoff, wells: dict | None = None) -> None:
+    """``handoff(points)`` hands the positions (EPSG:25832) to the borefield step. With ``wells`` (groundwater wells:
+    "direction", "n_production", "n_injection", "spacing") the page places production and injection wells instead,
+    and ``handoff`` gets the WellPlacement."""
+    if wells is not None:
+        st.markdown(t("##### Site plan: from a Flurstück to well positions"))
+        st.caption(t("Optional. Find your parcel, check the buildings on the aerial image, set the distances, and get "
+                     "the production wells as far upstream and the injection wells as far downstream as the parcel "
+                     "allows."))
+    else:
+        st.markdown(t("##### Site plan: from a Flurstück to borehole positions"))
+        st.caption(t("Optional. Find your parcel, check the buildings on the aerial image, set the distances, and "
+                     "get the largest number of boreholes that fit, as a shapefile for the irregular borefield."))
 
     with st.container(border=True):
         st.markdown(t("**1 · Parcel**"))
@@ -383,18 +395,32 @@ def page(handoff) -> None:
             building_distance=c[1].number_input(t("Distance to buildings [m]"), 0.0, 30.0, 2.0, 0.5, key=K + "bld"),
             spacing=c[2].number_input(t("Distance between boreholes [m]"), 3.0, 30.0, 6.0, 0.5, key=K + "spacing",
                                       help=t("VDI 4640 recommends at least 5 m (6 m for longer boreholes); 5 to 8 m "
-                                             "is common. Closer boreholes influence each other more.")),
+                                             "is common. Closer boreholes influence each other more."))
+            if wells is None else c[2].number_input(
+                t("Spacing between wells of the same kind [m]"), 2.0, 500.0, float(wells["spacing"]), 1.0,
+                key=K + "well_spacing", help=t("Used when there is more than one production or injection well.")),
             exclusion_distance=c[3].number_input(t("Distance to areas you draw [m]"), 0.0, 30.0, 0.0, 0.5,
                                                  key=K + "excl",
                                                  help=t("Extra distance around the areas drawn on the map.")),
         )
         c = st.columns(4)
-        limit = c[0].number_input(t("Maximum number of boreholes (0 = as many as fit)"), 0, 5000, 0, 1,
-                                  key=K + "limit",
-                                  help=t("With a limit, the boreholes kept are spread as far apart as possible."))
-        effort = c[1].select_slider(t("Search effort"), ["quick", "normal", "thorough"], "normal", format_func=t,
-                                    key=K + "effort",
-                                    help=t("How many grid rotations and shifts are tried for the largest count."))
+        if wells is None:
+            limit = c[0].number_input(t("Maximum number of boreholes (0 = as many as fit)"), 0, 5000, 0, 1,
+                                      key=K + "limit",
+                                      help=t("With a limit, the boreholes kept are spread as far apart as possible."))
+            effort = c[1].select_slider(t("Search effort"), ["quick", "normal", "thorough"], "normal", format_func=t,
+                                        key=K + "effort",
+                                        help=t("How many grid rotations and shifts are tried for the largest count."))
+        else:
+            n_prod = int(c[0].number_input(t("Production wells"), 1, 20, int(wells["n_production"]), 1,
+                                           key=K + "n_prod"))
+            n_inj = int(c[1].number_input(t("Injection wells"), 1, 20, int(wells["n_injection"]), 1, key=K + "n_inj"))
+            direction = c[2].number_input(t("Groundwater flow direction [°]"), 0.0, 360.0, float(wells["direction"]),
+                                          5.0, key=K + "direction",
+                                          help=t("Direction the groundwater flows to, clockwise from north (90° = to "
+                                                 "the east). Taken from Aquifer; changing it here changes it there "
+                                                 "too when you use the positions."))
+            limit, effort = (n_prod, n_inj), direction
 
     with st.container(border=True):
         st.markdown(t("**3 · Check the buildings and mark areas to keep free**"))
@@ -408,16 +434,29 @@ def page(handoff) -> None:
         allowed = allowed_area(site, rules)
         result_key = (parcel.wkb, tuple(sorted(ignored)), tuple(g.wkb for g in drawn), rules.border_distance,
                       rules.building_distance, rules.spacing, rules.exclusion_distance, limit, effort)
+        if wells is not None:
+            result_key = ("wells",) + result_key
         if _ss("result_key") != result_key:
-            with st.spinner(t("Placing boreholes...")):
-                placed = place_boreholes(allowed, rules.spacing, limit or None,
-                                         {"quick": 1, "normal": 2, "thorough": 3}[effort] if parcel.area < 200_000 else 1)
-            _set("points", placed.points)
-            _set("method", placed.method)
+            if wells is None:
+                with st.spinner(t("Placing boreholes...")):
+                    placed = place_boreholes(allowed, rules.spacing, limit or None,
+                                             {"quick": 1, "normal": 2, "thorough": 3}[effort]
+                                             if parcel.area < 200_000 else 1)
+                _set("points", placed.points)
+                _set("method", placed.method)
+            else:
+                with st.spinner(t("Placing the wells...")):
+                    placed = place_wells(allowed, parcel, effort, limit[0], limit[1], rules.spacing)
+                _set("wells", placed)
+                _set("points", placed.production + placed.injection if placed else [])
+                _set("method", "")
             _set("result_key", result_key)
         points = _ss("points")
+        placement = _ss("wells") if wells is not None else None
+        kinds = (["production"] * len(placement.production) + ["injection"] * len(placement.injection)) \
+            if placement else None
 
-        m = _site_map(state, parcel, buildings, ignored, drawn, allowed, points)
+        m = _site_map(state, parcel, buildings, ignored, drawn, allowed, points, kinds)
         out = st_folium(m, key=K + f"sitemap.{_ss('map_gen', 0)}", height=560, use_container_width=True,
                         returned_objects=["all_drawings"])
         new = _drawn_shapes((out or {}).get("all_drawings"))
@@ -442,6 +481,9 @@ def page(handoff) -> None:
             _set("map_gen", _ss("map_gen", 0) + 1)
             st.rerun()
 
+    if wells is not None:
+        _well_result(placement, parcel, allowed, effort, rules, site, state, handoff)
+        return
     with st.container(border=True):
         st.markdown(t("**4 · Result**"))
         c = st.columns(4)
@@ -475,6 +517,42 @@ def page(handoff) -> None:
             handoff(points)
         with st.expander(t("Preview map")):
             st.image(png, width="stretch")
+
+
+def _well_result(placement, parcel, allowed, direction, rules, site, state, handoff) -> None:
+    with st.container(border=True):
+        st.markdown(t("**4 · Result**"))
+        if placement is None:
+            st.error(t("The wells do not fit with these distances. Fewer wells of one kind, a smaller spacing or "
+                       "smaller distances help."), icon=":material/error:")
+            return
+        u = flow_vector(direction)
+        c = st.columns(4)
+        c[0].metric(t("Wells"), fmt("{p} + {i}", p=len(placement.production), i=len(placement.injection)))
+        c[1].metric(t("Distance between the wells"), fmt("{x:.1f} m", x=placement.distance),
+                    t("{x:.1f} m along the flow", x=placement.along_flow), delta_color="off", delta_arrow="off")
+        c[2].metric(t("Distance to the parcel border downstream"), fmt("{x:.1f} m", x=placement.border_downstream))
+        c[3].metric(t("Allowed area"), fmt("{a:,.0f} m²", a=allowed.area))
+        st.caption(t("Red: production wells, upstream. Blue: injection wells, downstream (flow to {deg:g}°, "
+                     "{dx:+.2f} east, {dy:+.2f} north). The sizing takes the distance and the border distance; it "
+                     "places the wells of one kind in a row across the flow.", deg=direction, dx=u[0], dy=u[1]))
+        points = placement.production + placement.injection
+        for msg in check(points, site, rules):
+            st.warning(msg)
+        stem = "".join(ch if ch.isalnum() else "_" for ch in _ss("parcel_label"))[:40].strip("_") or "parcel"
+        c = st.columns(3)
+        c[0].download_button(t("Well shapefile (.zip)"), export.borehole_zip(points, rules.spacing),
+                             f"well_positions_{stem}.zip", "application/zip", width="stretch",
+                             icon=":material/download:", key=K + "dl_wells",
+                             help=t("One point per well (production first), ETRS89 / UTM 32N."))
+        png = _png(site, rules, points, _ss("parcel_label"))
+        c[1].download_button(t("Preview map (.png)"), png, f"well_plan_{stem}.png", "image/png", width="stretch",
+                             icon=":material/image:", key=K + "dl_wpng")
+        if c[2].button(t("Use in the sizing"), type="primary", width="stretch", icon=":material/arrow_forward:",
+                       key=K + "handoff_wells",
+                       help=t("Sets the numbers of wells, their distance (largest possible distance when sizing), the "
+                              "border distance and the flow direction.")):
+            handoff(placement, direction)
 
 
 def _pattern(method: str) -> str:

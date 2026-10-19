@@ -12,7 +12,7 @@ from .. import checks as ghe_checks
 from .. import i18n, model
 from ..i18n import fmt, t
 from ..properties import SectionInput
-from . import checks, design, plots, report
+from . import checks, design, plots, report, sources
 
 VIEWS = {"overview": "Overview", "hydraulics": "Hydraulics", "temperatures": "Temperatures", "map": "Site map",
          "construction": "Well construction", "energy": "Water and energy", "checks": "Design check",
@@ -51,6 +51,7 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
     found = _all_checks(inputs, errors, current_json)
     with calc_slot:
         st.header(t("Calculation"))
+        sources_button("sidebar")
         if errors:
             st.error(t("{n} input(s) need attention:", n=sum(len(m) for m in errors.values())) + "\n\n" + "\n".join(
                 f"- {step_of(k)}: {t(model.properties.get(k).label)}" for k in errors), icon=":material/error:")
@@ -102,6 +103,7 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
             st.warning(t("These results belong to earlier inputs. Press the button in the sidebar to update them."),
                        icon=":material/update:")
         _verdict(d, sized_inputs)
+        sources_button("results")
         view = st.segmented_control(t("View"), list(VIEWS), format_func=lambda k: t(VIEWS[k]), default="overview",
                                     required=True, key="well_view_id")
         aquifer = design._build(sized_inputs, "aquifer")
@@ -146,6 +148,16 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
             _show_checks(found, step_of, goto)
         else:
             _export(d, sized_inputs, name, lang)
+
+
+def sources_button(where: str) -> None:
+    """A popover with what each part of the calculation is based on, and the literature."""
+    with st.popover(t("Calculation sources"), icon=":material/menu_book:", width="stretch" if where == "sidebar"
+                    else "content"):
+        st.markdown(t("**What the well calculation is based on**"))
+        st.caption(t("GHEtool has no open-loop model; these methods are written for this tool and tested against the "
+                     "textbook results."))
+        st.markdown(sources.markdown())
 
 
 def _verdict(d: design.Design, inputs) -> None:
