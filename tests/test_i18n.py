@@ -9,7 +9,7 @@ import pytest
 from ghe_web import analysis, catalog, i18n, model, plots, properties, report
 from ghe_web.i18n import fmt, t
 from ghe_web.i18n_de import DE
-from ghe_web.siteplan import states
+from ghe_web.siteplan import page as siteplan_page, states
 from ghe_web.strata import rocks, sources
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -59,6 +59,7 @@ def _data_texts() -> set[str]:
     texts |= {s.border_note for s in states.STATES} | set(sources.EPSG_CHOICES) | set(sources.LOG_SERVICES.values())
     texts |= {s.label for s in sources.POINT_SERVICES.values()} | {s.link_note for s in sources.POINT_SERVICES.values()}
     texts |= {note for _, _, note in sources.PORTALS.values()}
+    texts |= set(siteplan_page.HOW.values())
     texts |= set(analysis.OBJECTIVES.values()) | set(report.METHOD.values())
     texts |= {title for title, _ in plots.DRAWINGS.values()} | set(plots.SERIES_COLORS)
     texts |= {"Ground conductivity ±15 %", "Ground temperature ±1 K", "Building load ±10 %",
