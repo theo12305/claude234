@@ -4,10 +4,13 @@ Streamlit code only; the method is in predict.py, the data in sources.py and roc
 """
 from __future__ import annotations
 
+import html
 import re
 
+import folium
 import pandas as pd
 import streamlit as st
+from streamlit_folium import st_folium
 
 from .. import plots
 from ..i18n import fmt, t
@@ -130,23 +133,20 @@ def _position(text: str) -> tuple[float, float] | None:
 
 
 def _read_panel(key: str, site) -> None:
-    """Read a log from a picture, a PDF or pasted text, so the layers need not be typed in."""
-    if not st.toggle(t("Read a log from a picture, PDF or text (e.g. a screenshot from LGRBbohrungen)"),
-                     key=f"{key}.read_on"):
+    """Enter a log from text or a PDF with text, so the layers need not be typed row by row."""
+    if not st.toggle(t("Enter a log from text or a PDF (e.g. copied from LGRBbohrungen)"), key=f"{key}.read_on"):
+        _review_read_logs(key)
         return
-    ai = reader.ai_available()
-    st.caption(t("Pictures and scanned PDFs are read automatically; text and PDFs with text are read by rules.")
-               if ai else
-               t("Text and PDFs with text are read here. Reading pictures and scans needs an Anthropic API key in "
-                 "the app's secrets (ANTHROPIC_API_KEY); until then, paste the layer text instead."))
+    st.caption(t("Copy the layer list from the portal (or download its PDF) and the layers are read from it. "
+                 "Pictures and scans cannot be read for free; type their layers into the box."))
     c1, c2 = st.columns(2)
-    files = c1.file_uploader(t("Log as picture or PDF"), type=["png", "jpg", "jpeg", "webp", "pdf", "txt"],
-                             accept_multiple_files=True, key=f"{key}.read_files")
-    text = c2.text_area(t("Or paste the layer list"), key=f"{key}.read_text", height=120,
+    text = c1.text_area(t("Paste the layer list"), key=f"{key}.read_text", height=130,
                         placeholder="0,00 - 0,40 m Mutterboden\n0,40 - 6,50 m Sand, kiesig\nbis 25,00 m Mergelstein")
+    files = c2.file_uploader(t("Or a PDF or text file of the log"), type=["pdf", "txt"], accept_multiple_files=True,
+                             key=f"{key}.read_files")
     where = st.text_input(t("Where is the borehole? (optional)"), key=f"{key}.read_where",
                           placeholder=t("latitude, longitude or x, y; empty: at the site"),
-                          help=t("For a log from a portal, copy its coordinates; nearer logs weigh more."))
+                          help=t("Click the borehole on the map below to fill this in; nearer logs weigh more."))
     if st.button(t("Read the log"), icon=":material/document_scanner:", key=f"{key}.read_go",
                  disabled=not files and not text.strip()):
         xy = _position(where) if where.strip() else None
@@ -155,21 +155,18 @@ def _read_panel(key: str, site) -> None:
                 st.error(t("Choose a location first, or give the borehole's position."), icon=":material/error:")
                 return
             xy = (site[0], site[1])
+        name = st.session_state.get(f"{key}.read_name") or t("Pasted log")
         found = st.session_state.setdefault(f"{key}.read_logs", [])
-        with st.spinner(t("Reading the log...")):
-            for f in files or []:
-                try:
-                    hole, notes = reader.read_file(f.name, f.getvalue(), *xy)
-                    found.append(hole)
-                    for n in notes:
-                        st.caption(f"{f.name}: {n}")
-                except (reader.ReadError, LookupError_) as exc:
-                    st.error(f"{f.name}: {exc}", icon=":material/error:")
-            if text.strip():
-                try:
-                    found.append(reader.layers_from_text(text, t("Pasted log"), *xy, t("pasted text")))
-                except reader.ReadError as exc:
-                    st.error(str(exc), icon=":material/error:")
+        for f in files or []:
+            try:
+                found.append(reader.read_file(f.name, f.getvalue(), *xy))
+            except (reader.ReadError, LookupError_) as exc:
+                st.error(f"{f.name}: {exc}", icon=":material/error:")
+        if text.strip():
+            try:
+                found.append(reader.layers_from_text(text, name, *xy, t("pasted text")))
+            except reader.ReadError as exc:
+                st.error(str(exc), icon=":material/error:")
     _review_read_logs(key)
 
 
@@ -260,8 +257,7 @@ def _predict_panel(key: str, depth_default: float) -> None:
                 service = t(sources.POINT_SERVICES[state_key].label)
                 try:
                     points = _state_points(state_key, x, y, radius)
-                    notes.append(t("{service}: {n} borehole(s) within {radius:,.0f} m. This state publishes the "
-                                   "logs only as pictures or web pages; see the list below.",
+                    notes.append(t("{service}: {n} borehole(s) within {radius:,.0f} m, shown on the map below.",
                                    service=service, n=len(points), radius=radius))
                 except LookupError_ as exc:
                     notes.append(t("{service}: {error}", service=service, error=exc))
@@ -272,7 +268,7 @@ def _predict_panel(key: str, depth_default: float) -> None:
     result = predict.predict(holes, x, y, depth, radius, max_n, groundwater=gw, surface_rock=surface_rock,
                              bedrock=bedrock or None)
     result.notes = notes + result.notes
-    st.session_state[f"{key}.prediction"] = (result, units, label, gw, points, state_key)
+    st.session_state[f"{key}.prediction"] = (result, units, label, gw, points, state_key, (x, y))
 
 
 def _show_prediction(key: str, prefix: str, length: float, buried: float) -> None:
@@ -280,7 +276,7 @@ def _show_prediction(key: str, prefix: str, length: float, buried: float) -> Non
     if not saved:
         return
     result, units, label, gw, *more = saved  # predictions made before the state boreholes have no more
-    points, state_key = (more + [[], None])[:2]
+    points, state_key, site = (more + [[], None, None])[:3]
     st.markdown(t("**Predicted layers at {place}**", place=label))
     for note in result.notes:
         st.caption(note)
@@ -315,47 +311,103 @@ def _show_prediction(key: str, prefix: str, length: float, buried: float) -> Non
     with right:
         fig = plots.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
         st.pyplot(fig, width="stretch")
-    if points:
-        _show_points(key, points, state_key)
+    if site and (points or result.used):
+        _show_boreholes(key, site, points, result.used, state_key)
 
 
-def _show_points(key: str, points: list[sources.BoreholePoint], state_key: str | None) -> None:
+def _depth_colour(depth: float | None) -> str:
+    return "#9e9e9e" if not depth or depth < 30 else "#1f77b4" if depth < 100 else "#08306b"
+
+
+def _borehole_map(key: str, site: tuple[float, float], points, holes) -> dict | None:
+    """The boreholes around the site; a click on one selects it."""
+    lon, lat = lookup.to_wgs84(*site)
+    m = folium.Map(location=(lat, lon), zoom_start=15, max_zoom=19, tiles="OpenStreetMap")
+    folium.Marker((lat, lon), tooltip=t("Site"), icon=folium.Icon(color="red", icon="home")).add_to(m)
+    for p in points:
+        plon, plat = lookup.to_wgs84(p.x, p.y)
+        popup = f"<b>{html.escape(p.name)}</b><br>" + fmt("{d:.0f} m", d=p.depth or 0) + \
+            (f"<br>{html.escape(p.note)}" if p.note else "") + \
+            (f'<br><a href="{html.escape(p.link)}" target="_blank">{t("Open the log")}</a>' if p.link else "")
+        folium.CircleMarker((plat, plon), radius=7, color="white", weight=1, fill=True, fill_opacity=0.9,
+                            fill_color=_depth_colour(p.depth), tooltip=fmt("{name} · {d:.0f} m", name=p.name,
+                                                                            d=p.depth or 0),
+                            popup=folium.Popup(popup, max_width=260)).add_to(m)
+    for h in holes:
+        hlon, hlat = lookup.to_wgs84(h.x, h.y)
+        folium.CircleMarker((hlat, hlon), radius=8, color="white", weight=1, fill=True, fill_opacity=0.95,
+                            fill_color="#2ca02c", tooltip=fmt("{name} · {d:.0f} m", name=h.name, d=h.depth)
+                            ).add_to(m)
+    out = st_folium(m, key=f"{key}.bhmap.{round(site[0])}.{round(site[1])}.{len(points)}.{len(holes)}",
+                    height=420, use_container_width=True, returned_objects=["last_object_clicked"]) or {}
+    return out.get("last_object_clicked")
+
+
+def _nearest(click: dict | None, items) -> object | None:
+    if not click:
+        return None
+    x, y = lookup.to_utm(click["lng"], click["lat"])
+    best = min(items, key=lambda i: (i.x - x) ** 2 + (i.y - y) ** 2, default=None)
+    return best if best is not None and ((best.x - x) ** 2 + (best.y - y) ** 2) ** 0.5 < 25 else None
+
+
+def _show_boreholes(key: str, site, points: list[sources.BoreholePoint], used, state_key: str | None) -> None:
+    """Map of the boreholes near the site; clicking one shows its data and link."""
+    holes = [b for b, _, _ in used]
+    st.markdown(t("**Boreholes near the site** ({n})", n=len(points) + len(holes)))
     svc = sources.POINT_SERVICES.get(state_key or "")
-    st.markdown(t("**Boreholes of the state survey near the site** ({n})", n=len(points)))
-    st.caption(t("These logs are not machine-readable, so they are not in the prediction above until you read "
-                 "them: pick a deep one below and press Read this log, or open it and paste or upload it under "
-                 "Read a log. {how}.", how=t(svc.link_note) if svc else ""))
-    table = pd.DataFrame([{t("Borehole"): p.name, t("Distance [m]"): round(p.distance),
-                           t("Depth [m]"): p.depth, t("Log"): p.link, t("Notes"): p.note} for p in points[:200]])
-    st.dataframe(table.sort_values([t("Distance [m]")]), hide_index=True, width="stretch", column_config={
-        t("Log"): st.column_config.LinkColumn(t("Log"), display_text=t("open")),
-        t("Depth [m]"): st.column_config.NumberColumn(format="%.1f")})
-    deep = [p for p in points if p.depth and p.depth >= 30]
-    if points and not deep:
-        st.caption(t("None of them is 30 m deep or more; a larger search radius may find deeper ones."))
-    linked = [p for p in points if p.link][:200]
-    if not linked:
-        return
-    # deepest first among the nearest, as those say most about the borehole depth
-    linked.sort(key=lambda p: (p.distance > 300, -(p.depth or 0), p.distance))
-    c1, c2 = st.columns([3, 1], vertical_alignment="bottom")
-    pick = c1.selectbox(t("Read the log of"), range(len(linked)), key=f"{key}.pick", format_func=lambda i: t(
-        "{name}: {d:,.0f} m away, {depth:.0f} m deep", name=linked[i].name, d=linked[i].distance,
-        depth=linked[i].depth or 0))
-    if c2.button(t("Read this log"), key=f"{key}.read_point", icon=":material/document_scanner:", width="stretch",
-                 help=t("Fetches the log behind the link, reads its layers and adds them to the prediction. "
-                        "Pictures need the Anthropic API key in the app's secrets.")):
-        p = linked[pick]
-        with st.spinner(t("Reading the log...")):
+    st.caption(t("Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: boreholes "
+                 "of the state survey (darker = deeper, grey = under 30 m); their logs are pictures or web pages "
+                 "and are not in the prediction until you enter them.") + (" " + t(svc.link_note) + "." if svc else ""))
+    chosen = _nearest(_borehole_map(key, site, points, holes), list(points) + holes)
+    if isinstance(chosen, predict.Borehole):
+        st.markdown(t("**{name}** ({source}), {d:.0f} m deep", name=chosen.name, source=chosen.source,
+                      d=chosen.depth))
+        st.dataframe(pd.DataFrame([{t("From [m]"): l.top, t("To [m]"): l.bottom, t("Rock"): t(l.rock),
+                                    t("Description"): l.text} for l in chosen.layers]),
+                     hide_index=True, width="stretch")
+    elif chosen is not None:
+        _point_details(key, chosen)
+    if points and st.toggle(t("Show all {n} boreholes as a table", n=len(points)), key=f"{key}.bh_table"):
+        table = pd.DataFrame([{t("Borehole"): p.name, t("Distance [m]"): round(p.distance),
+                               t("Depth [m]"): p.depth, t("Log"): p.link, t("Notes"): p.note} for p in points[:300]])
+        st.dataframe(table, hide_index=True, width="stretch", column_config={
+            t("Log"): st.column_config.LinkColumn(t("Log"), display_text=t("open")),
+            t("Depth [m]"): st.column_config.NumberColumn(format="%.1f")})
+
+
+def _point_details(key: str, p: sources.BoreholePoint) -> None:
+    lon, lat = lookup.to_wgs84(p.x, p.y)
+    st.markdown(t("**{name}**: {depth} deep, {d:,.0f} m from the site", name=p.name, d=p.distance,
+                  depth=fmt("{v:.1f} m", v=p.depth) if p.depth else "?"))
+    st.caption(" · ".join(v for v in (p.note, t(p.source), fmt("{lat:.5f} N, {lon:.5f} E", lat=lat, lon=lon),
+                                      fmt("UTM 32N {x:,.0f} / {y:,.0f}", x=p.x, y=p.y)) if v))
+    c1, c2, c3 = st.columns(3)
+    if p.link:
+        c1.link_button(t("Open the log"), p.link, icon=":material/open_in_new:", width="stretch")
+        portal = p.link in {url for _, url, _ in sources.PORTALS.values()}  # only the portal, not this log
+        if not portal and not p.link.split("?")[0].lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".tif")) and \
+                c2.button(t("Read its layers"), key=f"{key}.read_point", icon=":material/document_scanner:",
+                          width="stretch", help=t("Reads the layer list from the linked page, if it has one as "
+                                                  "text, and adds it to the prediction.")):
             try:
-                hole, notes = reader.read_url(p.link, p.name, p.x, p.y, p.source)
+                hole = reader.read_url(p.link, p.name, p.x, p.y, p.source)
             except reader.ReadError as exc:
                 st.error(str(exc), icon=":material/error:")
-                return
-        st.session_state.setdefault(f"{key}.read_logs", []).append(hole)
-        st.session_state[f"{key}.read_on"] = True
-        st.session_state[f"{key}.auto"] = True  # predict again with the new log
-        st.rerun()
+            else:
+                st.session_state.setdefault(f"{key}.read_logs", []).append(hole)
+                st.session_state[f"{key}.auto"] = True  # predict again with the new log
+                st.rerun()
+    c3.button(t("Enter its layers"), key=f"{key}.enter_point", icon=":material/edit_note:", width="stretch",
+              on_click=_enter_for, args=(key, p), help=t("Opens the box above, placed at this borehole: paste or "
+                                                          "type the layers from its log."))
+
+
+def _enter_for(key: str, p: sources.BoreholePoint) -> None:
+    lon, lat = lookup.to_wgs84(p.x, p.y)
+    st.session_state[f"{key}.read_on"] = True
+    st.session_state[f"{key}.read_where"] = f"{lat:.6f}, {lon:.6f}"
+    st.session_state[f"{key}.read_name"] = p.name
 
 
 def portals_overview() -> None:

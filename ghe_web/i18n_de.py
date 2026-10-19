@@ -1462,8 +1462,6 @@ DE: dict[str, str] = {
         '{w:.0f} W/m in der Spitze liegt über dem Richtwert der VDI 4640 (30 bis 60 W/m). Die Simulation lässt das zu, prüfen Sie aber die Spitzenlast und die Untergrundwerte.',
     '{x:.0f} % of the average load':
         '{x:.0f} % der mittleren Last',
-    '**Boreholes of the state survey near the site** ({n})':
-        '**Bohrungen des Landesdienstes nahe dem Standort** ({n})',
     'Ask the open data services (BGR geological map of Germany; borehole data of the state surveys)':
         'Offene Datendienste abfragen (Geologische Karte der BGR; Bohrdaten der Landesdienste)',
     'Berlin, borehole data (WFS)':
@@ -1472,8 +1470,6 @@ DE: dict[str, str] = {
         'Bohrdaten der 16 Landesdienste',
     'Boreholes in the LGB map viewer; no open download service.':
         'Bohrungen im Kartenviewer des LGB; kein offener Downloaddienst.',
-    'Boreholes in the LGRB map viewer; no open download service.':
-        'Bohrungen im Kartenviewer des LGRB; kein offener Downloaddienst.',
     'Boreholes in the UmweltAtlas (Geologie); no open download service.':
         'Bohrungen im UmweltAtlas (Geologie); kein offener Downloaddienst.',
     'Connected: archive boreholes with depth, unit and groundwater; logs on request.':
@@ -1522,16 +1518,12 @@ DE: dict[str, str] = {
         'Kein Schichtenverzeichnis online; beim HLNUG anfragen',
     'No open borehole service found; ask the survey.':
         'Kein offener Bohrdatendienst gefunden; beim Landesdienst anfragen.',
-    'None of them is 30 m deep or more; a larger search radius may find deeper ones.':
-        'Keine davon ist 30 m oder tiefer; ein größerer Suchradius findet vielleicht tiefere.',
     'Notes':
         'Hinweise',
     'Survey':
         'Landesdienst',
     'The borehole service did not answer with data ({error}).':
         'Der Bohrdatendienst hat keine Daten geliefert ({error}).',
-    'These logs are not machine-readable, so they are not in the prediction above until you read them: pick a deep one below and press Read this log, or open it and paste or upload it under Read a log. {how}.':
-        'Diese Schichtenverzeichnisse sind nicht maschinenlesbar und fließen erst in die Vorhersage oben ein, wenn Sie sie lesen lassen: Wählen Sie unten eine tiefe Bohrung und drücken Sie „Dieses lesen“, oder öffnen Sie sie und fügen Sie sie unter „Schichtenverzeichnis lesen“ ein. {how}.',
     'This state survey has no open borehole service that the app can ask. See the overview of the state portals below; logs you get from them can be uploaded above.':
         'Dieser Landesdienst hat keinen offenen Bohrdatendienst, den die App abfragen kann. Siehe die Übersicht der Landesportale unten; Schichtenverzeichnisse von dort können oben hochgeladen werden.',
     'What the app gets':
@@ -1542,8 +1534,6 @@ DE: dict[str, str] = {
         'öffnen',
     '{service}: {error}':
         '{service}: {error}',
-    '{service}: {n} borehole(s) within {radius:,.0f} m. This state publishes the logs only as pictures or web pages; see the list below.':
-        '{service}: {n} Bohrung(en) im Umkreis von {radius:,.0f} m. Dieses Land veröffentlicht die Schichtenverzeichnisse nur als Bild oder Webseite; siehe Liste unten.',
     '**{name}** ({source}, {n} layers{gw})':
         '**{name}** ({source}, {n} Schichten{gw})',
     ', groundwater {gw:.1f} m':
@@ -1556,56 +1546,14 @@ DE: dict[str, str] = {
         'Das PDF ließ sich nicht öffnen ({error}).',
     'Description':
         'Beschreibung',
-    "Fetches the log behind the link, reads its layers and adds them to the prediction. Pictures need the Anthropic API key in the app's secrets.":
-        'Lädt das Schichtenverzeichnis hinter dem Link, liest die Schichten und nimmt sie in die Vorhersage auf. Bilder brauchen den Anthropic-API-Schlüssel in den Secrets der App.',
-    'For a log from a portal, copy its coordinates; nearer logs weigh more.':
-        'Übernehmen Sie bei einem Schichtenverzeichnis aus einem Portal dessen Koordinaten; nähere Bohrungen zählen mehr.',
-    'Log as picture or PDF':
-        'Schichtenverzeichnis als Bild oder PDF',
-    'No layers could be read: {why}':
-        'Es ließen sich keine Schichten lesen: {why}',
     "No layers found. Each layer needs its depth at the start of a line, e.g. '0,40 - 6,50 m Sand, kiesig' or 'bis 6,50 m Sand'.":
         "Keine Schichten gefunden. Jede Schicht braucht ihre Tiefe am Zeilenanfang, z. B. '0,40 - 6,50 m Sand, kiesig' oder 'bis 6,50 m Sand'.",
-    'Or paste the layer list':
-        'Oder die Schichtliste einfügen',
     'Pasted log':
         'Eingefügtes Schichtenverzeichnis',
-    'Pictures and scanned PDFs are read automatically; text and PDFs with text are read by rules.':
-        'Bilder und gescannte PDFs werden automatisch gelesen; Text und PDFs mit Text nach Regeln.',
-    'Read a log from a picture, PDF or text (e.g. a screenshot from LGRBbohrungen)':
-        'Schichtenverzeichnis aus Bild, PDF oder Text lesen (z. B. Screenshot aus LGRBbohrungen)',
     'Read the log':
         'Schichtenverzeichnis lesen',
-    'Read the log of':
-        'Schichtenverzeichnis lesen von',
-    'Read this log':
-        'Dieses lesen',
-    "Reading pictures needs an Anthropic API key in the app's secrets (ANTHROPIC_API_KEY). Text and PDFs with text work without it.":
-        'Zum Lesen von Bildern braucht die App einen Anthropic-API-Schlüssel in ihren Secrets (ANTHROPIC_API_KEY). Text und PDFs mit Text gehen ohne.',
-    'Reading the log...':
-        'Schichtenverzeichnis wird gelesen …',
     'Remove':
         'Entfernen',
-    "Text and PDFs with text are read here. Reading pictures and scans needs an Anthropic API key in the app's secrets (ANTHROPIC_API_KEY); until then, paste the layer text instead.":
-        'Text und PDFs mit Text werden hier gelesen. Für Bilder und Scans braucht die App einen Anthropic-API-Schlüssel in ihren Secrets (ANTHROPIC_API_KEY); bis dahin fügen Sie den Schichttext ein.',
-    "The Anthropic API key in the app's secrets is not valid.":
-        'Der Anthropic-API-Schlüssel in den Secrets der App ist ungültig.',
-    'The reading service answered with error {code}.':
-        'Der Lesedienst antwortete mit Fehler {code}.',
-    'The reading service declined this file.':
-        'Der Lesedienst hat diese Datei abgelehnt.',
-    'The reading service did not answer.':
-        'Der Lesedienst hat nicht geantwortet.',
-    'The reading service gave no usable answer.':
-        'Der Lesedienst gab keine verwertbare Antwort.',
-    'The reading service refused the file: {error}':
-        'Der Lesedienst hat die Datei zurückgewiesen: {error}',
-    'This link opens a web page, not a picture or PDF of the log. Take a screenshot of the log and upload it.':
-        'Dieser Link öffnet eine Webseite, kein Bild oder PDF des Schichtenverzeichnisses. Machen Sie einen Screenshot und laden Sie ihn hoch.',
-    'Too many requests to the reading service; try again in a minute.':
-        'Zu viele Anfragen an den Lesedienst; bitte in einer Minute erneut versuchen.',
-    'Use a picture (PNG, JPG), a PDF or a text file.':
-        'Bitte ein Bild (PNG, JPG), ein PDF oder eine Textdatei verwenden.',
     'Where is the borehole? (optional)':
         'Wo liegt die Bohrung? (optional)',
     'latitude, longitude or x, y; empty: at the site':
@@ -1614,6 +1562,56 @@ DE: dict[str, str] = {
         'eingefügter Text',
     'read from {name}':
         'gelesen aus {name}',
-    '{name}: {d:,.0f} m away, {depth:.0f} m deep':
-        '{name}: {d:,.0f} m entfernt, {depth:.0f} m tief',
+    '**Boreholes near the site** ({n})':
+        '**Bohrungen nahe dem Standort** ({n})',
+    '**{name}** ({source}), {d:.0f} m deep':
+        '**{name}** ({source}), {d:.0f} m tief',
+    '**{name}**: {depth} deep, {d:,.0f} m from the site':
+        '**{name}**: {depth} tief, {d:,.0f} m vom Standort',
+    'Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: boreholes of the state survey (darker = deeper, grey = under 30 m); their logs are pictures or web pages and are not in the prediction until you enter them.':
+        'Klicken Sie auf eine Bohrung für ihre Daten. Grün: Schichtenverzeichnisse mit Schichten, in der Vorhersage verwendet. Blau: Bohrungen des Landesdienstes (dunkler = tiefer, grau = unter 30 m); ihre Schichtenverzeichnisse sind Bilder oder Webseiten und fließen erst in die Vorhersage ein, wenn Sie sie eingeben.',
+    'Click the borehole on the map below to fill this in; nearer logs weigh more.':
+        'Klicken Sie die Bohrung in der Karte unten an, um dies auszufüllen; nähere Bohrungen zählen mehr.',
+    'Connected: boreholes with depth and BO number; layer logs in LGRBbohrungen.':
+        'Angebunden: Bohrungen mit Endteufe und BO-Nummer; Schichtenverzeichnisse in LGRBbohrungen.',
+    'Copy the layer list from the portal (or download its PDF) and the layers are read from it. Pictures and scans cannot be read for free; type their layers into the box.':
+        'Kopieren Sie die Schichtliste aus dem Portal (oder laden Sie das PDF herunter); die Schichten werden daraus gelesen. Bilder und Scans lassen sich nicht kostenlos lesen; tippen Sie deren Schichten in das Feld.',
+    'Enter a log from text or a PDF (e.g. copied from LGRBbohrungen)':
+        'Schichtenverzeichnis aus Text oder PDF eingeben (z. B. aus LGRBbohrungen kopiert)',
+    'Enter its layers':
+        'Schichten eingeben',
+    'LGRB Baden-Württemberg, borehole database (WFS)':
+        'LGRB Baden-Württemberg, Bohrdatenbank (WFS)',
+    'Layer log in LGRBbohrungen (search for the BO number)':
+        'Schichtenverzeichnis in LGRBbohrungen (nach der BO-Nummer suchen)',
+    'Open the log':
+        'Schichtenverzeichnis öffnen',
+    'Opens the box above, placed at this borehole: paste or type the layers from its log.':
+        'Öffnet das Feld oben, an dieser Bohrung verortet: Schichten aus ihrem Schichtenverzeichnis einfügen oder eintippen.',
+    'Or a PDF or text file of the log':
+        'Oder ein PDF bzw. eine Textdatei des Schichtenverzeichnisses',
+    'Paste the layer list':
+        'Schichtliste einfügen',
+    'Pictures cannot be read for free. Type the layers into the box instead.':
+        'Bilder lassen sich nicht kostenlos lesen. Tippen Sie die Schichten stattdessen in das Feld.',
+    'Read its layers':
+        'Schichten lesen',
+    'Reads the layer list from the linked page, if it has one as text, and adds it to the prediction.':
+        'Liest die Schichtliste von der verlinkten Seite, sofern sie dort als Text steht, und nimmt sie in die Vorhersage auf.',
+    'Show all {n} boreholes as a table':
+        'Alle {n} Bohrungen als Tabelle zeigen',
+    'Site':
+        'Standort',
+    'The linked page has no layer list the app can read. Open the link instead.':
+        'Die verlinkte Seite hat keine Schichtliste, die die App lesen kann. Öffnen Sie stattdessen den Link.',
+    'The log behind this link is a picture, which cannot be read for free. Open the link and type its layers into the box.':
+        'Hinter diesem Link liegt ein Bild, das sich nicht kostenlos lesen lässt. Öffnen Sie den Link und tippen Sie die Schichten in das Feld.',
+    'This PDF is a scan without text, so it cannot be read. Type its layers into the box instead.':
+        'Dieses PDF ist ein Scan ohne Text und lässt sich nicht lesen. Tippen Sie die Schichten stattdessen in das Feld.',
+    'layer log in the portal':
+        'Schichtenverzeichnis im Portal',
+    'no layer log':
+        'kein Schichtenverzeichnis',
+    '{service}: {n} borehole(s) within {radius:,.0f} m, shown on the map below.':
+        '{service}: {n} Bohrung(en) im Umkreis von {radius:,.0f} m, in der Karte unten.',
 }

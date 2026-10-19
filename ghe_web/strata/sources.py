@@ -240,7 +240,7 @@ class PointService:
     state: str
     label: str
     url: str
-    kind: str  # "wfs-json", "arcgis", "wms-info"
+    kind: str  # "wfs-json", "wfs-gml", "arcgis", "wms-info"
     layer: str
     epsg: int
     fields: dict
@@ -250,6 +250,11 @@ class PointService:
 
 
 POINT_SERVICES = {s.state: s for s in (
+    PointService("BW", "LGRB Baden-Württemberg, borehole database (WFS)", "https://services.lgrb-bw.de/ms/lgrb_adb",
+                 "wfs-gml", "ms:adb_et", 25832,
+                 {"name": ("Aufschlussname", "Archivnummer"), "depth": ("Tiefe",), "link": (), "x": ("Ost",),
+                  "y": ("Nord",), "ref": ("TK25", "Archivnummer"), "logged": ("Schichtdaten",)},
+                 "Layer log in LGRBbohrungen (search for the BO number)", output="text/xml; subtype=gml/3.2.1"),
     PointService("BB", "LBGR Brandenburg, borehole points with logs (WFS)", "https://inspire.brandenburg.de/services/bpk_wfs",
                  "wfs-json", "app:bpk_m_sch", 25833,
                  {"name": ("Bohrungsname", "Bohrungs_ID"), "depth": ("Teufe_in_m",),
@@ -318,6 +323,32 @@ def _point_request(svc: PointService, x: float, y: float, radius: float, limit: 
     return params
 
 
+def gml_features(content: bytes) -> dict:
+    """A WFS GML answer as {"features": [{"properties": {...}, "geometry": {"x", "y"}}]} (simple point features)."""
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError as exc:
+        raise LookupError_(t("The borehole service did not answer with data ({error}).", error=exc)) from exc
+    if _local(root.tag) in ("ExceptionReport", "ServiceExceptionReport"):
+        raise LookupError_(t("The borehole service reported an error: {error}",
+                             error=" ".join(root.itertext()).strip()[:200]))
+    features = []
+    for member in root:
+        if _local(member.tag) not in ("member", "featureMember", "featureMembers"):
+            continue
+        for feature in member:
+            props, geometry = {}, {}
+            for child in feature:
+                pos = _find(child, "pos")
+                if pos is not None and pos.text:
+                    x, y = (float(v) for v in pos.text.split()[:2])
+                    geometry = {"x": x, "y": y}
+                elif len(child) == 0:
+                    props[_local(child.tag)] = (child.text or "").strip()
+            features.append({"properties": props, "geometry": geometry})
+    return {"features": features}
+
+
 def parse_points(state_key: str, data: dict) -> list[BoreholePoint]:
     """Borehole points from a service answer (GeoJSON or ArcGIS JSON), in UTM 32N."""
     svc = POINT_SERVICES[state_key]
@@ -334,7 +365,7 @@ def parse_points(state_key: str, data: dict) -> list[BoreholePoint]:
         if px is not None and py is not None:
             xy = to_utm32(px - (33_000_000 if px > 33_000_000 else 0), py, 25833) if svc.epsg in (25833, 5650) \
                 else to_utm32(px, py)
-        elif "x" in geom and "y" in geom:  # ArcGIS, asked for in UTM 32N
+        elif "x" in geom and "y" in geom:  # ArcGIS (asked for in UTM 32N) or GML in the service's system
             xy = float(geom["x"]), float(geom["y"])
         if xy is None:
             xy = _wgs_point(geom)
@@ -344,6 +375,13 @@ def parse_points(state_key: str, data: dict) -> list[BoreholePoint]:
         depth = _float(_prop(props, *f["depth"]))
         link = _prop(props, *f["link"]) if f["link"] else None
         notes = []
+        if f.get("ref") and all(_prop(props, n) is not None for n in f["ref"]):
+            notes.append("BO " + "/".join(str(_prop(props, n)) for n in f["ref"]))
+        if f.get("logged"):
+            logged = str(_prop(props, *f["logged"])) in ("1", "1.0", "true")
+            notes.append(t("layer log in the portal") if logged else t("no layer log"))
+            if logged and not link:
+                link = PORTALS[state_key][1]
         if f.get("unit") and _prop(props, *f["unit"]):
             notes.append(str(_prop(props, *f["unit"])))
         if f.get("groundwater") and _float(_prop(props, *f["groundwater"])) is not None:
@@ -360,12 +398,17 @@ def borehole_points(state_key: str | None, x: float, y: float, radius: float, li
     if svc is None:
         return []
     r = lookup._get(svc.url, _point_request(svc, x, y, radius, limit))
+    if svc.kind == "wfs-gml":
+        return _near(parse_points(state_key, gml_features(r.content)), x, y, radius)
     try:
         data = r.json()
     except ValueError as exc:
         raise LookupError_(t("The borehole service did not answer with data ({error}).",
                              error=r.text.strip()[:120] or type(exc).__name__)) from exc
-    points = parse_points(state_key, data)
+    return _near(parse_points(state_key, data), x, y, radius)
+
+
+def _near(points: list[BoreholePoint], x: float, y: float, radius: float) -> list[BoreholePoint]:
     for p in points:
         p.distance = ((p.x - x) ** 2 + (p.y - y) ** 2) ** 0.5
     return sorted((p for p in points if p.distance <= radius), key=lambda p: p.distance)
@@ -373,8 +416,8 @@ def borehole_points(state_key: str | None, x: float, y: float, radius: float, li
 
 # What each state survey offers, for the page's overview (state key -> survey, portal, what is open)
 PORTALS = {
-    "BW": ("LGRB Baden-Württemberg", "https://maps.lgrb-bw.de",
-           "Boreholes in the LGRB map viewer; no open download service."),
+    "BW": ("LGRB Baden-Württemberg (LGRBbohrungen)", "https://bohrungen.lgrb-bw.de",
+           "Connected: boreholes with depth and BO number; layer logs in LGRBbohrungen."),
     "BY": ("LfU Bayern", "https://www.umweltatlas.bayern.de",
            "Boreholes in the UmweltAtlas (Geologie); no open download service."),
     "BE": ("Senatsverwaltung Berlin", "https://gdi.berlin.de",

@@ -178,6 +178,33 @@ STATE_ANSWERS = {
 }
 
 
+# LGRB Baden-Württemberg answers in GML; element names as the service gave them on 2026-10-19
+BW_GML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<wfs:FeatureCollection xmlns:ms="http://mapserver.gis.umn.edu/mapserver" xmlns:gml="http://www.opengis.net/gml/3.2"
+    xmlns:wfs="http://www.opengis.net/wfs/2.0" numberMatched="unknown" numberReturned="1">
+  <wfs:member>
+    <ms:adb_et gml:id="adb_et.633333">
+      <gml:boundedBy><gml:Envelope srsName="urn:ogc:def:crs:EPSG::25832"><gml:lowerCorner>412639.52 5318959.32
+      </gml:lowerCorner><gml:upperCorner>412639.52 5318959.32</gml:upperCorner></gml:Envelope></gml:boundedBy>
+      <ms:msGeometry><gml:Point gml:id="adb_et.633333.1" srsName="urn:ogc:def:crs:EPSG::25832">
+        <gml:pos>412639.520000 5318959.320000</gml:pos></gml:Point></ms:msGeometry>
+      <ms:TK25>7912</ms:TK25><ms:Archivnummer>1713</ms:Archivnummer>
+      <ms:Aufschlussname>LW-Br./EB 2/25 Im Ochsenstein Freiburg</ms:Aufschlussname>
+      <ms:Ost>412639.520</ms:Ost><ms:Nord>5318959.320</ms:Nord><ms:Tiefe>16</ms:Tiefe>
+      <ms:Ansatzhoehe>240.04</ms:Ansatzhoehe><ms:Hoehenfindung>E</ms:Hoehenfindung>
+      <ms:Koordinatenfindung>X</ms:Koordinatenfindung><ms:Schichtdaten>1</ms:Schichtdaten>
+    </ms:adb_et>
+  </wfs:member>
+</wfs:FeatureCollection>"""
+STATE_ANSWERS["BW"] = sources.gml_features(BW_GML)
+
+
+def test_lgrb_boreholes():
+    [p] = sources.parse_points("BW", sources.gml_features(BW_GML))
+    assert p.name.startswith("LW-Br.") and p.depth == 16 and (p.x, p.y) == (412639.52, 5318959.32)
+    assert p.note.startswith("BO 7912/1713") and p.link == sources.PORTALS["BW"][1]
+
+
 @pytest.mark.parametrize("state", list(STATE_ANSWERS))
 def test_state_borehole_points(state):
     [p] = sources.parse_points(state, STATE_ANSWERS[state])
@@ -203,6 +230,10 @@ def test_every_state_is_in_the_overview_and_requests_are_built(monkeypatch):
 
         def json(self):
             return STATE_ANSWERS[self.state]
+
+        @property
+        def content(self):
+            return BW_GML
 
     for state, svc in sources.POINT_SERVICES.items():
         monkeypatch.setattr(sources.lookup, "_get", lambda url, params, s=state: asked.append(params) or Answer(s))
@@ -252,27 +283,7 @@ def test_read_log_text_html_and_pdf():
     buf = io.BytesIO()
     fig.savefig(buf, format="pdf")
     plt.close(fig)
-    hole, _ = reader.read_file("log.pdf", buf.getvalue(), 0.0, 0.0)
+    hole = reader.read_file("log.pdf", buf.getvalue(), 0.0, 0.0)
     assert hole.layers[-1].bottom == 25.0
-
-
-def test_read_log_picture_with_the_reading_service(monkeypatch):
-    from ghe_web.strata import reader
-    answer = {"readable": True, "name": "B 7", "groundwater_m": 4.5, "note": "bottom part blurred",
-              "layers": [{"top_m": 0, "bottom_m": 1.2, "description": "Auffüllung", "rock": "Unknown"},
-                         {"top_m": 1.2, "bottom_m": 9, "description": "mS,g", "rock": "Sand"},
-                         {"top_m": 9, "bottom_m": 80, "description": "Granit, verwittert", "rock": "Granite"}]}
-    asked = []
-    monkeypatch.setattr(reader, "_ask", lambda block: asked.append(block) or answer)
-    hole, notes = reader.read_file("shot.png", b"\x89PNG", 5.0, 6.0)
-    assert asked[0]["type"] == "image" and asked[0]["source"]["media_type"] == "image/png"
-    assert hole.name == "B 7" and hole.groundwater == 4.5 and notes == ["bottom part blurred"]
-    assert [l.rock for l in hole.layers] == [rocks.classify("Auffüllung"), "Sand", "Granite"]  # Unknown: by rules
-    with pytest.raises(reader.ReadError):
-        reader.borehole_from_answer({"readable": False, "note": "a photo of a cat", "layers": []}, "x", 0, 0, "s")
-    # without a key, pictures give a clear message instead of a crash
-    monkeypatch.undo()
-    monkeypatch.setattr(reader, "api_key", lambda: None)
-    with pytest.raises(reader.ReadError, match="API key"):
+    with pytest.raises(reader.ReadError, match="free"):  # no paid reading of pictures
         reader.read_file("shot.png", b"\x89PNG", 0, 0)
-    assert set(reader.SCHEMA["properties"]["layers"]["items"]["properties"]["rock"]["enum"]) == set(rocks.NAMES)
