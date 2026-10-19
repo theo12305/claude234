@@ -65,6 +65,11 @@ Under Ground in step ① the panel **Predict the layers** estimates the layers a
   to the log as a picture or web page); the page lists those near the site so you can open the deep ones and type
   their layers into the table. The services and their field names are plain data in `POINT_SERVICES` in
   `ghe_web/strata/sources.py`; `PORTALS` there is the overview of all 16 states shown on the page.
+- Reading logs (`ghe_web/strata/reader.py`): **Read a log** takes a picture (screenshot from LGRBbohrungen or any
+  portal), a PDF or pasted text; **Read this log** fetches the log behind a listed state borehole. Text and PDFs
+  with text are read by rules. Pictures and scans are read by Claude, which needs `ANTHROPIC_API_KEY` in the app's
+  secrets (Streamlit Cloud: Manage app > Settings > Secrets, `ANTHROPIC_API_KEY = "sk-ant-..."`); each picture
+  costs about one to three cents. The read layers appear in a table to check before they are used.
 - Thermal values: VDI 4640 Blatt 1 per rock type (`ghe_web/strata/rocks.py`); loose sediments above the groundwater
   table get lower, moist values.
 - **Fill in the averages** puts the depth-weighted averages into the single fields; **Use the layers** copies the

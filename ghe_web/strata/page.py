@@ -4,6 +4,8 @@ Streamlit code only; the method is in predict.py, the data in sources.py and roc
 """
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 import streamlit as st
 
@@ -11,7 +13,7 @@ from .. import plots
 from ..i18n import fmt, t
 from ..siteplan import lookup
 from ..siteplan.lookup import LookupError_
-from . import predict, rocks, sources
+from . import predict, reader, rocks, sources
 
 SITE_PLAN = "siteplan."  # session state prefix of the site plan step
 
@@ -116,9 +118,95 @@ def _uploaded_logs(key: str, site) -> tuple[list[predict.Borehole], list[str]]:
     return holes, notes
 
 
+def _position(text: str) -> tuple[float, float] | None:
+    """'lat, lon' in degrees or 'x, y' in a German grid, as UTM 32N."""
+    numbers = [float(v.replace(",", ".")) for v in re.findall(r"-?\d+(?:[.,]\d+)?", text.replace(", ", " "))]
+    if len(numbers) < 2:
+        return None
+    a, b = numbers[:2]
+    if abs(a) <= 90 and abs(b) <= 180 and a > b:  # latitude first, as Germany is written
+        a, b = b, a
+    return sources.to_utm32(a, b)
+
+
+def _read_panel(key: str, site) -> None:
+    """Read a log from a picture, a PDF or pasted text, so the layers need not be typed in."""
+    if not st.toggle(t("Read a log from a picture, PDF or text (e.g. a screenshot from LGRBbohrungen)"),
+                     key=f"{key}.read_on"):
+        return
+    ai = reader.ai_available()
+    st.caption(t("Pictures and scanned PDFs are read automatically; text and PDFs with text are read by rules.")
+               if ai else
+               t("Text and PDFs with text are read here. Reading pictures and scans needs an Anthropic API key in "
+                 "the app's secrets (ANTHROPIC_API_KEY); until then, paste the layer text instead."))
+    c1, c2 = st.columns(2)
+    files = c1.file_uploader(t("Log as picture or PDF"), type=["png", "jpg", "jpeg", "webp", "pdf", "txt"],
+                             accept_multiple_files=True, key=f"{key}.read_files")
+    text = c2.text_area(t("Or paste the layer list"), key=f"{key}.read_text", height=120,
+                        placeholder="0,00 - 0,40 m Mutterboden\n0,40 - 6,50 m Sand, kiesig\nbis 25,00 m Mergelstein")
+    where = st.text_input(t("Where is the borehole? (optional)"), key=f"{key}.read_where",
+                          placeholder=t("latitude, longitude or x, y; empty: at the site"),
+                          help=t("For a log from a portal, copy its coordinates; nearer logs weigh more."))
+    if st.button(t("Read the log"), icon=":material/document_scanner:", key=f"{key}.read_go",
+                 disabled=not files and not text.strip()):
+        xy = _position(where) if where.strip() else None
+        if xy is None:
+            if site is None:
+                st.error(t("Choose a location first, or give the borehole's position."), icon=":material/error:")
+                return
+            xy = (site[0], site[1])
+        found = st.session_state.setdefault(f"{key}.read_logs", [])
+        with st.spinner(t("Reading the log...")):
+            for f in files or []:
+                try:
+                    hole, notes = reader.read_file(f.name, f.getvalue(), *xy)
+                    found.append(hole)
+                    for n in notes:
+                        st.caption(f"{f.name}: {n}")
+                except (reader.ReadError, LookupError_) as exc:
+                    st.error(f"{f.name}: {exc}", icon=":material/error:")
+            if text.strip():
+                try:
+                    found.append(reader.layers_from_text(text, t("Pasted log"), *xy, t("pasted text")))
+                except reader.ReadError as exc:
+                    st.error(str(exc), icon=":material/error:")
+    _review_read_logs(key)
+
+
+def _review_read_logs(key: str) -> None:
+    """The logs read so far, each in a small table to check and correct."""
+    found = st.session_state.get(f"{key}.read_logs") or []
+    for i, hole in enumerate(list(found)):
+        head, remove = st.columns([5, 1], vertical_alignment="bottom")
+        head.markdown(t("**{name}** ({source}, {n} layers{gw})", name=hole.name, source=hole.source,
+                        n=len(hole.layers), gw=t(", groundwater {gw:.1f} m", gw=hole.groundwater)
+                        if hole.groundwater else ""))
+        if remove.button(t("Remove"), key=f"{key}.read_rm.{i}.{id(hole)}", icon=":material/delete:"):
+            found.remove(hole)
+            st.rerun()
+        if not hasattr(hole, "read_as"):  # the editor keeps the edits, so it always starts from what was read
+            hole.read_as = list(hole.layers)
+        df = pd.DataFrame([{"From [m]": l.top, "To [m]": l.bottom, "Description": l.text, "Rock": l.rock}
+                           for l in hole.read_as])
+        edited = st.data_editor(df, hide_index=True, width="stretch", key=f"{key}.read_ed.{id(hole)}",
+                                num_rows="dynamic", column_config={
+            "From [m]": st.column_config.NumberColumn(t("From [m]"), min_value=0.0, step=0.1),
+            "To [m]": st.column_config.NumberColumn(t("To [m]"), min_value=0.0, step=0.1),
+            "Description": st.column_config.TextColumn(t("Description")),
+            "Rock": st.column_config.SelectboxColumn(t("Rock"), options=rocks.NAMES, format_func=t)})
+        hole.layers = [predict.LogLayer(float(r["From [m]"]), float(r["To [m]"]), r["Rock"] or rocks.UNKNOWN,
+                                        str(r["Description"] or ""))
+                       for _, r in edited.iterrows()
+                       if pd.notna(r["From [m]"]) and pd.notna(r["To [m]"]) and r["To [m]"] > r["From [m]"]]
+    if found:
+        st.caption(t("Check the depths and rocks; the logs are used in the prediction below."))
+
+
 def _predict_panel(key: str, depth_default: float) -> None:
     site = _location(key)
     uploaded, upload_notes = _uploaded_logs(key, site)
+    _read_panel(key, site)
+    uploaded = uploaded + [h for h in st.session_state.get(f"{key}.read_logs") or [] if h.layers]
     c1, c2, c3, c4 = st.columns(4)
     radius = c1.number_input(t("Search radius [m]"), 50.0, 10000.0, 1000.0, 50.0, key=f"{key}.radius",
                              help=t("Logs further away are not used. Nearer logs weigh more (1 / distance²)."))
@@ -136,8 +224,9 @@ def _predict_panel(key: str, depth_default: float) -> None:
     bedrock = c6.selectbox(t("Rock below the logs"), [""] + rocks.NAMES[:-1],
                            format_func=lambda r: t(r) if r else t("Continue the deepest layer"),
                            key=f"{key}.bedrock_rock")
-    if not st.button(t("Predict the layers"), type="primary", icon=":material/layers:", key=f"{key}.go",
-                     disabled=site is None and not uploaded):
+    pressed = st.button(t("Predict the layers"), type="primary", icon=":material/layers:", key=f"{key}.go",
+                        disabled=site is None and not uploaded)
+    if not pressed and not st.session_state.pop(f"{key}.auto", False):
         if site is None and not uploaded:
             st.caption(t("Choose a location (or upload logs) first."))
         return
@@ -227,15 +316,15 @@ def _show_prediction(key: str, prefix: str, length: float, buried: float) -> Non
         fig = plots.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
         st.pyplot(fig, width="stretch")
     if points:
-        _show_points(points, state_key)
+        _show_points(key, points, state_key)
 
 
-def _show_points(points: list[sources.BoreholePoint], state_key: str | None) -> None:
+def _show_points(key: str, points: list[sources.BoreholePoint], state_key: str | None) -> None:
     svc = sources.POINT_SERVICES.get(state_key or "")
     st.markdown(t("**Boreholes of the state survey near the site** ({n})", n=len(points)))
-    st.caption(t("These logs are not machine-readable, so they are not in the prediction above. Open the nearest "
-                 "deep ones, then type their layers into the layer table below (or into the table template and "
-                 "upload it). {how}.", how=t(svc.link_note) if svc else ""))
+    st.caption(t("These logs are not machine-readable, so they are not in the prediction above until you read "
+                 "them: pick a deep one below and press Read this log, or open it and paste or upload it under "
+                 "Read a log. {how}.", how=t(svc.link_note) if svc else ""))
     table = pd.DataFrame([{t("Borehole"): p.name, t("Distance [m]"): round(p.distance),
                            t("Depth [m]"): p.depth, t("Log"): p.link, t("Notes"): p.note} for p in points[:200]])
     st.dataframe(table.sort_values([t("Distance [m]")]), hide_index=True, width="stretch", column_config={
@@ -244,6 +333,29 @@ def _show_points(points: list[sources.BoreholePoint], state_key: str | None) -> 
     deep = [p for p in points if p.depth and p.depth >= 30]
     if points and not deep:
         st.caption(t("None of them is 30 m deep or more; a larger search radius may find deeper ones."))
+    linked = [p for p in points if p.link][:200]
+    if not linked:
+        return
+    # deepest first among the nearest, as those say most about the borehole depth
+    linked.sort(key=lambda p: (p.distance > 300, -(p.depth or 0), p.distance))
+    c1, c2 = st.columns([3, 1], vertical_alignment="bottom")
+    pick = c1.selectbox(t("Read the log of"), range(len(linked)), key=f"{key}.pick", format_func=lambda i: t(
+        "{name}: {d:,.0f} m away, {depth:.0f} m deep", name=linked[i].name, d=linked[i].distance,
+        depth=linked[i].depth or 0))
+    if c2.button(t("Read this log"), key=f"{key}.read_point", icon=":material/document_scanner:", width="stretch",
+                 help=t("Fetches the log behind the link, reads its layers and adds them to the prediction. "
+                        "Pictures need the Anthropic API key in the app's secrets.")):
+        p = linked[pick]
+        with st.spinner(t("Reading the log...")):
+            try:
+                hole, notes = reader.read_url(p.link, p.name, p.x, p.y, p.source)
+            except reader.ReadError as exc:
+                st.error(str(exc), icon=":material/error:")
+                return
+        st.session_state.setdefault(f"{key}.read_logs", []).append(hole)
+        st.session_state[f"{key}.read_on"] = True
+        st.session_state[f"{key}.auto"] = True  # predict again with the new log
+        st.rerun()
 
 
 def portals_overview() -> None:

@@ -218,3 +218,61 @@ def test_every_state_is_in_the_overview_and_requests_are_built(monkeypatch):
 def test_utm33_with_zone_prefix():
     x, y = sources.to_utm32(33_307_356, 5_999_581)
     assert x == pytest.approx(sources.to_utm32(307_356, 5_999_581, 25833)[0])
+
+
+LOG_TEXT = """Schichtenverzeichnis BK 3/12
+0,00 - 0,30 m  Mutterboden, humos
+0,30 - 2,10 m  Schluff, tonig,
+   feinsandig, braun
+2,10 - 8,40 m  Kies, sandig
+bis 25,00 m  Tonstein, grau
+Ruhewasserspiegel: 3,20 m u. GOK
+"""
+
+
+def test_read_log_text_html_and_pdf():
+    from ghe_web.strata import reader
+    hole = reader.layers_from_text(LOG_TEXT, "BK", 1.0, 2.0)
+    assert [(l.top, l.bottom, l.rock) for l in hole.layers] == [
+        (0, 0.3, "Topsoil / humus"), (0.3, 2.1, "Silt / loess"), (2.1, 8.4, "Gravel"),
+        (8.4, 25.0, "Claystone / siltstone")]
+    assert hole.layers[1].text.endswith("braun") and hole.groundwater == 3.2 and (hole.x, hole.y) == (1.0, 2.0)
+    page = "<table><tr><td>0,00</td><td>0,30</td><td>Mutterboden</td></tr><tr><td>0,30</td><td>12,00</td>" \
+           "<td>Geschiebemergel</td></tr></table>"
+    assert [l.rock for l in reader.layers_from_text(reader.html_text(page)).layers] == \
+        ["Topsoil / humus", "Till / boulder clay"]
+    with pytest.raises(reader.ReadError):
+        reader.layers_from_text("no depths here")
+    # a PDF with a text layer is read without the reading service
+    import io
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    for i, line in enumerate(LOG_TEXT.splitlines()):
+        fig.text(0.05, 0.9 - i * 0.08, line)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="pdf")
+    plt.close(fig)
+    hole, _ = reader.read_file("log.pdf", buf.getvalue(), 0.0, 0.0)
+    assert hole.layers[-1].bottom == 25.0
+
+
+def test_read_log_picture_with_the_reading_service(monkeypatch):
+    from ghe_web.strata import reader
+    answer = {"readable": True, "name": "B 7", "groundwater_m": 4.5, "note": "bottom part blurred",
+              "layers": [{"top_m": 0, "bottom_m": 1.2, "description": "Auffüllung", "rock": "Unknown"},
+                         {"top_m": 1.2, "bottom_m": 9, "description": "mS,g", "rock": "Sand"},
+                         {"top_m": 9, "bottom_m": 80, "description": "Granit, verwittert", "rock": "Granite"}]}
+    asked = []
+    monkeypatch.setattr(reader, "_ask", lambda block: asked.append(block) or answer)
+    hole, notes = reader.read_file("shot.png", b"\x89PNG", 5.0, 6.0)
+    assert asked[0]["type"] == "image" and asked[0]["source"]["media_type"] == "image/png"
+    assert hole.name == "B 7" and hole.groundwater == 4.5 and notes == ["bottom part blurred"]
+    assert [l.rock for l in hole.layers] == [rocks.classify("Auffüllung"), "Sand", "Granite"]  # Unknown: by rules
+    with pytest.raises(reader.ReadError):
+        reader.borehole_from_answer({"readable": False, "note": "a photo of a cat", "layers": []}, "x", 0, 0, "s")
+    # without a key, pictures give a clear message instead of a crash
+    monkeypatch.undo()
+    monkeypatch.setattr(reader, "api_key", lambda: None)
+    with pytest.raises(reader.ReadError, match="API key"):
+        reader.read_file("shot.png", b"\x89PNG", 0, 0)
+    assert set(reader.SCHEMA["properties"]["layers"]["items"]["properties"]["rock"]["enum"]) == set(rocks.NAMES)
