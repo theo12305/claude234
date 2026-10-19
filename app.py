@@ -31,6 +31,7 @@ from ghe_web.i18n import fmt, t
 from ghe_web.siteplan import page as siteplan_page
 from ghe_web.strata import page as strata_page
 from ghe_web.properties import Property, SectionInput, Variant
+from ghe_web.wells import page as wells_page
 
 st.set_page_config(page_title="GHEtool Web", page_icon="🌍", layout="wide")
 st.markdown("""<style>
@@ -78,8 +79,10 @@ def chart(c) -> None:
 # sections show up without changes here. The tab labels follow the language; the ids stay the same.
 STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & borefield", "Borehole": "② Borehole & fluid",
                "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs", "results": "📊 Results"}
-STEPS = {k: t(v) for k, v in STEP_LABELS.items()}
-SITE_PLAN, MORE, RESULTS = STEPS["site_plan"], STEPS["more"], STEPS["results"]
+# The same steps for groundwater wells (open loop)
+WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer", "Borehole": "② Wells",
+                    "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
+                    "results": "📊 Results"}
 
 # Values the widgets start from: the defaults, or a project the user loaded.
 # Widget keys include a generation number, so loading a project rebuilds every widget.
@@ -103,14 +106,20 @@ if share.PARAM in st.query_params:  # opened from a share link: load its project
     st.rerun()
 project_name, start = st.session_state.project
 gen = st.session_state.generation
+# The heat source decides the sections and tabs. Its radio is drawn further down, so read its value here.
+system = st.session_state.get(f"{gen}.system.variant_key", model.system(start))
+LABELS = WELL_STEP_LABELS if system == "open" else STEP_LABELS
+STEPS = {k: t(v) for k, v in LABELS.items()}
+SITE_PLAN, MORE, RESULTS = STEPS["site_plan"], STEPS["more"], STEPS["results"]
 if st.session_state.pop("goto_results", False):
     st.session_state.step = RESULTS
 if "goto_step" in st.session_state:
     st.session_state.step = STEPS[st.session_state.pop("goto_step")]
-if st.session_state.get("step") not in (None, *STEPS.values()):  # the language changed: same tab, new label
+if st.session_state.get("step") not in (None, *STEPS.values()):  # language or heat source changed: same tab, new label
     for code in i18n.LANGUAGES:
         with i18n.using(code):
-            match = [k for k, v in STEP_LABELS.items() if t(v) == st.session_state.step]
+            match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS) for k, v in labels.items()
+                     if t(v) == st.session_state.step]
         if match:
             st.session_state.step = STEPS[match[0]]
             break
@@ -144,22 +153,40 @@ with st.sidebar:
     st.divider()
     calc_slot = st.container()  # the calculate button and a short result, filled at the end
 
-title_col.title(t("Borehole heat exchanger sizing"))
-st.caption(t("Fill in the four input steps, then press **Size borefield** on the left. Every field has a question "
-             "mark with an explanation; the drop-downs fill in typical values."))
+if system == "open":
+    title_col.title(t("Groundwater well sizing"))
+    st.caption(t("Fill in the four input steps, then press **Size the wells** on the left. Every field has a "
+                 "question mark with an explanation; the drop-downs fill in typical values."))
+else:
+    title_col.title(t("Borehole heat exchanger sizing"))
+    st.caption(t("Fill in the four input steps, then press **Size borefield** on the left. Every field has a "
+                 "question mark with an explanation; the drop-downs fill in typical values."))
 with st.expander(t("How to use this tool"), icon=":material/help:"):
-    st.markdown(t(
-        "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n"
-        "2. **① Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n"
-        "3. **② Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n"
-        "4. **③ Loads**: the heat extracted from and injected into the ground, or the building demand with the "
-        "heat pump efficiency.\n"
-        "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a "
-        "given one.\n"
-        "6. Press **Size borefield** in the sidebar. The **📊 Results** tab shows key figures, charts, further "
-        "analysis and the PDF report and Excel export.\n\n"
-        "Save the project in the sidebar to continue later. Calculations use the open-source "
-        "[GHEtool](https://github.com/wouterpeere/GHEtool)."))
+    if system == "open":
+        st.markdown(t(
+            "1. **⓪ Site plan** (optional): find the parcel.\n"
+            "2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted "
+            "layers), the aquifer and the water analysis.\n"
+            "3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n"
+            "4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n"
+            "5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n"
+            "6. Press **Size the wells** in the sidebar. The **📊 Results** tab shows the flow, wells, water levels, "
+            "temperatures, the site map, the well construction and the downloads.\n\n"
+            "The well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected "
+            "water and a planar plume) are written for this tool; GHEtool has no open-loop model."))
+    else:
+        st.markdown(t(
+            "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n"
+            "2. **① Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n"
+            "3. **② Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n"
+            "4. **③ Loads**: the heat extracted from and injected into the ground, or the building demand with the "
+            "heat pump efficiency.\n"
+            "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a "
+            "given one.\n"
+            "6. Press **Size borefield** in the sidebar. The **📊 Results** tab shows key figures, charts, further "
+            "analysis and the PDF report and Excel export.\n\n"
+            "Save the project in the sidebar to continue later. Calculations use the open-source "
+            "[GHEtool](https://github.com/wouterpeere/GHEtool)."))
 if st.session_state.pop("opened_link", False):
     st.success(t("Opened the project from the link. Hourly demand files are not part of links: upload it again if "
                  "the project uses one."), icon=":material/link:")
@@ -179,7 +206,7 @@ def widget(prop: Property, value, key: str):
         kw = initial if initial is not None else {"value": float(value)}
         as_float = lambda x: float(x) if x is not None else None  # noqa: E731 (Streamlit refuses mixed int/float)
         return st.number_input(label, min_value=as_float(prop.min), max_value=as_float(prop.max),
-                               step=as_float(prop.step), help=help_text, key=key, **kw)
+                               step=as_float(prop.step), format=prop.format, help=help_text, key=key, **kw)
     if prop.kind == "int":
         kw = initial if initial is not None else {"value": int(value)}
         return int(st.number_input(label, min_value=int(prop.min) if prop.min is not None else None,
@@ -306,7 +333,13 @@ def show_drawing(parts: tuple) -> None:
 
 def borehole_depth() -> tuple[float, float]:
     """Borehole length and buried depth as currently entered (the borefield section may come later on the page),
-    for sections that need them before it is read."""
+    for sections that need them before it is read. For wells: the aquifer bottom, from the surface."""
+    if system == "open":
+        chosen = start.get("aquifer") or SectionInput("unconfined", {})
+        variant = st.session_state.get(f"{gen}.aquifer.variant_key", chosen.variant)
+        defaults = {**properties.get("aquifer").variant(variant).defaults(),
+                    **(chosen.values if variant == chosen.variant else {})}
+        return float(st.session_state.get(f"{gen}.aquifer.{variant}.bottom", defaults["bottom"])), 0.0
     chosen = start.get("borefield") or SectionInput("rectangular", {})
     section = properties.get("borefield")
     variant = st.session_state.get(f"{gen}.borefield.variant_key", chosen.variant)
@@ -371,7 +404,7 @@ def section_inputs(section) -> tuple[SectionInput, object]:
 
 
 grouped: dict[str, list] = {}
-for section in properties.sections():
+for section in properties.sections(system):
     grouped.setdefault(STEPS.get(section.group, MORE), []).append(section)
 step_names = [SITE_PLAN] + [s for s in [STEPS[k] for k in ("Site", "Borehole", "Loads", "Design")] + [MORE]
                             if s in grouped] + [RESULTS]
@@ -394,11 +427,42 @@ for step, sections in grouped.items():
             if target is not None:
                 pending_drawings.append((target, section.key, inputs[section.key].variant))
 
+for key, chosen in start.items():  # keep the inputs of the other heat source in the project file
+    inputs.setdefault(key, chosen)
 errors = model.validate(inputs)
-for section_key, msgs in model.cross_warnings(inputs).items():
+cross = model.cross_warnings(inputs)
+for section_key, msgs in cross.items():
     with notes[section_key].container():
         for msg in msgs:
             st.info(msg, icon=":material/info:")
+
+
+def aquifer_from_layers() -> None:
+    """Under Aquifer: the permeable layers below the groundwater in the layer table of Ground, with a button that
+    copies their depth, kf and porosity."""
+    from ghe_web.wells.aquifer import from_layers
+    rows = list((inputs["ground"].values.get("layers") or {}).get("rows") or ())
+    chosen = inputs["aquifer"]
+    guess = from_layers(rows, chosen.values["water_depth"]) if rows else None
+    if guess is None or "aquifer" in cross:
+        return
+    prefix = f"{gen}.aquifer.{chosen.variant}"
+    new = {"bottom": round(guess.bottom, 1), "kf": float(f"{guess.kf:.1e}"), "porosity": round(guess.porosity, 2)}
+    if chosen.variant == "confined":
+        new["top"] = round(guess.top, 1)
+    if all(abs(chosen.values[k] - v) < 1e-9 for k, v in new.items()):
+        return
+    with notes["aquifer"].container():
+        st.info(t("The layer table under Ground has a permeable stretch ({rocks}) from {top:.1f} to {bottom:.1f} m "
+                  "below ground, kf about {kf:.1e} m/s (typical values for these rocks).",
+                  rocks=", ".join(t(r) for r in guess.rocks), top=guess.top, bottom=guess.bottom, kf=guess.kf),
+                icon=":material/layers:")
+        st.button(t("Use these values"), key=f"{prefix}.from_layers", icon=":material/download:",
+                  on_click=lambda: st.session_state.update({f"{prefix}.{k}": v for k, v in new.items()}))
+
+
+if system == "open":
+    aquifer_from_layers()
 current_json = model.to_json(inputs)
 for target, section_key, variant_key in pending_drawings:
     if section_key in errors or "borefield" in errors:
@@ -451,6 +515,22 @@ with share_slot, st.popover(t("Share link"), icon=":material/link:", width="stre
 
 
 # ---------------------------------------------------------------- calculation
+
+if "result_json" in st.session_state and model.system(model.from_json(st.session_state.result_json)[1]) != system:
+    del st.session_state.result_json  # a result of the other heat source
+
+if system == "open":
+    def _step_of_section(section_key: str) -> str:
+        group = properties.get(section_key).group
+        return STEPS[group if group in STEPS and group not in ("site_plan", "results") else "more"]
+
+    def _goto_section(section_key: str) -> None:
+        group = properties.get(section_key).group
+        st.session_state.goto_step = group if group in STEPS and group not in ("site_plan", "results") else "more"
+
+    wells_page.page(inputs, errors, current_json, name, lang, calc_slot, step_tabs[RESULTS], _step_of_section,
+                    _goto_section)
+    st.stop()
 
 @st.cache_resource(max_entries=16, show_spinner=False)
 def cached_size(project_json: str) -> model.SizingResult:

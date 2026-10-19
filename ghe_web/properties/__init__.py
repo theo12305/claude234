@@ -3,7 +3,7 @@
 To add a new topic: create a module next to these, define a Section,
 call ``register(...)`` and import the module below.
 """
-from . import ground, borefield, pipe, fluid, flow, load, heat_pump, limits, calculation  # noqa: F401
+from . import ground, borefield, pipe, fluid, flow, load, heat_pump, limits, calculation, wells  # noqa: F401
 from .base import PresetGroup, Property, Section, SectionInput, Variant
 from .registry import get, register, sections
 

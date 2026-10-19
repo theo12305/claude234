@@ -29,7 +29,7 @@ def summary_table(result: model.SizingResult, inputs: dict[str, SectionInput], n
 def inputs_table(inputs: dict[str, SectionInput]) -> pd.DataFrame:
     """One row per scalar input. Tables (monthly loads, positions, hourly profiles) get their own sheets."""
     rows = []
-    for section in properties.sections():
+    for section in properties.sections(model.system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             continue
@@ -55,7 +55,7 @@ def inputs_table(inputs: dict[str, SectionInput]) -> pd.DataFrame:
 
 def _table_inputs(inputs: dict[str, SectionInput]) -> dict[str, pd.DataFrame]:
     sheets = {}
-    for section in properties.sections():
+    for section in properties.sections(model.system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             continue

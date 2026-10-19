@@ -4,6 +4,7 @@ from .registry import register
 register(Section(
     key="calculation",
     group="Design",
+    system="closed",
     label="Calculation",
     order=75,
     variants=(
