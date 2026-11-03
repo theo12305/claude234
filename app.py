@@ -5,6 +5,7 @@ import io
 import math
 import pathlib
 import sys
+import textwrap
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -81,8 +82,61 @@ def in_language(fn, *args):
     return lambda: i18n.call_in(lang, fn, *args)
 
 
-def chart(c) -> None:
-    st.altair_chart(i18n.localize_chart(c), width="stretch")
+def chart(c, width="stretch") -> None:
+    st.altair_chart(i18n.localize_chart(c), width=width)
+
+
+FIG = {"view": 0, "n": 0}  # figure numbers on the results page: number of the view . figure in the view
+
+
+def _picture(spec: dict, kind: str) -> bytes:
+    import vl_convert as vlc
+    return vlc.vegalite_to_png(spec, scale=3) if kind == "png" else vlc.vegalite_to_svg(spec).encode()
+
+
+def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, width="stretch", phone=None) -> None:
+    """A result chart with its figure number, a caption and downloads: the picture (PNG for reports, SVG to edit) with
+    the number, title and caption, and the numbers as CSV. ``phone``: a smaller version of a fixed-size chart, shown
+    instead on narrow screens."""
+    FIG["n"] += 1
+    number = f"{FIG['view']}.{FIG['n']}" if FIG["view"] else str(FIG["n"])
+    title = c.title if isinstance(c.title, str) else ""
+    head = st.container(horizontal=True, vertical_alignment="center", gap="small", key=f"fighead.{number}")
+    head.markdown(f"<span class='fignum'>{html.escape(t('Figure {n}', n=number))}</span>", unsafe_allow_html=True)
+    head.space("stretch")
+    config = i18n.chart_config(background="white").to_dict()
+    stem = "".join(ch if ch.isalnum() else "_" for ch in title)[:50].strip("_") or "figure"
+    stem = f"figure_{number.replace('.', '-')}_{stem}"
+
+    def spec():
+        out = c.to_dict()
+        out["config"] = {**out.get("config", {}), **config}
+        out.setdefault("width", 860)
+        out["title"] = {"text": t("Figure {n}", n=number) + (f" · {title}" if title else ""),
+                        "subtitle": textwrap.wrap(caption or "", 120) or "", "subtitleFontSize": 11,
+                        "anchor": "start"}
+        return out
+
+    with head.popover(t("Download"), icon=":material/download:"):
+        st.download_button(t("Picture for reports (PNG)"), in_language(lambda: _picture(spec(), "png")),
+                           f"{stem}.png", "image/png", icon=":material/image:", width="stretch",
+                           key=f"fig.{number}.png")
+        st.download_button(t("Vector graphic (SVG)"), in_language(lambda: _picture(spec(), "svg")),
+                           f"{stem}.svg", "image/svg+xml", icon=":material/draw:", width="stretch",
+                           key=f"fig.{number}.svg")
+        if data is not None:
+            st.download_button(t("The numbers (CSV)"), in_language(lambda: data.to_csv(index=False).encode()),
+                               f"{stem}.csv", "text/csv", icon=":material/table:", width="stretch",
+                               key=f"fig.{number}.csv")
+    if phone is None:
+        chart(c, width)
+    else:
+        with st.container(key=f"figwide.{number}"):
+            chart(c, width)
+        with st.container(key=f"fignarrow.{number}"):
+            chart(phone, width)
+    if caption:
+        st.caption(caption)
 
 
 # Input steps, in page order. A section with an unknown group lands in "More inputs", so new
@@ -113,6 +167,7 @@ if share.PARAM in st.query_params:  # opened from a share link: load its project
             st.session_state.pending_language = saved
         if model.saved_setting(text, "mode") in ("simple", "expert"):
             st.session_state.pending_mode = model.saved_setting(text, "mode")
+        siteplan_page.set_address(model.saved_setting(text, "address") or "")
         st.session_state.generation += 1
         st.session_state.opened_link = True
     st.rerun()
@@ -157,6 +212,7 @@ with menu:
                 st.session_state.pending_language = saved
             if model.saved_setting(text, "mode") in ("simple", "expert"):
                 st.session_state.pending_mode = model.saved_setting(text, "mode")
+            siteplan_page.set_address(model.saved_setting(text, "address") or "")
             st.session_state.generation += 1
             st.session_state.welcomed = True
             st.rerun()
@@ -208,14 +264,43 @@ with brand_slot:
 
 # ---------------------------------------------------------------- start page: the heat source
 
-def choose_heat_source(choice: str) -> None:
-    """Start with this heat source. Like opening a project, so every widget starts from the stored inputs."""
+def choose_heat_source(choice: str, hit: dict | None = None) -> None:
+    """Start with this heat source. Like opening a project, so every widget starts from the stored inputs. With an
+    address found on the start page, the site plan opens and loads the parcel there."""
     _, inputs_now = st.session_state.project
     st.session_state.project = (st.session_state.get(f"{gen}.name", project_name),
                                 {**inputs_now, "system": SectionInput(choice, {})})
     st.session_state.generation += 1
     st.session_state.welcomed = True
-    st.session_state.goto_step = "Site"
+    if hit is not None:
+        siteplan_page.start_from_address(st.session_state.get("welcome.address", "").strip() or hit["label"], hit)
+        st.session_state.goto_step = "site_plan"
+    else:
+        st.session_state.goto_step = "Site"
+
+
+def welcome_address() -> dict | None:
+    """The optional address on the start page; the place picked from the matches, or None."""
+    with st.container(border=True):
+        st.markdown("#### 📍 " + t("Where is the site? (optional)"))
+        st.caption(t("With an address the site plan opens with the parcel, the buildings and the distances of the "
+                     "state, places the boreholes or wells, and the ground layers can be predicted for this place. "
+                     "Leave it empty to enter the values yourself."))
+        c1, c2 = st.columns([4, 1], vertical_alignment="bottom")
+        query = c1.text_input(t("Address"), placeholder=t("e.g. Hauptstraße 5, 52062 Aachen"), key="welcome.address")
+        if c2.button(t("Find"), key="welcome.find", width="stretch", icon=":material/search:") and query.strip():
+            with st.spinner(t("Searching the address...")):
+                st.session_state["welcome.hits"] = siteplan_page.geocode(query.strip())
+        hits = st.session_state.get("welcome.hits")
+        if hits == []:
+            st.warning(t("No address found. Try without the house number, or start without an address and find the "
+                         "parcel in step ⓪ Site plan."), icon=":material/warning:")
+        if not hits or not query.strip():
+            return None
+        labels = [h["label"] for h in hits]
+        pick = st.selectbox(t("Matching places"), labels, key="welcome.pick") if len(hits) > 1 else labels[0]
+        st.success(t("**{place}** – now choose the heat source below.", place=pick), icon=":material/location_on:")
+        return hits[labels.index(pick)]
 
 
 if not st.session_state.get("welcomed", gen > 0):
@@ -223,6 +308,7 @@ if not st.session_state.get("welcomed", gen > 0):
         st.html(f"<div class='welcome'><h2>{html.escape(t('Size a geothermal system in your browser'))}</h2>"
                 f"<p class='lead'>{html.escape(t('Free and without login. Your project stays on your device.'))}"
                 f"</p></div>")
+        hit = welcome_address()
         st.markdown(f"<div style='text-align:center' class='lbl'>{html.escape(t('Which heat source?'))}</div>",
                     unsafe_allow_html=True)
         for col, (key_, (icon, label, text_)) in zip(st.columns(2, gap="medium"), guidance.HEAT_SOURCES.items()):
@@ -230,9 +316,10 @@ if not st.session_state.get("welcomed", gen > 0):
                 st.html(f"<div class='choice'>{icon}</div>")
                 st.markdown(f"#### {t(label)}")
                 st.caption(t(text_))
-                st.button(t("Start with {what}", what=t(label)), key=f"welcome.{key_}", width="stretch",
+                st.button(t("Start with {what} at this address", what=t(label)) if hit else
+                          t("Start with {what}", what=t(label)), key=f"welcome.{key_}", width="stretch",
                           type="primary" if key_ == model.system(start) else "secondary",
-                          on_click=choose_heat_source, args=(key_,), icon=":material/arrow_forward:")
+                          on_click=choose_heat_source, args=(key_, hit), icon=":material/arrow_forward:")
         st.caption(t("You can switch later in the menu ☰ or under ① in the heat source section. To continue a saved "
                      "project, open it in the menu ☰."))
     st.stop()
@@ -638,12 +725,17 @@ with step_tabs[SITE_PLAN]:
         else:
             siteplan_page.page(use_site_plan)
 
+def project_json() -> str:
+    """The project file: inputs, name, language, Simple/Expert and the address of the site plan."""
+    return model.to_json(inputs, name, language=lang, mode=ui_mode, address=siteplan_page.address())
+
+
 with save_slot:
-    st.download_button(t("Save project"), model.to_json(inputs, name, language=lang, mode=ui_mode).encode(),
+    st.download_button(t("Save project"), project_json().encode(),
                        f"{name.strip() or 'ghetool-project'}.json", "application/json", width="stretch",
                        icon=":material/save:")
 with share_slot, st.expander(t("Share link"), icon=":material/link:"):
-    link, dropped = share.link(st.context.url or "", model.to_json(inputs, name, language=lang, mode=ui_mode))
+    link, dropped = share.link(st.context.url or "", project_json())
     st.markdown(t("**Share this project**"))
     st.caption(t("Anyone with the link opens the site with your inputs filled in. The project is stored in the link "
                  "itself; nothing is saved on the server. Copy it with the button at the right of the box."))
@@ -845,12 +937,11 @@ def load_optimisation_done(sized_json: str) -> dict | None:
 
 def view_overview(result, key, limits) -> None:
     if result.hourly_basis:  # the hourly result is what the limits were checked against
-        chart(plots.hourly_band_chart(result.hourly_temperatures, limits))
-        st.caption(t("Daily range of the hourly average fluid temperature. Dashed: your limits."))
+        figure(plots.hourly_band_chart(result.hourly_temperatures, limits),
+               t("Daily range of the hourly average fluid temperature. Dashed: your limits."))
     else:
-        chart(plots.temperature_chart(result.temperatures, limits))
-        st.caption(t("Blue: coldest fluid (heating peaks). Red: warmest fluid (cooling peaks). Dashed: your limits. "
-                     "Grey dots: the lowest and highest value."))
+        figure(plots.temperature_chart(result.temperatures, limits), TEMPERATURE_CAPTION(),
+               export.monthly_temperatures(result).round(3))
     # spread the groups over two columns so both end at about the same height
     parts, heights = ([], []), [0, 0]
     for group, rows in key.by_group().items():
@@ -865,6 +956,12 @@ def view_overview(result, key, limits) -> None:
                     key_table(rows)
 
 
+def TEMPERATURE_CAPTION() -> str:  # noqa: N802 (a text in the current language)
+    return t("Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without "
+             "peaks. Brown: the borehole wall. Dashed: your limits. Move the pointer over the chart for the exact "
+             "values.")
+
+
 TEMP_VIEWS = {"years": "Over the years", "last": "Last year", "extremes": "Yearly min/max", "table": "Table"}
 
 
@@ -874,34 +971,62 @@ def view_temperatures(result, limits) -> None:
                   "the limits hour by hour: see **Hourly** for those temperatures."), icon=":material/info:")
     choice = st.segmented_control(t("Chart"), list(TEMP_VIEWS), format_func=lambda k: t(TEMP_VIEWS[k]),
                                   default="years", required=True, key="temp_view_id")
+    table = export.monthly_temperatures(result).round(3)
     if choice == "years":
-        chart(plots.temperature_chart(result.temperatures, limits))
+        years = round(float(result.temperatures.index.max()))
+        period = None
+        if years > 1:
+            period = st.slider(t("Years shown"), 0, years, (0, years), key="temp_period",
+                               help=t("Zoom in on a part of the simulation period."))
+            if tuple(period) == (0, years):
+                period = None
+        left, right = st.columns([3, 1], gap="medium")
+        with left:
+            figure(plots.temperature_chart(result.temperatures, limits, period), TEMPERATURE_CAPTION(), table)
+        with right:
+            figure(plots.last_year_chart(result.temperatures, limits, compact=True),
+                   t("The last year enlarged: blue, grey and red as on the left."), table.tail(12))
     elif choice == "last":
-        chart(plots.last_year_chart(result.temperatures, limits))
-        if "Into borefield (peak extraction)" in result.temperatures:
-            st.caption(t("Into the borefield = supply from the heat pump; out of the borefield = return to the heat "
-                         "pump."))
+        caption = t("Into the borefield = supply from the heat pump; out of the borefield = return to the heat pump.") \
+            if "Into borefield (peak extraction)" in result.temperatures else None
+        figure(plots.last_year_chart(result.temperatures, limits), caption, table.tail(12))
     elif choice == "extremes":
-        chart(plots.yearly_extremes_chart(analysis.yearly_extremes(result), limits))
-        st.caption(t("If the lowest temperature keeps falling (or the highest keeps rising) every year, the ground "
-                     "is out of balance. A longer simulation period shows whether it levels off."))
+        extremes = analysis.yearly_extremes(result)
+        figure(plots.yearly_extremes_chart(extremes, limits),
+               t("If the lowest temperature keeps falling (or the highest keeps rising) every year, the ground is out "
+                 "of balance. A longer simulation period shows whether it levels off."), extremes.round(3))
     else:
         st.dataframe(export.monthly_temperatures(result).round(2), hide_index=True, width="stretch", height=420)
 
 
 def view_energy(result, key) -> None:
     energy = analysis.monthly_ground_energy(result)
-    chart(plots.energy_balance_chart(energy))
-    st.caption(t("Energy taken from (heating) and put into (cooling) the ground, after heat pump efficiency."))
+    years = round(float(result.temperatures.index.max()))
+    left, right = st.columns([3, 2], gap="medium")
+    with left:
+        figure(plots.energy_balance_chart(energy),
+               t("Blue, below zero: heat taken from the ground for heating; it cools the ground. Red, above zero: heat "
+                 "put into the ground by cooling; it warms it. Grey line: what is left each month. Energy in the "
+                 "ground, after the heat pump efficiency."), energy.round(3))
+    with right:
+        drift = key.values.get("drift_k")
+        net = float(energy["Injection"].sum() - energy["Extraction"].sum())
+        text = t("Each year {x:,.0f} MWh more is taken from the ground than returned, so the ground slowly cools "
+                 "down.", x=-net) if net < 0 else t("Each year {x:,.0f} MWh more is returned to the ground than "
+                                                    "taken, so the ground slowly warms up.", x=net)
+        if drift is not None:
+            text += " " + t("The lowest fluid temperature changes by {x:+.1f} K from year 1 to year {n}.", x=drift,
+                            n=years)
+        figure(plots.imbalance_chart(energy, years), text)
     c1, c2, c3 = st.columns(3)
     c1.metric(t("Extracted from the ground"), t("{x:,.0f} MWh/yr", x=key.values["extraction_mwh"]))
     c2.metric(t("Injected into the ground"), t("{x:,.0f} MWh/yr", x=key.values["injection_mwh"]))
     c3.metric(t("Imbalance"), t("{x:+,.0f} MWh/yr", x=key.values["imbalance_mwh"]))
     duration = analysis.load_duration(result)
     if duration is not None:
-        chart(plots.load_duration_chart(duration))
-        st.caption(t("Each load sorted from its highest hour to its lowest. Solid: building demand. Dashed: what the "
-                     "ground sees after the heat pump. The area under a curve is the energy per year."))
+        figure(plots.load_duration_chart(duration),
+               t("Each load sorted from its highest hour to its lowest. Solid: building demand. Dashed: what the "
+                 "ground sees after the heat pump. The area under a curve is the energy per year."), duration)
 
 
 def view_hydraulics(result, key) -> None:
@@ -923,7 +1048,7 @@ def view_hydraulics(result, key) -> None:
             bf = result.borefield
             flow = float(bf.borehole.flow_data.vfr_borehole(fluid_data=bf.borehole.fluid_data,
                                                              temperature=v["t_min"]))
-            chart(plots.pressure_drop_chart(curve, flow, v["dp_kpa"]))
+            figure(plots.pressure_drop_chart(curve, flow, v["dp_kpa"]))
             st.caption(t("At the coldest fluid temperature, where the fluid is most viscous. The borehole only: add "
                          "the manifold, header pipes and heat pump evaporator for the pump. The kink is where the "
                          "flow turns turbulent."))
@@ -931,7 +1056,7 @@ def view_hydraulics(result, key) -> None:
                  "step ②."))
 
 
-def view_ground(result, sized_json) -> None:
+def view_ground(result, sized_json, north: bool = False) -> None:
     with st.spinner(t("Calculating the ground temperature around the field...")):
         m = cached_ground_map(sized_json)
     c1, c2, c3 = st.columns(3)
@@ -940,20 +1065,23 @@ def view_ground(result, sized_json) -> None:
               t("yearly average per metre of borehole"), delta_color="off", delta_arrow="off")
     c3.metric(t("Largest change"), fmt("{x:.1f} K", x=m["max_change"]), t("after {n} years", n=m["years"]),
               delta_color="off", delta_arrow="off")
-    left, right = st.columns([3, 2])
+    left, right = st.columns([11, 9], gap="medium")
     with left:
-        chart(plots.ground_map_chart(m))
+        figure(plots.ground_map_chart(m, north), t(
+            "How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of the "
+            "simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a borehole. "
+            "Boreholes in the middle change most because their neighbours add up. The seasonal swing on top of this "
+            "averages out over a year and is left out.", step=plots.ground_classes(m["table"]["Change"])[0]),
+            m["table"].round(4), width="content", phone=plots.ground_map_chart(m, north, size=290))
     with right:
-        st.caption(t("How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end "
-                     "of the simulation, halfway down the boreholes. Each dot is a borehole. Boreholes in the middle "
-                     "change most because their neighbours add up. The seasonal swing on top of this averages out "
-                     "over a year and is left out."))
-        st.caption(t("Calculated with the finite line source (uniform heat flow per metre, with the mirror image at "
-                     "the surface), which is also the basis of the g-function."))
+        figure(plots.ground_profile_chart(m), t(
+            "The change along the dotted line A–A′ of the map. Calculated with the finite line source (uniform heat "
+            "flow per metre, with the mirror image at the surface), which is also the basis of the g-function."))
     with st.expander(t("g-function (for specialists)"), icon=":material/show_chart:"):
         st.caption(t("The dimensionless step response of the field. Its rise at large times shows how strongly the "
                      "boreholes influence each other."))
-        chart(plots.gfunction_chart(analysis.gfunction_curve(result)))
+        curve = analysis.gfunction_curve(result)
+        figure(plots.gfunction_chart(curve), data=curve)
 
 
 @st.cache_resource(max_entries=8, show_spinner=False)
@@ -984,12 +1112,12 @@ def view_layers(result, sized_inputs, sized_json) -> None:
                   width="stretch")
     with right:
         st.markdown(t("**Share of the heat exchange per layer**"))
-        chart(plots.layer_share_chart(parts))
+        figure(plots.layer_share_chart(parts))
         st.caption(t("Length in the layer × its conductivity, as a share of the whole borehole. Layers that conduct "
                      "well carry more of the heat, so they are worth reaching."))
         st.markdown(t("**Average conductivity for other borehole lengths**"))
         top = max(float(rows[-1]["top"]) * 1.2, length * 1.6, 50.0)
-        chart(plots.conductivity_with_length(rows, buried, range(10, int(top) + 1, 5), length))
+        figure(plots.conductivity_with_length(rows, buried, range(10, int(top) + 1, 5), length))
         st.caption(t("Dashed: the calculated length. Where the curve rises, a deeper borehole reaches better "
                      "ground."))
     if used:
@@ -1039,7 +1167,7 @@ def view_load_optimisation(result, sized_json) -> None:
               t("{x:,.1f} MWh per year", x=opt["backup_heating_mwh"]), delta_color="off", delta_arrow="off")
     k4.metric(t("Backup cooling"), fmt("{x:,.0f} kW", x=opt["backup_cooling_kw"]),
               t("{x:,.1f} MWh per year", x=opt["backup_cooling_mwh"]), delta_color="off", delta_arrow="off")
-    chart(plots.optimisation_chart(opt["monthly"]))
+    figure(plots.optimisation_chart(opt["monthly"]))
     st.caption(t("Peak power taken by the ground: heating {heat:,.0f} kW, cooling {cool:,.0f} kW (building side).",
                  heat=opt["ground_peak_heating_kw"], cool=opt["ground_peak_cooling_kw"]))
     stem = name.strip() or "ghetool-project"
@@ -1055,13 +1183,13 @@ def view_hourly(result, limits) -> None:
     choice = st.segmented_control(t("Chart"), list(HOURLY_VIEWS), format_func=lambda k: t(HOURLY_VIEWS[k]),
                                   default="daily", required=True, key="hourly_view_id")
     if choice == "daily":
-        chart(plots.hourly_band_chart(result.hourly_temperatures, limits))
+        figure(plots.hourly_band_chart(result.hourly_temperatures, limits))
     elif choice == "last":
-        chart(plots.hourly_last_year_chart(result.hourly_temperatures, limits))
+        figure(plots.hourly_last_year_chart(result.hourly_temperatures, limits))
         st.caption(t("The band spans the lowest and highest fluid temperature of every 3 hours, so all peaks are "
                      "visible."))
     else:
-        chart(plots.heatmap_chart(result.hourly_temperatures))
+        figure(plots.heatmap_chart(result.hourly_temperatures))
         st.caption(t("Each cell is one hour of the last year. Blue is cold, red is warm."))
 
 
@@ -1079,14 +1207,14 @@ def view_heat_pump(result, key, sized_inputs) -> None:
         lo = float(min(result.temperatures["Average fluid (peak extraction)"].min(), key.values["t_min"]))
         hi = float(max(result.temperatures["Average fluid (peak injection)"].max(), key.values["t_max"]))
         for c in plots.efficiency_curves(sized_inputs["heat_pump"].values, (lo, hi)):
-            chart(c)
+            figure(c)
     else:
         st.info(t("The heat pump efficiency is fixed (SCOP/SEER). Choose **Depends on the fluid temperature** under "
                   "Heat pump efficiency in step ③ to see how the COP changes as the ground cools."),
                 icon=":material/info:")
     charts = plots.heat_pump_yearly_chart(result.heat_pump, show_spf=curve)
     for c in charts if isinstance(charts, tuple) else (charts,):
-        chart(c)
+        figure(c)
 
 
 def view_analysis(result, key, sized_json, sized_inputs) -> None:
@@ -1098,7 +1226,7 @@ def view_analysis(result, key, sized_json, sized_inputs) -> None:
         if st.session_state.get("sensitivity_json") == sized_json:
             with st.spinner(t("Sizing the variations...")):
                 sens = cached_sensitivity(sized_json)
-            chart(plots.tornado_chart(sens))
+            figure(plots.tornado_chart(sens))
             base = float(sens["Base"].iloc[0])
             table = pd.DataFrame({t("Input"): sens["Input"].map(t),
                                   t("Length, input lower [m]"): sens["Low"],
@@ -1128,7 +1256,7 @@ def view_analysis(result, key, sized_json, sized_inputs) -> None:
         if kept:
             table = pd.DataFrame(kept)
             st.dataframe(table.rename(columns=t), hide_index=True, width="stretch")
-            chart(plots.comparison_chart(table, "Total length [m]", t("Total length [m]")))
+            figure(plots.comparison_chart(table, "Total length [m]", t("Total length [m]")))
             if st.button(t("Clear the comparison")):
                 st.session_state.kept = []
                 st.rerun()
@@ -1269,7 +1397,7 @@ def view_field(result, sized_json) -> None:
               t("from the yearly imbalance"), delta_color="off", delta_arrow="off")
     left, right = st.columns([3, 2])
     with left:
-        chart(plots.borehole_map_chart(table, colour))
+        figure(plots.borehole_map_chart(table, colour))
     with right:
         if colour == "share":
             st.caption(t("GHEtool sizes the field with one wall temperature for all boreholes. To reach it, boreholes "
@@ -1357,7 +1485,7 @@ def answer_section(result, key, sized_inputs, limits, sized_json) -> None:
                                                    extra_tables(sized_json)),
                            f"{stem}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                            icon=":material/table_view:", on_click="ignore")
-        st.download_button(t("Save project"), model.to_json(inputs, name, language=lang, mode=ui_mode).encode(),
+        st.download_button(t("Save project"), project_json().encode(),
                            f"{stem}.json", "application/json", icon=":material/save:", key="quick_save")
         st.button(t("Full report and more downloads"), icon=":material/download:",
                   on_click=lambda: st.session_state.update(result_view_id="export"))
@@ -1404,6 +1532,7 @@ with step_tabs[RESULTS]:
                                     required=True, key="result_view_id", label_visibility="collapsed")
         if view not in views:
             view = "overview"
+        FIG["view"] = views.index(view) + 1
         if view == "overview":
             view_overview(result, key, limits)
         elif view == "temperatures":
@@ -1422,7 +1551,7 @@ with step_tabs[RESULTS]:
                         icon=":material/info:")
             show_design_check(found_checks)
         elif view == "ground":
-            view_ground(result, sized_json)
+            view_ground(result, sized_json, sized_inputs["borefield"].variant == "custom")
         elif view == "field":
             view_field(result, sized_json)
         elif view == "layers":

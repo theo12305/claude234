@@ -285,12 +285,15 @@ PROJECT_FORMAT = 1
 
 
 def to_json(inputs: dict[str, SectionInput], name: str = "", language: str | None = None,
-            mode: str | None = None) -> str:
-    """The project as JSON. ``language`` and ``mode`` (Simple / Expert) are page settings stored with it."""
+            mode: str | None = None, address: str | None = None) -> str:
+    """The project as JSON. ``language`` and ``mode`` (Simple / Expert) are page settings stored with it, ``address``
+    the address of the site plan."""
     import json
     extra = {"language": language} if language else {}
     if mode:
         extra["mode"] = mode
+    if address:
+        extra["address"] = address
     return json.dumps({
         "format": PROJECT_FORMAT,
         "name": name,

@@ -492,9 +492,6 @@ DE: dict[str, str] = {
     "Balanced ground": "Ausgeglichener Untergrund",
     "Base [m]": "Unterkante [m]",
     "Basis": "Grundlage",
-    "Blue: coldest fluid (heating peaks). Red: warmest fluid (cooling peaks). Dashed: your limits. Grey dots: the lowest and highest value.":
-        "Blau: kältestes Fluid (Heizspitzen). Rot: wärmstes Fluid (Kühlspitzen). Gestrichelt: Ihre Grenzwerte. "
-        "Graue Punkte: niedrigster und höchster Wert.",
     "Borefield design": "Auslegung des Sondenfelds",
     "Borefield layout": "Anordnung des Sondenfelds",
     "Borehole": "Sonde",
@@ -545,9 +542,6 @@ DE: dict[str, str] = {
     "Cadastre buildings: {error}": "Gebäude aus dem Kataster: {error}",
     "Calculate the comparison": "Vergleich berechnen",
     "Calculate with the layers (layered ground)": "Mit den Schichten rechnen (geschichteter Untergrund)",
-    "Calculated with the finite line source (uniform heat flow per metre, with the mirror image at the surface), which is also the basis of the g-function.":
-        "Berechnet mit der finiten Linienquelle (gleichmäßiger Wärmestrom je Meter, mit Spiegelquelle an der "
-        "Oberfläche), die auch der g-Funktion zugrunde liegt.",
     "Calculating the ground temperature around the field...": "Untergrundtemperatur um das Sondenfeld wird berechnet …",
     "Case": "Fall",
     "Change %": "Änderung %",
@@ -652,9 +646,6 @@ DE: dict[str, str] = {
     "Electricity [MWh/yr]": "Strom [MWh/a]",
     "Electricity per year": "Strombedarf pro Jahr",
     "Energy": "Energie",
-    "Energy [kWh]": "Energie [kWh]",
-    "Energy taken from (heating) and put into (cooling) the ground, after heat pump efficiency.":
-        "Dem Untergrund entzogene (Heizen) und eingetragene (Kühlen) Energie, nach Wärmepumpeneffizienz.",
     "Excel workbook, PDF report and the project file, for archiving a design.":
         "Excel-Arbeitsmappe, PDF-Bericht und Projektdatei, zum Archivieren einer Auslegung.",
     "Excluded area": "Ausschlussfläche",
@@ -667,8 +658,6 @@ DE: dict[str, str] = {
     "Extra distance around the areas drawn on the map.": "Zusätzlicher Abstand um die in der Karte gezeichneten Flächen.",
     "Extracted from the ground": "Dem Untergrund entzogen",
     "Extraction": "Entzug",
-    "Extraction (from the ground)": "Entzug (aus dem Untergrund)",
-    "Extraction (heating)": "Entzug (Heizen)",
     "Extraction [MWh]": "Entzug [MWh]",
     "Fill in the averages": "Mittelwerte übernehmen",
     "Find": "Suchen",
@@ -711,7 +700,6 @@ DE: dict[str, str] = {
     "Ground cooling [MWh]": "Untergrund Kühlen [MWh]",
     "Ground energy": "Energie am Untergrund",
     "Ground energy [MWh]": "Energie am Untergrund [MWh]",
-    "Ground energy balance (yearly imbalance {x:+,.0f} MWh)": "Energiebilanz des Untergrunds (jährliches Ungleichgewicht {x:+,.0f} MWh)",
     "Ground energy per year": "Energie am Untergrund pro Jahr",
     "Ground extraction": "Entzug aus dem Untergrund",
     "Ground heating": "Heizen über den Untergrund",
@@ -759,11 +747,6 @@ DE: dict[str, str] = {
     "Hours per year": "Stunden pro Jahr",
     "How many grid rotations and shifts are tried for the largest count.":
         "Wie viele Drehungen und Verschiebungen des Rasters für die größte Anzahl ausprobiert werden.",
-    "How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of the simulation, halfway down the boreholes. Each dot is a borehole. Boreholes in the middle change most because their neighbours add up. The seasonal swing on top of this averages out over a year and is left out.":
-        "Wie das jährliche Ungleichgewicht den Untergrund um das Feld am Ende der Simulation in halber Sondentiefe "
-        "erwärmt (rot) oder abkühlt (blau). Jeder Punkt ist eine Sonde. Sonden in der Mitte ändern sich am "
-        "stärksten, weil sich die Nachbarn aufsummieren. Der jahreszeitliche Wechsel darüber mittelt sich über ein "
-        "Jahr aus und ist nicht dargestellt.",
     "Hydraulics": "Hydraulik",
     "If the lowest temperature keeps falling (or the highest keeps rising) every year, the ground is out of balance. A longer simulation period shows whether it levels off.":
         "Sinkt die niedrigste Temperatur (oder steigt die höchste) Jahr für Jahr weiter, ist der Untergrund nicht im "
@@ -772,8 +755,6 @@ DE: dict[str, str] = {
     "Include the ground temperature map": "Karte der Untergrundtemperatur einfügen",
     "Injected into the ground": "In den Untergrund eingetragen",
     "Injection": "Eintrag",
-    "Injection (cooling)": "Eintrag (Kühlen)",
-    "Injection (into the ground)": "Eintrag (in den Untergrund)",
     "Injection [MWh]": "Eintrag [MWh]",
     "Input": "Eingabe",
     "Input borehole positions": "Eingegebene Sondenstandorte",
@@ -2308,4 +2289,84 @@ DE: dict[str, str] = {
         'Sole/Wasser-Wärmepumpen',
     'common design period':
         'üblicher Auslegungszeitraum',
+    "**{place}** – now choose the heat source below.":
+        "**{place}** – jetzt unten die Wärmequelle wählen.",
+    "Added up [MWh]":
+        "Aufsummiert [MWh]",
+    "Along the line A–A′ (grey: boreholes on the line)":
+        "Entlang der Linie A–A′ (grau: Sonden auf der Linie)",
+    "Blue, below zero: heat taken from the ground for heating; it cools the ground. Red, above zero: heat put into the ground by cooling; it warms it. Grey line: what is left each month. Energy in the ground, after the heat pump efficiency.":
+        "Blau, unter null: Wärme, die zum Heizen dem Untergrund entzogen wird; sie kühlt ihn ab. Rot, über null: Wärme, die beim Kühlen in den Untergrund eingetragen wird; sie erwärmt ihn. Graue Linie: was in jedem Monat übrig bleibt. Energie im Untergrund, nach dem Wirkungsgrad der Wärmepumpe.",
+    "Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without peaks. Brown: the borehole wall. Dashed: your limits. Move the pointer over the chart for the exact values.":
+        "Blau: das Fluid bei den Heizspitzen, am kältesten. Rot: bei den Kühlspitzen, am wärmsten. Grau: ohne Spitzen. Braun: die Bohrlochwand. Gestrichelt: Ihre Grenzwerte. Mit dem Zeiger über dem Diagramm erscheinen die genauen Werte.",
+    "Distance along A–A′ [m]":
+        "Abstand entlang A–A′ [m]",
+    "Distance m":
+        "Abstand m",
+    "Download":
+        "Herunterladen",
+    "Each year {x:,.0f} MWh more is returned to the ground than taken, so the ground slowly warms up.":
+        "Jedes Jahr werden {x:,.0f} MWh mehr in den Untergrund eingetragen als entzogen; er erwärmt sich langsam.",
+    "Each year {x:,.0f} MWh more is taken from the ground than returned, so the ground slowly cools down.":
+        "Jedes Jahr werden dem Untergrund {x:,.0f} MWh mehr entzogen als eingetragen; er kühlt langsam ab.",
+    "Energy [kWh] (extraction below zero)":
+        "Energie [kWh] (Entzug unter null)",
+    "Energy per month [MWh]":
+        "Energie pro Monat [MWh]",
+    "Energy taken from and returned to the ground (year balance {x:+,.0f} MWh)":
+        "Dem Untergrund entzogene und eingetragene Energie (Jahresbilanz {x:+,.0f} MWh)",
+    "Extraction (heating, cools the ground)":
+        "Entzug (Heizen, kühlt den Untergrund)",
+    "Figure {n}":
+        "Abbildung {n}",
+    "Fluid temperature in the boreholes over {n} years":
+        "Fluidtemperatur in den Sonden über {n} Jahre",
+    "How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of the simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a borehole. Boreholes in the middle change most because their neighbours add up. The seasonal swing on top of this averages out over a year and is left out.":
+        "Wie das jährliche Ungleichgewicht den Untergrund um das Feld am Ende der Simulation erwärmt (rot) oder abkühlt (blau), auf halber Sondentiefe. Linien: gleiche Änderung, alle {step:g} K. Jeder Punkt ist eine Sonde. Sonden in der Mitte ändern sich am stärksten, weil sich ihre Nachbarn addieren. Die jahreszeitliche Schwankung gleicht sich über ein Jahr aus und ist nicht enthalten.",
+    "Injection (cooling, warms the ground)":
+        "Eintrag (Kühlen, erwärmt den Untergrund)",
+    "Mean fluid temperature [°C]":
+        "Mittlere Fluidtemperatur [°C]",
+    "Net balance":
+        "Bilanz",
+    "No address found. Try without the house number, or start without an address and find the parcel in step ⓪ Site plan.":
+        "Keine Adresse gefunden. Versuchen Sie es ohne Hausnummer, oder starten Sie ohne Adresse und suchen Sie das Flurstück in Schritt ⓪ Lageplan.",
+    "Picture for reports (PNG)":
+        "Bild für Berichte (PNG)",
+    "Returned to the ground (warms it)":
+        "In den Untergrund eingetragen (erwärmt ihn)",
+    "Searching the address...":
+        "Adresse wird gesucht...",
+    "Start with {what} at this address":
+        "Mit {what} an dieser Adresse starten",
+    "Taken from the ground (cools it)":
+        "Dem Untergrund entzogen (kühlt ihn)",
+    "The change along the dotted line A–A′ of the map. Calculated with the finite line source (uniform heat flow per metre, with the mirror image at the surface), which is also the basis of the g-function.":
+        "Die Änderung entlang der gepunkteten Linie A–A′ der Karte. Berechnet mit der finiten Linienquelle (gleichmäßiger Wärmestrom je Meter, mit Spiegelquelle an der Oberfläche), die auch der g-Funktion zugrunde liegt.",
+    "The last year enlarged: blue, grey and red as on the left.":
+        "Das letzte Jahr vergrößert: Blau, Grau und Rot wie links.",
+    "The lowest fluid temperature changes by {x:+.1f} K from year 1 to year {n}.":
+        "Die tiefste Fluidtemperatur ändert sich von Jahr 1 bis Jahr {n} um {x:+.1f} K.",
+    "The numbers (CSV)":
+        "Die Zahlen (CSV)",
+    "The yearly balance added up":
+        "Die Jahresbilanz aufsummiert",
+    "Vector graphic (SVG)":
+        "Vektorgrafik (SVG)",
+    "Where is the site? (optional)":
+        "Wo liegt das Grundstück? (optional)",
+    "With an address the site plan opens with the parcel, the buildings and the distances of the state, places the boreholes or wells, and the ground layers can be predicted for this place. Leave it empty to enter the values yourself.":
+        "Mit einer Adresse öffnet sich der Lageplan mit dem Flurstück, den Gebäuden und den Abständen des Bundeslands und setzt die Sonden oder Brunnen; die Bodenschichten lassen sich für diesen Ort vorhersagen. Leer lassen, um die Werte selbst einzugeben.",
+    "Year {n} (zoom)":
+        "Jahr {n} (vergrößert)",
+    "Years shown":
+        "Gezeigte Jahre",
+    "Zoom in on a part of the simulation period.":
+        "Einen Teil des Simulationszeitraums vergrößert zeigen.",
+    "year {year}, {month}":
+        "Jahr {year}, {month}",
+    "{name}: {value} ({when})":
+        "{name}: {value} ({when})",
+    "{x:+,.0f} MWh after {n} years":
+        "{x:+,.0f} MWh nach {n} Jahren",
 }

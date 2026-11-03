@@ -96,6 +96,14 @@ div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {{background: var(
 .tile .v {{font-size: 1.55rem; font-weight: 700; margin-top: 2px; white-space: nowrap;}}
 .tile .d {{font-size: .8rem; color: var(--muted); margin-top: 2px;}}
 .tile .v.cold {{color: var(--cold);}} .tile .v.warm {{color: var(--warm);}}
+.fignum {{font-size: .78rem; font-weight: 700; color: var(--muted); letter-spacing: .05em; text-transform: uppercase;}}
+div[class*="st-key-fighead"] {{margin-bottom: -10px;}}
+div[class*="st-key-fighead"] button {{min-height: 1.9rem; padding: 0 .6rem;}}
+div[class*="st-key-fignarrow"] {{display: none;}}
+@media (max-width: 640px) {{
+  div[class*="st-key-fignarrow"] {{display: flex;}}
+  div[class*="st-key-figwide"] {{display: none;}}
+}}
 .rangebar {{margin: -6px 0 10px;}}
 .rangebar .track {{position: relative; height: 6px; border-radius: 3px; background: var(--track);}}
 .rangebar .band {{position: absolute; top: 0; height: 6px; border-radius: 3px; background: var(--band);}}
