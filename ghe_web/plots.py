@@ -433,12 +433,17 @@ def _translate_series(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def _limit_rules(limits: dict, field: str = "Temperature") -> alt.Chart:
-    """Dashed lines at the temperature limits, labelled on the left."""
+    """Dashed lines at the temperature limits, labelled on the right, with the area outside them shaded."""
     bounds = pd.DataFrame({field: [limits["T_min"], limits["T_max"]],
                            "Label": [t("min. limit {x:g} °C", x=limits["T_min"]),
                                      t("max. limit {x:g} °C", x=limits["T_max"])]})
     base = alt.Chart(bounds)
-    rules = base.mark_rule(strokeDash=[6, 4], color=NEUTRAL).encode(y=f"{field}:Q")
+    # light shading outside the limits: red above the maximum, blue below the minimum
+    above = alt.Chart(bounds.iloc[[1]]).mark_rect(color="#ef4444", opacity=0.08).encode(
+        y=f"{field}:Q", y2=alt.value(0))
+    below = alt.Chart(bounds.iloc[[0]]).mark_rect(color="#3b82f6", opacity=0.08).encode(
+        y=f"{field}:Q", y2=alt.value("height"))
+    rules = above + below + base.mark_rule(strokeDash=[6, 4], color=NEUTRAL).encode(y=f"{field}:Q")
     text = base.mark_text(align="right", dx=-4, dy=-7, fontSize=11, color=NEUTRAL).encode(
         y=f"{field}:Q", x=alt.value("width"), text="Label:N")
     return rules + text

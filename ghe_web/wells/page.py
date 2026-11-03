@@ -10,6 +10,7 @@ import streamlit as st
 
 from .. import checks as ghe_checks
 from .. import i18n, model
+from .. import ui
 from ..i18n import fmt, t
 from ..properties import SectionInput
 from . import checks, design, plots, report, sources
@@ -49,60 +50,74 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
          results_tab, step_of: Callable[[str], str], goto: Callable[[str], None]) -> None:
     """Sidebar calculation and the results tab. ``step_of`` gives the tab label of a section, ``goto`` opens it."""
     found = _all_checks(inputs, errors, current_json)
-    with calc_slot:
-        st.header(t("Calculation"))
-        sources_button("sidebar")
-        if errors:
-            st.error(t("{n} input(s) need attention:", n=sum(len(m) for m in errors.values())) + "\n\n" + "\n".join(
-                f"- {step_of(k)}: {t(model.properties.get(k).label)}" for k in errors), icon=":material/error:")
-        checking = inputs["wells"].variant == "check"
-        if st.button(t("Check the wells") if checking else t("Size the wells"), type="primary", disabled=bool(errors),
-                     width="stretch", icon=":material/calculate:"):
-            with st.spinner(t("Calculating the wells and tracing the flow paths...")):
-                try:
-                    cached_design(current_json)
-                except Exception as exc:
-                    st.session_state.pop("result_json", None)
-                    st.session_state.calc_error = str(exc)
-                else:
-                    st.session_state.result_json = current_json
-                    st.session_state.pop("calc_error", None)
-                    st.session_state.goto_results = True
-            st.rerun()
-        if "calc_error" in st.session_state:
-            st.error(t("The calculation failed: {error}", error=st.session_state.calc_error))
-        if "result_json" in st.session_state:
+    checking = inputs["wells"].variant == "check"
+    action = t("Check the wells") if checking else t("Size the wells")
+
+    def calculate() -> None:
+        with st.spinner(t("Calculating the wells and tracing the flow paths...")):
             try:
-                d = cached_design(st.session_state.result_json)
-            except Exception:  # a result of the other heat source, or from an older version
-                st.session_state.pop("result_json")
-                d = None
-            if d is not None:
-                st.metric(t("Wells"), t("{p} + {i} wells, {d:g} m apart", p=d.n_production, i=d.n_injection,
-                                        d=d.distance),
-                          t("{q:.1f} m³/h at peak", q=d.q_peak * 3600), delta_color="off", delta_arrow="off")
-                if st.session_state.result_json != current_json:
-                    st.warning(t("The inputs changed since the last calculation."), icon=":material/update:")
+                cached_design(current_json)
+            except Exception as exc:
+                st.session_state.pop("result_json", None)
+                st.session_state.calc_error = str(exc)
+            else:
+                st.session_state.result_json = current_json
+                st.session_state.pop("calc_error", None)
+            st.session_state.goto_results = True
+        st.rerun()
+
+    d_last = None
+    if "result_json" in st.session_state:
+        try:
+            d_last = cached_design(st.session_state.result_json)
+        except Exception:  # a result of the other heat source, or from an older version
+            st.session_state.pop("result_json")
+    with calc_slot:
         n = ghe_checks.counts(found)
-        with st.container(border=True):
-            st.markdown(t("**Design check**") + "  \n" + " ".join(
-                f":{color if count else 'gray'}-badge[{label}]" for color, count, label in (
-                    ("red", n[checks.PROBLEM], t("{n} problem(s)", n=n[checks.PROBLEM])),
-                    ("orange", n[checks.WARNING], t("{n} warning(s)", n=n[checks.WARNING])),
-                    ("green", n[checks.FINE], t("{n} fine", n=n[checks.FINE])))))
+        with st.container(width="stretch"):
+            if errors:
+                ui.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
+                               "; ".join(f"{step_of(k)}: {t(model.properties.get(k).label)}" for k in errors))
+            elif "calc_error" in st.session_state:
+                ui.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
+            elif d_last is not None:
+                last = t("{p} + {i} wells, {d:g} m apart", p=d_last.n_production, i=d_last.n_injection,
+                         d=d_last.distance) + ", " + t("{q:.1f} m³/h at peak", q=d_last.q_peak * 3600)
+                if st.session_state.result_json != current_json:
+                    ui.calc_status("warn", t("Inputs changed – results out of date"), t("Last result: {x}", x=last))
+                else:
+                    ui.calc_status("ok", t("Result up to date"), last)
+            else:
+                ui.calc_status("grey", t("Not calculated yet"))
+        if errors:
+            st.button(t("Show"), on_click=goto, args=(next(iter(errors)),), key="calc_goto_error",
+                      icon=":material/arrow_upward:")
+        check_label = " · ".join(x for x in (
+            t("{n} problem(s)", n=n[checks.PROBLEM]) if n[checks.PROBLEM] else "",
+            t("{n} warning(s)", n=n[checks.WARNING]) if n[checks.WARNING] else "") if x) or t("Design check")
+        st.button(check_label, key="open_checks", help=t("Open the design check"),
+                  on_click=lambda: st.session_state.update(goto_results=True, well_view_id="checks"),
+                  icon=":material/error:" if n[checks.PROBLEM] else ":material/warning:" if n[checks.WARNING]
+                  else ":material/fact_check:")
+        if st.button(action, type="primary", disabled=bool(errors), icon=":material/play_arrow:", key="calc_go"):
+            calculate()
 
     with results_tab:
+        if "calc_error" in st.session_state:
+            st.error(t("The calculation failed: {error}", error=st.session_state.calc_error), icon=":material/error:")
         if "result_json" not in st.session_state:
-            st.info(t("Fill in the inputs and press **Size the wells** in the sidebar."), icon=":material/info:")
+            st.info(t("Fill in the inputs and press **Size the wells** in the bar at the bottom."),
+                    icon=":material/info:")
             _show_checks(found, step_of, goto)
             return
         sized_json = st.session_state.result_json
         sized_inputs = model.from_json(sized_json)[1]
         d = cached_design(sized_json)
         if sized_json != current_json:
-            st.warning(t("These results belong to earlier inputs. Press the button in the sidebar to update them."),
+            st.warning(t("These results belong to earlier inputs. Press the button in the bar at the bottom to update "
+                         "them."),
                        icon=":material/update:")
-        _verdict(d, sized_inputs)
+        _verdict(d, sized_inputs, found if sized_json == current_json else None)
         sources_button("results")
         view = st.segmented_control(t("View"), list(VIEWS), format_func=lambda k: t(VIEWS[k]), default="overview",
                                     required=True, key="well_view_id")
@@ -152,33 +167,40 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
 
 def sources_button(where: str) -> None:
     """A popover with what each part of the calculation is based on, and the literature."""
-    with st.popover(t("Calculation sources"), icon=":material/menu_book:", width="stretch" if where == "sidebar"
-                    else "content"):
+    box = st.expander(t("Calculation sources"), icon=":material/menu_book:") if where == "menu" else \
+        st.popover(t("Calculation sources"), icon=":material/menu_book:")
+    with box:
         st.markdown(t("**What the well calculation is based on**"))
         st.caption(t("GHEtool has no open-loop model; these methods are written for this tool and tested against the "
                      "textbook results."))
         st.markdown(sources.markdown())
 
 
-def _verdict(d: design.Design, inputs) -> None:
-    problems = [c for c in checks.result_checks(d, inputs) if c.level == checks.PROBLEM]
-    text = t("{p} production and {i} injection well(s), {d:g} m apart, {q:.1f} m³/h at peak, {depth:.0f} m deep.",
-             p=d.n_production, i=d.n_injection, d=d.distance, q=d.q_peak * 3600, depth=d.screen.depth)
+def _verdict(d: design.Design, inputs, found: list | None = None) -> None:
+    """The answer first: a card with the wells and the design check (all checks when the result belongs to the current
+    inputs, else those of the result), then the key figures as tiles."""
+    found = found if found is not None else checks.result_checks(d, inputs)
+    problems = [c for c in found if c.level == checks.PROBLEM]
+    warnings = [c for c in found if c.level == checks.WARNING]
+    sub = t("{p} production and {i} injection well(s), {d:g} m apart, {q:.1f} m³/h at peak, {depth:.0f} m deep.",
+            p=d.n_production, i=d.n_injection, d=d.distance, q=d.q_peak * 3600, depth=d.screen.depth)
     if problems:
-        st.error(text + " " + t("{n} problem(s): see the design check.", n=len(problems)), icon=":material/cancel:")
-    else:
-        st.success(text, icon=":material/check_circle:")
-    c = st.columns(5)
-    c[0].metric(t("Peak flow"), fmt("{x:.1f} m³/h", x=d.q_peak * 3600), fmt("{x:.1f} l/s", x=d.q_peak * 1000),
-                delta_color="off", delta_arrow="off")
-    c[1].metric(t("Water per year"), fmt("{x:,.0f} m³", x=d.volume_year))
-    c[2].metric(t("Drawdown"), fmt("{x:.1f} m", x=d.peak.drawdown), t("of {x:.1f} m", x=d.drawdown_allowed),
-                delta_color="off", delta_arrow="off")
-    c[3].metric(t("Rise in the injection well"), fmt("{x:.1f} m", x=d.peak.rise), t("of {x:.1f} m", x=d.rise_allowed),
-                delta_color="off", delta_arrow="off")
-    c[4].metric(t("Lowest production temperature"), fmt("{x:.1f} °C", x=d.t_production_min),
-                t("{x:+.2f} K over the period", x=-d.drift if d.t_production_min < d.t_groundwater else d.drift),
-                delta_color="off", delta_arrow="off")
+        sub += " " + t("{n} problem(s): see the design check.", n=len(problems))
+    chip_items = [("bad", t("{n} problem(s)", n=len(problems)))] if problems else []
+    if warnings:
+        chip_items.append(("warn", t("{n} warning(s)", n=len(warnings))))
+    chip_items.append(("ok", t("{n} fine", n=len(found) - len(problems) - len(warnings))))
+    ui.answer_card(not problems, t("Answer"), t("{p} + {i} wells, {d:g} m apart", p=d.n_production, i=d.n_injection,
+                                                d=d.distance), sub, chip_items)
+    ui.tiles([
+        ("💧 " + t("Peak flow"), fmt("{x:.1f} m³/h", x=d.q_peak * 3600), fmt("{x:.1f} l/s", x=d.q_peak * 1000), ""),
+        ("Σ " + t("Water per year"), fmt("{x:,.0f} m³", x=d.volume_year), "", ""),
+        ("⬇️ " + t("Drawdown"), fmt("{x:.1f} m", x=d.peak.drawdown), t("of {x:.1f} m", x=d.drawdown_allowed), ""),
+        ("⬆️ " + t("Rise in the injection well"), fmt("{x:.1f} m", x=d.peak.rise), t("of {x:.1f} m", x=d.rise_allowed),
+         ""),
+        ("❄️ " + t("Lowest production temperature"), fmt("{x:.1f} °C", x=d.t_production_min),
+         t("{x:+.2f} K over the period", x=-d.drift if d.t_production_min < d.t_groundwater else d.drift), "cold"),
+    ])
 
 
 def _overview(d: design.Design, inputs) -> None:

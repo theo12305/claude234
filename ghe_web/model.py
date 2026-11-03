@@ -284,9 +284,13 @@ def heat_pump_table(load) -> pd.DataFrame | None:
 PROJECT_FORMAT = 1
 
 
-def to_json(inputs: dict[str, SectionInput], name: str = "", language: str | None = None) -> str:
+def to_json(inputs: dict[str, SectionInput], name: str = "", language: str | None = None,
+            mode: str | None = None) -> str:
+    """The project as JSON. ``language`` and ``mode`` (Simple / Expert) are page settings stored with it."""
     import json
     extra = {"language": language} if language else {}
+    if mode:
+        extra["mode"] = mode
     return json.dumps({
         "format": PROJECT_FORMAT,
         "name": name,
@@ -324,14 +328,19 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
     return data.get("name", ""), inputs
 
 
-def saved_language(text: str) -> str | None:
-    """The page language stored in a project file, if any."""
+def saved_setting(text: str, key: str) -> str | None:
+    """A page setting stored in a project file ("language", "mode"), if any."""
     import json
     try:
-        language = json.loads(text).get("language")
+        value = json.loads(text).get(key)
     except (ValueError, AttributeError):
         return None
-    return language if isinstance(language, str) else None
+    return value if isinstance(value, str) else None
+
+
+def saved_language(text: str) -> str | None:
+    """The page language stored in a project file, if any."""
+    return saved_setting(text, "language")
 
 
 def _plain(values: dict[str, Any]) -> dict[str, Any]:

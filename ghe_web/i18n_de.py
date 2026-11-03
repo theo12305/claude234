@@ -56,10 +56,6 @@ DE: dict[str, str] = {
         "Projekte werden als Datei auf Ihrem Rechner gespeichert, einschließlich der Sprache. Auf dem Server wird "
         "nichts gespeichert.",
     "Borehole heat exchanger sizing": "Auslegung von Erdwärmesonden",
-    "Fill in the four input steps, then press **Size borefield** on the left. Every field has a question mark with "
-    "an explanation; the drop-downs fill in typical values.":
-        "Füllen Sie die vier Eingabeschritte aus und klicken Sie dann links auf **Sondenfeld auslegen**. Jedes Feld "
-        "hat ein Fragezeichen mit einer Erläuterung; die Auswahllisten setzen typische Werte ein.",
     "How to use this tool": "So arbeiten Sie mit diesem Werkzeug",
     "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n"
     "2. **① Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n"
@@ -68,9 +64,9 @@ DE: dict[str, str] = {
     "pump efficiency.\n"
     "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a given "
     "one.\n"
-    "6. Press **Size borefield** in the sidebar. The **📊 Results** tab shows key figures, charts, further analysis "
+    "6. Press **Size borefield** in the bar at the bottom. The **📊 Results** tab shows key figures, charts, further analysis "
     "and the PDF report and Excel export.\n\n"
-    "Save the project in the sidebar to continue later. Calculations use the open-source "
+    "Save the project in the menu ☰ to continue later. Calculations use the open-source "
     "[GHEtool](https://github.com/wouterpeere/GHEtool).":
         "1. **⓪ Lageplan** (optional): Flurstück finden und so viele Sonden wie möglich platzieren.\n"
         "2. **① Untergrund & Sondenfeld**: Untergrundeigenschaften (oder prognostizierte Schichten) und die "
@@ -80,9 +76,9 @@ DE: dict[str, str] = {
         "Effizienz der Wärmepumpe.\n"
         "5. **④ Grenzwerte & Berechnung**: die zulässigen Fluidtemperaturen und ob die Länge ausgelegt oder eine "
         "vorgegebene Länge geprüft wird.\n"
-        "6. In der Seitenleiste auf **Sondenfeld auslegen** klicken. Der Reiter **📊 Ergebnisse** zeigt Kennwerte, "
+        "6. In der Leiste unten auf **Sondenfeld auslegen** klicken. Der Reiter **📊 Ergebnisse** zeigt Kennwerte, "
         "Diagramme, weitere Analysen sowie PDF-Bericht und Excel-Export.\n\n"
-        "Speichern Sie das Projekt in der Seitenleiste, um später weiterzuarbeiten. Die Berechnungen nutzen das "
+        "Speichern Sie das Projekt im Menü ☰, um später weiterzuarbeiten. Die Berechnungen nutzen das "
         "Open-Source-Programm [GHEtool](https://github.com/wouterpeere/GHEtool).",
     "Input method": "Eingabeart",
     "Choose to fill in typical values…": "Auswählen, um typische Werte einzusetzen …",
@@ -90,7 +86,6 @@ DE: dict[str, str] = {
     "Monthly values. Click a cell to edit; you can paste a column from Excel.":
         "Monatswerte. Zum Bearbeiten in eine Zelle klicken; Sie können eine Spalte aus Excel einfügen.",
     "Calculation": "Berechnung",
-    "{n} input(s) need attention:": "{n} Eingabe(n) prüfen:",
     "Size borefield": "Sondenfeld auslegen",
     "Check temperatures": "Temperaturen prüfen",
     "Calculating... hourly sizing can take up to a minute.":
@@ -98,9 +93,6 @@ DE: dict[str, str] = {
     "Calculating... hourly sizing with a temperature-dependent COP takes one to two minutes.":
         "Berechnung läuft … eine stündliche Auslegung mit temperaturabhängigem COP dauert ein bis zwei Minuten.",
     "The calculation failed: {error}": "Die Berechnung ist fehlgeschlagen: {error}",
-    "The inputs changed since the last calculation.": "Die Eingaben wurden seit der letzten Berechnung geändert.",
-    "See the **📊 Results** tab for details.": "Details im Reiter **📊 Ergebnisse**.",
-    "{n} boreholes, {total:,.0f} m in total": "{n} Sonden, insgesamt {total:,.0f} m",
     "Borefield set to an irregular field with the {n} positions from the site plan.":
         "Das Sondenfeld wurde auf ein unregelmäßiges Feld mit den {n} Positionen aus dem Lageplan gesetzt.",
 
@@ -1115,9 +1107,9 @@ DE: dict[str, str] = {
         "Die Datei hat 8784 Stunden (Schaltjahr); der letzte Tag wurde verworfen.",
     "The file needs two columns with numbers: heating and cooling demand in kW.":
         "Die Datei braucht zwei Zahlenspalten: Heiz- und Kältebedarf in kW.",
-    "The files are made when you click, so the page stays fast. The PDF report and the Excel workbook are in the language chosen in the sidebar.":
+    "The files are made when you click, so the page stays fast. The PDF report and the Excel workbook are in the language chosen at the top.":
         "Die Dateien werden erst beim Klick erstellt, damit die Seite schnell bleibt. PDF-Bericht und "
-        "Excel-Arbeitsmappe erscheinen in der in der Seitenleiste gewählten Sprache.",
+        "Excel-Arbeitsmappe erscheinen in der oben gewählten Sprache.",
     "The first layer has to start at the surface (0 m).": "Die erste Schicht muss an der Geländeoberfläche (0 m) beginnen.",
     "The flow is laminar (Re = {re:,.0f}). A higher flow rate, smaller pipes or less antifreeze lower the borehole resistance and can shorten the boreholes.":
         "Die Strömung ist laminar (Re = {re:,.0f}). Ein höherer Durchfluss, kleinere Rohre oder weniger "
@@ -1195,7 +1187,7 @@ DE: dict[str, str] = {
     "VDI 4640 recommends at least 5 m (6 m for longer boreholes); 5 to 8 m is common. Closer boreholes influence each other more.":
         "VDI 4640 empfiehlt mindestens 5 m (6 m bei längeren Sonden); 5 bis 8 m sind üblich. Engere Sonden "
         "beeinflussen sich stärker.",
-    "VDI 4640 rule of thumb: 30 to 60 W/m": "Faustwert nach VDI 4640: 30 bis 60 W/m",
+    "VDI 4640-2 guide values: 20 to 84 W/m depending on the ground, 50 to 60 W/m in normal ground": "Richtwerte nach VDI 4640-2: 20 bis 84 W/m je nach Untergrund, 50 bis 60 W/m bei normalem Untergrund",
     "Value": "Wert",
     "Variant": "Variante",
     "Variant comparison": "Variantenvergleich",
@@ -1311,8 +1303,6 @@ DE: dict[str, str] = {
     "{n} borehole(s) break a distance rule: {which}": "{n} Sonde(n) verletzen eine Abstandsregel: {which}",
     "{n} boreholes": "{n} Sonden",
     "{n} boreholes of {length:.1f} m": "{n} Sonden à {length:.1f} m",
-    "{n} boreholes of {length:.1f} m keep the fluid between {t_min:g} and {t_max:g} °C for {years} years ({method}).":
-        "{n} Sonden à {length:.1f} m halten das Fluid {years} Jahre lang zwischen {t_min:g} und {t_max:g} °C ({method}).",
     "{n} boreholes, closest {d:.1f} m apart": "{n} Sonden, geringster Abstand {d:.1f} m",
     "{n} boreholes, {b1:g} m × {b2:g} m spacing": "{n} Sonden, Abstand {b1:g} m × {b2:g} m",
     "{n} empty cells were read as 0 kW.": "{n} leere Zellen wurden als 0 kW gelesen.",
@@ -1348,8 +1338,6 @@ DE: dict[str, str] = {
         "🔮 Schichten aus nahen Bohrungen und der geologischen Karte prognostizieren",
 
     # ------------------------------------------------------------ share link, design check, borefield map
-    '**Design check**':
-        '**Planungsprüfung**',
     '**Design check: {summary}**':
         '**Planungsprüfung: {summary}**',
     '**Share this project**':
@@ -1458,8 +1446,8 @@ DE: dict[str, str] = {
         '{n} Problem(e)',
     '{n} warning(s)':
         '{n} Warnung(en)',
-    '{w:.0f} W/m at peak is above the VDI 4640 rule of thumb (30 to 60 W/m). The simulation allows it, but check the peak load and the ground values.':
-        '{w:.0f} W/m in der Spitze liegt über dem Richtwert der VDI 4640 (30 bis 60 W/m). Die Simulation lässt das zu, prüfen Sie aber die Spitzenlast und die Untergrundwerte.',
+    '{w:.0f} W/m at peak is above the VDI 4640-2 guide value for normal ground (60 W/m; up to 84 W/m only in rock with a high conductivity). The simulation allows it, but check the peak load and the ground values.':
+        '{w:.0f} W/m in der Spitze liegt über dem Richtwert der VDI 4640-2 für normalen Untergrund (60 W/m; bis 84 W/m nur in Festgestein mit hoher Wärmeleitfähigkeit). Die Simulation lässt das zu, prüfen Sie aber die Spitzenlast und die Untergrundwerte.',
     '{x:.0f} % of the average load':
         '{x:.0f} % der mittleren Last',
     'Ask the open data services (BGR geological map of Germany; borehole data of the state surveys)':
@@ -1617,8 +1605,8 @@ DE: dict[str, str] = {
     # groundwater wells (open loop)
     '**Downloads**':
         '**Downloads**',
-    '1. **⓪ Site plan** (optional): find the parcel.\n2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted layers), the aquifer and the water analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n6. Press **Size the wells** in the sidebar. The **📊 Results** tab shows the flow, wells, water levels, temperatures, the site map, the well construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected water and a planar plume) are written for this tool; GHEtool has no open-loop model.':
-        '1. **⓪ Lageplan** (optional): das Flurstück finden.\n2. **① Untergrund & Grundwasserleiter**: Brunnen als Wärmequelle wählen, die Untergrundtemperatur (oder vorhergesagte Schichten), den Grundwasserleiter und die Wasseranalyse.\n3. **② Brunnen**: Bohrdurchmesser, Brunnenverluste, und ob die Brunnen ausgelegt oder vorgegebene Brunnen geprüft werden.\n4. **③ Lasten**: die dem Grundwasser entzogene und zugeführte Wärme oder der Gebäudebedarf.\n5. **④ Grenzwerte & Berechnung**: Temperaturspreizung und die Grenzwerte der Wasserbehörde.\n6. **Brunnen auslegen** in der Seitenleiste drücken. Der Reiter **📊 Ergebnisse** zeigt Förderstrom, Brunnen, Wasserstände, Temperaturen, den Lageplan, den Brunnenausbau und die Downloads.\n\nDie Brunnenhydraulik (Thiem, Dupuit-Jacob, Sichardt) und das thermische Modell (Fließwege des eingeleiteten Wassers und eine ebene Temperaturfahne) sind für dieses Werkzeug geschrieben; GHEtool hat kein Modell für offene Systeme.',
+    '1. **⓪ Site plan** (optional): find the parcel.\n2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted layers), the aquifer and the water analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n6. Press **Size the wells** in the bar at the bottom. The **📊 Results** tab shows the flow, wells, water levels, temperatures, the site map, the well construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected water and a planar plume) are written for this tool; GHEtool has no open-loop model.':
+        '1. **⓪ Lageplan** (optional): das Flurstück finden.\n2. **① Untergrund & Grundwasserleiter**: Brunnen als Wärmequelle wählen, die Untergrundtemperatur (oder vorhergesagte Schichten), den Grundwasserleiter und die Wasseranalyse.\n3. **② Brunnen**: Bohrdurchmesser, Brunnenverluste, und ob die Brunnen ausgelegt oder vorgegebene Brunnen geprüft werden.\n4. **③ Lasten**: die dem Grundwasser entzogene und zugeführte Wärme oder der Gebäudebedarf.\n5. **④ Grenzwerte & Berechnung**: Temperaturspreizung und die Grenzwerte der Wasserbehörde.\n6. **Brunnen auslegen** in der Leiste unten drücken. Der Reiter **📊 Ergebnisse** zeigt Förderstrom, Brunnen, Wasserstände, Temperaturen, den Lageplan, den Brunnenausbau und die Downloads.\n\nDie Brunnenhydraulik (Thiem, Dupuit-Jacob, Sichardt) und das thermische Modell (Fließwege des eingeleiteten Wassers und eine ebene Temperaturfahne) sind für dieses Werkzeug geschrieben; GHEtool hat kein Modell für offene Systeme.',
     '2 m below the lowest water level':
         '2 m unter dem tiefsten Wasserstand',
     'A change of {k:g} K reaches {x:.0f} m downstream, beyond the parcel border at {b:g} m. The water authority may ask for a plume model; the estimate leaves out the heat exchange with the layers above and below, so the real plume is shorter.':
@@ -1721,10 +1709,8 @@ DE: dict[str, str] = {
         'Zusätzliche Absenkung C·Q² im Brunnen selbst (Filter, Kiesschüttung). Etwa 1800 s²/m⁵ für einen fachgerecht gebauten Brunnen (Walton); aus einem Leistungspumpversuch, falls vorhanden.',
     'Extracted [kWh]':
         'Entzogen [kWh]',
-    'Fill in the four input steps, then press **Size the wells** on the left. Every field has a question mark with an explanation; the drop-downs fill in typical values.':
-        'Die vier Eingabeschritte ausfüllen, dann links **Brunnen auslegen** drücken. Jedes Feld hat ein Fragezeichen mit einer Erklärung; die Auswahllisten setzen typische Werte ein.',
-    'Fill in the inputs and press **Size the wells** in the sidebar.':
-        'Die Eingaben ausfüllen und in der Seitenleiste **Brunnen auslegen** drücken.',
+    'Fill in the inputs and press **Size the wells** in the bar at the bottom.':
+        'Die Eingaben ausfüllen und in der Leiste unten **Brunnen auslegen** drücken.',
     'Finds the number of wells and the shortest distance between production and injection that keeps the production temperature and the water levels within the limits.':
         'Findet die Zahl der Brunnen und den kürzesten Abstand zwischen Förder- und Schluckbrunnen, bei dem Fördertemperatur und Wasserstände in den Grenzen bleiben.',
     'Fine sand':
@@ -1973,8 +1959,8 @@ DE: dict[str, str] = {
         'Thermischer Durchbruch',
     'Thermal short circuit':
         'Thermischer Kurzschluss',
-    'These results belong to earlier inputs. Press the button in the sidebar to update them.':
-        'Diese Ergebnisse gehören zu früheren Eingaben. Zum Aktualisieren die Schaltfläche in der Seitenleiste drücken.',
+    'These results belong to earlier inputs. Press the button in the bar at the bottom to update them.':
+        'Diese Ergebnisse gehören zu früheren Eingaben. Zum Aktualisieren die Schaltfläche in der Leiste unten drücken.',
     'Through injected water that flows back to the production wells, over the simulation period.':
         'Durch eingeleitetes Wasser, das zu den Förderbrunnen zurückfließt, über den Simulationszeitraum.',
     'Total head':
@@ -2203,4 +2189,123 @@ DE: dict[str, str] = {
         'kf und effektive Porosität je Gesteinsart sind die Mitte der üblichen Bereiche; Dispersivität etwa 1/10 der betrachteten Entfernung. Wo vorhanden, Pumpversuch und Grundwasserkarten des Landes verwenden.',
     '{x:.1f} m along the flow':
         '{x:.1f} m in Strömungsrichtung',
+    # design refresh: app bar, start page, calculate bar, answer card, typical ranges
+    '**Help**':
+        '**Hilfe**',
+    '**Project**':
+        '**Projekt**',
+    'Answer':
+        'Ergebnis',
+    'Change the heat source':
+        'Wärmequelle wechseln',
+    'Check of the given length':
+        'Nachweis der vorgegebenen Länge',
+    'Deeper than 100 m: the drilling must be reported to the mining authority (§ 127 BBergG).':
+        'Tiefer als 100 m: Die Bohrung ist der Bergbehörde anzuzeigen (§ 127 BBergG).',
+    'Details in 📊 Results.':
+        'Details unter 📊 Ergebnisse.',
+    'Excel':
+        'Excel',
+    'Expert':
+        'Experte',
+    'Simple':
+        'Einfach',
+    'Mode':
+        'Modus',
+    'Fields most people leave at their typical value. They are always part of the calculation; switch to Expert at the top to see every field at once.':
+        'Felder, die meist beim typischen Wert bleiben. Sie gehen immer in die Berechnung ein; oben auf Experte umschalten, um alle Felder auf einmal zu sehen.',
+    'Fill in the input steps, then press **Size borefield** in the bar at the bottom. Every field has a question mark with an explanation; the drop-downs fill in typical values.':
+        'Die Eingabeschritte ausfüllen, dann in der Leiste unten auf **Sondenfeld auslegen** klicken. Jedes Feld hat ein Fragezeichen mit Erklärung; die Auswahllisten setzen typische Werte ein.',
+    'Fill in the input steps, then press **Size the wells** in the bar at the bottom. Every field has a question mark with an explanation; the drop-downs fill in typical values.':
+        'Die Eingabeschritte ausfüllen, dann in der Leiste unten auf **Brunnen auslegen** klicken. Jedes Feld hat ein Fragezeichen mit Erklärung; die Auswahllisten setzen typische Werte ein.',
+    'Free and without login. Your project stays on your device.':
+        'Kostenlos und ohne Anmeldung. Ihr Projekt bleibt auf Ihrem Gerät.',
+    'Full report and more downloads':
+        'Vollständiger Bericht und weitere Downloads',
+    'Inputs changed – results out of date':
+        'Eingaben geändert – Ergebnis veraltet',
+    'Last result: {x}':
+        'Letztes Ergebnis: {x}',
+    'More options ({n})':
+        'Weitere Optionen ({n})',
+    'Not calculated yet':
+        'Noch nicht berechnet',
+    'Opens the start page with the choice between borehole heat exchangers and groundwater wells. Your inputs stay.':
+        'Öffnet die Startseite mit der Wahl zwischen Erdwärmesonden und Grundwasserbrunnen. Ihre Eingaben bleiben erhalten.',
+    'PDF summary':
+        'PDF-Kurzbericht',
+    'Result up to date':
+        'Ergebnis aktuell',
+    'Show':
+        'Zeigen',
+    'Simple / Expert: the switch next to the language. Simple shows the main fields and puts the others under "More options"; nothing is left out of the calculation.':
+        'Einfach / Experte: der Schalter neben der Sprache. Einfach zeigt die wichtigsten Felder und legt die übrigen unter „Weitere Optionen“; in der Berechnung fehlt nichts.',
+    'Size a geothermal system in your browser':
+        'Geothermie-Anlagen im Browser auslegen',
+    'Start with {what}':
+        'Mit {what} beginnen',
+    'The calculation failed':
+        'Die Berechnung ist fehlgeschlagen',
+    'Which heat source?':
+        'Welche Wärmequelle?',
+    'You can switch later in the menu ☰ or under ① in the heat source section. To continue a saved project, open it in the menu ☰.':
+        'Wechseln geht später im Menü ☰ oder unter ① im Abschnitt Wärmequelle. Ein gespeichertes Projekt öffnen Sie im Menü ☰.',
+    'cooling decides the length':
+        'das Kühlen bestimmt die Länge',
+    'heating decides the length':
+        'das Heizen bestimmt die Länge',
+    'heat pump electricity {x:,.1f} MWh per year':
+        'Wärmepumpenstrom {x:,.1f} MWh pro Jahr',
+    'higher than usual ({source}: {lo:g}–{hi:g}) – please check':
+        'höher als üblich ({source}: {lo:g}–{hi:g}) – bitte prüfen',
+    'lower than usual ({source}: {lo:g}–{hi:g}) – please check':
+        'niedriger als üblich ({source}: {lo:g}–{hi:g}) – bitte prüfen',
+    'typical ({source}: {lo:g}–{hi:g})':
+        'typisch ({source}: {lo:g}–{hi:g})',
+    'limit {x:g} °C':
+        'Grenze {x:g} °C',
+    '{h:,.0f} full-load hours with the peak heating above (VDI 4640 assumes 1,800–2,400 h)':
+        '{h:,.0f} Volllaststunden mit der Heizleistung oben (VDI 4640 geht von 1.800–2.400 h aus)',
+    '{n} boreholes × {length:.1f} m':
+        '{n} Sonden × {length:.1f} m',
+    '{n} input(s) need attention':
+        '{n} Eingabe(n) prüfen',
+    '{n} × {length:.1f} m, {total:,.0f} m in total':
+        '{n} × {length:.1f} m, insgesamt {total:,.0f} m',
+    '{total:,.0f} m drilled · fluid between {lo:.1f} and {hi:.1f} °C over {years} years · {decides} ({method})':
+        '{total:,.0f} m Bohrmeter · Fluid zwischen {lo:.1f} und {hi:.1f} °C über {years} Jahre · {decides} ({method})',
+    '≈ the heat load of {a:,.0f} m² (old building, 100 W/m²) to {b:,.0f} m² (new building, 40 W/m²) of heated floor':
+        '≈ die Heizlast von {a:,.0f} m² (Altbau, 100 W/m²) bis {b:,.0f} m² (Neubau, 40 W/m²) beheizter Fläche',
+    '≈ {l:.2f} l/s = {m3:.2f} m³/h per borehole (water-glycol, about 1030 kg/m³)':
+        '≈ {l:.2f} l/s = {m3:.2f} m³/h je Sonde (Wasser-Glykol, etwa 1030 kg/m³)',
+    'Borehole heat exchangers':
+        'Erdwärmesonden',
+    'Groundwater wells':
+        'Grundwasserbrunnen',
+    'Closed loop: probes usually 50 to 250 m deep with a water-glycol mixture. Possible almost everywhere; needs a notification or permit.':
+        'Geschlossenes System: Sonden meist 50 bis 250 m tief mit Wasser-Glykol-Gemisch. Fast überall möglich; anzeige- oder erlaubnispflichtig.',
+    'Open loop: a production and an injection well. Needs a productive aquifer at a shallow depth and a permit from the water authority.':
+        'Offenes System: ein Förder- und ein Schluckbrunnen. Braucht einen ergiebigen, flachen Grundwasserleiter und eine Erlaubnis der Wasserbehörde.',
+    'usual in Germany':
+        'üblich in Deutschland',
+    'VDI 4640':
+        'VDI 4640',
+    'VDI 4640 for {rock}':
+        'VDI 4640 für {rock}',
+    'yearly mean in Germany':
+        'Jahresmittel in Deutschland',
+    'grouts on the market':
+        'marktübliche Verfüllbaustoffe',
+    'common spacing':
+        'üblicher Abstand',
+    'common borehole length':
+        'übliche Sondenlänge',
+    'common drilling diameters':
+        'übliche Bohrdurchmesser',
+    'common antifreeze share':
+        'üblicher Frostschutzanteil',
+    'brine/water heat pumps':
+        'Sole/Wasser-Wärmepumpen',
+    'common design period':
+        'üblicher Auslegungszeitraum',
 }
