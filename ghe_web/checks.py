@@ -137,8 +137,9 @@ def result_checks(result: model.SizingResult, inputs: dict[str, SectionInput],
     w = v.get("w_per_m_extraction")
     if w is not None and w > VDI_MAX_W_PER_M:
         out.append(Check(WARNING, t("Specific heat extraction"),
-                         t("{w:.0f} W/m at peak is above the VDI 4640 rule of thumb (30 to 60 W/m). The simulation "
-                           "allows it, but check the peak load and the ground values.", w=w), "load"))
+                         t("{w:.0f} W/m at peak is above the VDI 4640-2 guide value for normal ground (60 W/m; up to 84 W/m "
+                           "only in rock with a high conductivity). The simulation allows it, but check the peak load "
+                           "and the ground values.", w=w), "load"))
 
     depth = result.borehole_length + inputs["borefield"].values["D"]
     if depth > 100:

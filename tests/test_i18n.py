@@ -6,7 +6,7 @@ import string
 
 import pytest
 
-from ghe_web import analysis, catalog, i18n, model, plots, properties, report
+from ghe_web import analysis, catalog, guidance, i18n, model, plots, properties, report
 from ghe_web.i18n import fmt, t
 from ghe_web.i18n_de import DE
 from ghe_web.siteplan import page as siteplan_page, states
@@ -77,6 +77,8 @@ def _data_texts() -> set[str]:
         for kind in ("heating", "cooling"):
             texts.add(f"{who} {kind} [MWh]")
     texts |= {"Month", "Heating demand", "Cooling demand", "Ground extraction", "Ground injection"}
+    texts |= {s.source for s in guidance.TYPICAL.values()} | {"VDI 4640 for {rock}", "yearly mean in Germany"}
+    texts |= {x for _, label, text in guidance.HEAT_SOURCES.values() for x in (label, text)}
     texts |= set(wells_page.VIEWS.values()) | set(wells_plots.COMPASS) | {"problem", "warning", "fine"}
     texts |= {text for topic, method, _ in wells_sources.SOURCES for text in (topic, method)}
     return texts

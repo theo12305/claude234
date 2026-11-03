@@ -136,7 +136,7 @@ def key_results(result: model.SizingResult, inputs: dict[str, SectionInput]) -> 
                 kwh_per_m=extraction * 1000 / total)
     add(energy, t("Specific heat extraction"),
         t("{w:.1f} W/m peak, {kwh:.0f} kWh/m per year", w=peak_ext * 1000 / total, kwh=extraction * 1000 / total),
-        t("VDI 4640 rule of thumb: 30 to 60 W/m"))
+        t("VDI 4640-2 guide values: 20 to 84 W/m depending on the ground, 50 to 60 W/m in normal ground"))
     add(energy, t("Specific heat injection"), t("{w:.1f} W/m peak", w=peak_inj * 1000 / total))
     if peak_ext > 0:
         flh = extraction * 1000 / peak_ext

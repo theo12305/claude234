@@ -27,7 +27,7 @@ def _drop_stale_package():
 
 _drop_stale_package()
 
-from ghe_web import analysis, checks, export, geometry, hourly, i18n, model, plots, properties, report, share
+from ghe_web import analysis, checks, export, geometry, guidance, hourly, i18n, model, plots, properties, report, share, ui
 from ghe_web.i18n import fmt, t
 from ghe_web.siteplan import page as siteplan_page
 from ghe_web.strata import page as strata_page
@@ -35,25 +35,30 @@ from ghe_web.properties import Property, SectionInput, Variant
 from ghe_web.wells import page as wells_page
 
 st.set_page_config(page_title="GHEtool Web", page_icon="🌍", layout="wide")
-st.markdown("""<style>
-.block-container {padding-top: 2rem;}
-[data-testid="stMetricValue"] {font-size: 1.7rem;}
+ui.inject_css()
+st.html("""<style>
 table.keys {width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0;}
 table.keys td {border: none; border-bottom: 1px solid rgba(128,128,128,0.18); padding: 6px 4px; vertical-align: top;}
 table.keys tr:last-child td {border-bottom: none;}
 table.keys td.val {text-align: right; font-weight: 600; white-space: nowrap; padding-left: 12px;}
 table.keys .note {font-size: 0.78rem; opacity: 0.65; line-height: 1.25;}
-</style>""", unsafe_allow_html=True)
+</style>""")
 
-# ---------------------------------------------------------------- language (first, so everything below follows it)
+# ---------------------------------------------------------------- app bar, language first (everything below follows it)
 
 if "pending_language" in st.session_state:  # set by opening a project file
     st.session_state.language = st.session_state.pop("pending_language")
-# At the top of the page (not in the sidebar), so it is also visible on phones where the sidebar starts closed.
-title_col, language_col = st.columns([5, 1.3], vertical_alignment="center")
-with language_col:
-    lang = st.segmented_control("🌐 Language · Sprache", list(i18n.LANGUAGES), format_func=i18n.LANGUAGES.get,
-                                default=i18n.DEFAULT, required=True, key="language")
+if "pending_mode" in st.session_state:
+    st.session_state.ui_mode = st.session_state.pop("pending_mode")
+# A bar at the top with the name, Simple/Expert, the language and the menu. No sidebar: phones hide it.
+appbar = st.container(key="appbar", horizontal=True, vertical_alignment="center", gap="small")
+with appbar:
+    brand_slot = st.empty()
+    st.space("stretch")
+    mode_slot = st.empty()
+    lang = st.segmented_control("Language · Sprache", list(i18n.LANGUAGES), format_func=lambda c: c.upper(),
+                                default=i18n.DEFAULT, required=True, key="language", label_visibility="collapsed")
+    menu = st.popover("", icon=":material/menu:", help="Menu")
 lang = i18n.set_language(lang)
 if st.session_state.get("shown_language", lang) != lang:
     # The browser sends choices back as their shown label, which is now in the other language, so Streamlit would
@@ -65,6 +70,10 @@ if st.session_state.get("shown_language", lang) != lang:
                 all(isinstance(x, (str, int)) for x in v):
             st.session_state[k] = v
 st.session_state.shown_language = lang
+MODES = {"simple": "Simple", "expert": "Expert"}
+with mode_slot:
+    ui_mode = st.segmented_control(t("Mode"), list(MODES), format_func=lambda k: t(MODES[k]), default="simple",
+                                   required=True, key="ui_mode", label_visibility="collapsed")
 
 
 def in_language(fn, *args):
@@ -102,6 +111,8 @@ if share.PARAM in st.query_params:  # opened from a share link: load its project
         saved = model.saved_language(text)
         if saved in i18n.LANGUAGES:
             st.session_state.pending_language = saved
+        if model.saved_setting(text, "mode") in ("simple", "expert"):
+            st.session_state.pending_mode = model.saved_setting(text, "mode")
         st.session_state.generation += 1
         st.session_state.opened_link = True
     st.rerun()
@@ -128,10 +139,10 @@ if st.session_state.get("step") not in (None, *STEPS.values()):  # language or h
         del st.session_state.step
 
 
-# ---------------------------------------------------------------- sidebar: save / load
+# ---------------------------------------------------------------- menu: project, save / load, help
 
-with st.sidebar:
-    st.header(t("Project"))
+with menu:
+    st.markdown(t("**Project**"))
     name = st.text_input(t("Project name"), value=project_name, key=f"{gen}.name")
     uploaded = st.file_uploader(t("Open a saved project"), type="json", key=f"{gen}.upload")
     if uploaded is not None:
@@ -144,56 +155,105 @@ with st.sidebar:
             saved = model.saved_language(text)
             if saved in i18n.LANGUAGES:
                 st.session_state.pending_language = saved
+            if model.saved_setting(text, "mode") in ("simple", "expert"):
+                st.session_state.pending_mode = model.saved_setting(text, "mode")
             st.session_state.generation += 1
+            st.session_state.welcomed = True
             st.rerun()
     save_slot = st.empty()  # filled after the inputs are read
-    share_slot = st.empty()
+    share_slot = st.container()
     st.caption(t("Projects are saved as a file on your computer, including the language. Nothing is stored on "
                  "the server."))
-    st.caption(t("🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
     st.divider()
-    calc_slot = st.container()  # the calculate button and a short result, filled at the end
+    st.markdown(t("**Help**"))
+    with st.expander(t("How to use this tool"), icon=":material/help:"):
+        if system == "open":
+            st.markdown(t(
+                "1. **⓪ Site plan** (optional): find the parcel.\n"
+                "2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted "
+                "layers), the aquifer and the water analysis.\n"
+                "3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n"
+                "4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n"
+                "5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n"
+                "6. Press **Size the wells** in the bar at the bottom. The **📊 Results** tab shows the flow, wells, water levels, "
+                "temperatures, the site map, the well construction and the downloads.\n\n"
+                "The well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected "
+                "water and a planar plume) are written for this tool; GHEtool has no open-loop model."))
+        else:
+            st.markdown(t(
+                "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n"
+                "2. **① Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n"
+                "3. **② Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n"
+                "4. **③ Loads**: the heat extracted from and injected into the ground, or the building demand with the "
+                "heat pump efficiency.\n"
+                "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a "
+                "given one.\n"
+                "6. Press **Size borefield** in the bar at the bottom. The **📊 Results** tab shows key figures, charts, further "
+                "analysis and the PDF report and Excel export.\n\n"
+                "Save the project in the menu ☰ to continue later. Calculations use the open-source "
+                "[GHEtool](https://github.com/wouterpeere/GHEtool)."))
+    st.caption(t("🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
+    st.caption(t("Simple / Expert: the switch next to the language. Simple shows the main fields and puts the others "
+                 "under \"More options\"; nothing is left out of the calculation."))
+    if system == "open":
+        wells_page.sources_button("menu")
+    if st.button(t("Change the heat source"), icon=":material/swap_horiz:", width="stretch",
+                 help=t("Opens the start page with the choice between borehole heat exchangers and groundwater "
+                        "wells. Your inputs stay.")):
+        st.session_state.welcomed = False
+        st.rerun()
+
+with brand_slot:
+    ui.brand(t("Groundwater well sizing") if system == "open" else t("Borehole heat exchanger sizing"))
+
+# ---------------------------------------------------------------- start page: the heat source
+
+def choose_heat_source(choice: str) -> None:
+    """Start with this heat source. Like opening a project, so every widget starts from the stored inputs."""
+    _, inputs_now = st.session_state.project
+    st.session_state.project = (st.session_state.get(f"{gen}.name", project_name),
+                                {**inputs_now, "system": SectionInput(choice, {})})
+    st.session_state.generation += 1
+    st.session_state.welcomed = True
+    st.session_state.goto_step = "Site"
+
+
+if not st.session_state.get("welcomed", gen > 0):
+    with st.container(key="welcome"):
+        st.html(f"<div class='welcome'><h2>{html.escape(t('Size a geothermal system in your browser'))}</h2>"
+                f"<p class='lead'>{html.escape(t('Free and without login. Your project stays on your device.'))}"
+                f"</p></div>")
+        st.markdown(f"<div style='text-align:center' class='lbl'>{html.escape(t('Which heat source?'))}</div>",
+                    unsafe_allow_html=True)
+        for col, (key_, (icon, label, text_)) in zip(st.columns(2, gap="medium"), guidance.HEAT_SOURCES.items()):
+            with col, st.container(border=True):
+                st.html(f"<div class='choice'>{icon}</div>")
+                st.markdown(f"#### {t(label)}")
+                st.caption(t(text_))
+                st.button(t("Start with {what}", what=t(label)), key=f"welcome.{key_}", width="stretch",
+                          type="primary" if key_ == model.system(start) else "secondary",
+                          on_click=choose_heat_source, args=(key_,), icon=":material/arrow_forward:")
+        st.caption(t("You can switch later in the menu ☰ or under ① in the heat source section. To continue a saved "
+                     "project, open it in the menu ☰."))
+    st.stop()
 
 if system == "open":
-    title_col.title(t("Groundwater well sizing"))
-    st.caption(t("Fill in the four input steps, then press **Size the wells** on the left. Every field has a "
+    st.caption(t("Fill in the input steps, then press **Size the wells** in the bar at the bottom. Every field has a "
                  "question mark with an explanation; the drop-downs fill in typical values."))
 else:
-    title_col.title(t("Borehole heat exchanger sizing"))
-    st.caption(t("Fill in the four input steps, then press **Size borefield** on the left. Every field has a "
+    st.caption(t("Fill in the input steps, then press **Size borefield** in the bar at the bottom. Every field has a "
                  "question mark with an explanation; the drop-downs fill in typical values."))
-with st.expander(t("How to use this tool"), icon=":material/help:"):
-    if system == "open":
-        st.markdown(t(
-            "1. **⓪ Site plan** (optional): find the parcel.\n"
-            "2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted "
-            "layers), the aquifer and the water analysis.\n"
-            "3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n"
-            "4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n"
-            "5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n"
-            "6. Press **Size the wells** in the sidebar. The **📊 Results** tab shows the flow, wells, water levels, "
-            "temperatures, the site map, the well construction and the downloads.\n\n"
-            "The well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected "
-            "water and a planar plume) are written for this tool; GHEtool has no open-loop model."))
-    else:
-        st.markdown(t(
-            "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n"
-            "2. **① Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n"
-            "3. **② Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n"
-            "4. **③ Loads**: the heat extracted from and injected into the ground, or the building demand with the "
-            "heat pump efficiency.\n"
-            "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a "
-            "given one.\n"
-            "6. Press **Size borefield** in the sidebar. The **📊 Results** tab shows key figures, charts, further "
-            "analysis and the PDF report and Excel export.\n\n"
-            "Save the project in the sidebar to continue later. Calculations use the open-source "
-            "[GHEtool](https://github.com/wouterpeere/GHEtool)."))
 if st.session_state.pop("opened_link", False):
     st.success(t("Opened the project from the link. Hourly demand files are not part of links: upload it again if "
                  "the project uses one."), icon=":material/link:")
 if st.session_state.pop("link_error", False):
     st.error(t("This link does not contain a readable project. Ask for a new link or the project file."),
              icon=":material/link_off:")
+
+
+
+# The calculate bar: fixed at the bottom of the screen (CSS), filled once the inputs are read.
+calc_slot = st.container(key="calcbar", horizontal=True, vertical_alignment="center", gap="small")
 
 
 # ---------------------------------------------------------------- inputs
@@ -220,6 +280,28 @@ def widget(prop: Property, value, key: str):
         kw = initial if initial is not None else {"index": prop.options.index(value)}
         return st.selectbox(label, prop.options, format_func=t, help=help_text, key=key, **kw)
     raise ValueError(prop.kind)
+
+
+def field_help(prop: Property, value, values: dict, prefix: str) -> None:
+    """Under a number field: a bar with the typical range and a side note in everyday terms."""
+    if prop.kind not in ("float", "int") or value is None:
+        return
+    rock = st.session_state.get(f"{prefix}.preset.Rock type") or None if prop.key == "k_s" else None
+    rng = guidance.typical(prop.key, rock, prop.label)
+    if rng is not None:
+        ui.range_bar(float(value), rng, prop.min, prop.max, rock)
+    now = {k: st.session_state.get(f"{prefix}.{k}", v) for k, v in values.items()}
+    note = guidance.side_note(prop.key, float(value), now)
+    if note:
+        ui.side_note(note)
+
+
+def field_grid(props: list[Property], values: dict, prefix: str, n_cols: int) -> None:
+    cols = st.columns(n_cols)
+    for i, prop in enumerate(props):
+        with cols[i % len(cols)]:
+            values[prop.key] = widget(prop, values[prop.key], f"{prefix}.{prop.key}")
+            field_help(prop, values[prop.key], values, prefix)
 
 
 def preset_pickers(variant: Variant, key_prefix: str) -> None:
@@ -384,10 +466,15 @@ def section_inputs(section) -> tuple[SectionInput, object]:
                 values[prop.key] = hourly_input(prop, values[prop.key], f"{prefix}.{prop.key}")
             for prop in point_props:
                 values[prop.key] = points_input(prop, values[prop.key], f"{prefix}.{prop.key}")
-            cols = st.columns(2 if side else 3)
-            for i, prop in enumerate(simple):
-                with cols[i % len(cols)]:
-                    values[prop.key] = widget(prop, values[prop.key], f"{prefix}.{prop.key}")
+            # Simple mode: specialist fields under "More options" (still read and used); Expert: all in line.
+            basic = [p for p in simple if ui_mode == "expert" or not guidance.is_advanced(section.key, p.key)]
+            more = [p for p in simple if p not in basic]
+            field_grid(basic, values, prefix, 2 if side else 3)
+            if more:
+                with st.expander(t("More options ({n})", n=len(more)), icon=":material/tune:"):
+                    st.caption(t("Fields most people leave at their typical value. They are always part of the "
+                                 "calculation; switch to Expert at the top to see every field at once."))
+                    field_grid(more, values, prefix, 2 if side else 3)
             if monthly:
                 values.update(monthly_table(monthly, values, f"{prefix}.monthly"))
         for prop in layer_props:  # full width below the fields and the drawing
@@ -552,11 +639,11 @@ with step_tabs[SITE_PLAN]:
             siteplan_page.page(use_site_plan)
 
 with save_slot:
-    st.download_button(t("Save project"), model.to_json(inputs, name, language=lang).encode(),
+    st.download_button(t("Save project"), model.to_json(inputs, name, language=lang, mode=ui_mode).encode(),
                        f"{name.strip() or 'ghetool-project'}.json", "application/json", width="stretch",
                        icon=":material/save:")
-with share_slot, st.popover(t("Share link"), icon=":material/link:", width="stretch"):
-    link, dropped = share.link(st.context.url or "", model.to_json(inputs, name, language=lang))
+with share_slot, st.expander(t("Share link"), icon=":material/link:"):
+    link, dropped = share.link(st.context.url or "", model.to_json(inputs, name, language=lang, mode=ui_mode))
     st.markdown(t("**Share this project**"))
     st.caption(t("Anyone with the link opens the site with your inputs filled in. The project is stored in the link "
                  "itself; nothing is saved on the server. Copy it with the button at the right of the box."))
@@ -629,7 +716,7 @@ def calculate() -> None:
         else:
             st.session_state.result_json = current_json
             st.session_state.pop("calc_error", None)
-            st.session_state.goto_results = True
+        st.session_state.goto_results = True
     st.rerun()
 
 
@@ -673,34 +760,38 @@ def show_design_check(found: list[checks.Check]) -> None:
 
 found_checks = design_checks()
 
+def first_error_step() -> None:
+    st.session_state.goto_step = section_step_key(next(iter(errors)))
+
+
 with calc_slot:
-    st.header(t("Calculation"))
-    if errors:
-        st.error(t("{n} input(s) need attention:", n=sum(len(m) for m in errors.values())) + "\n\n" + "\n".join(
-            f"- {section_step.get(k, '')}: {t(properties.get(k).label)}" for k in errors), icon=":material/error:")
-    if st.button(action, type="primary", disabled=bool(errors), width="stretch", icon=":material/calculate:"):
-        calculate()
-    if "calc_error" in st.session_state:
-        st.error(t("The calculation failed: {error}", error=st.session_state.calc_error))
-    if "result_json" in st.session_state:
-        res = cached_size(st.session_state.result_json)
-        st.metric(t("Borehole length") if res.sizing_method == "check" else t("Required borehole length"),
-                  fmt("{x:.1f} m", x=res.borehole_length),
-                  t("{n} boreholes, {total:,.0f} m in total", n=res.number_of_boreholes, total=res.total_length),
-                  delta_color="off", delta_arrow="off")
-        if st.session_state.result_json != current_json:
-            st.warning(t("The inputs changed since the last calculation."), icon=":material/update:")
-        else:
-            st.caption(t("See the **📊 Results** tab for details."))
     n = checks.counts(found_checks)
-    with st.container(border=True):
-        st.markdown(t("**Design check**") + "  \n" + " ".join(
-            f":{color if count else 'gray'}-badge[{label}]" for color, count, label in (
-                ("red", n[checks.PROBLEM], t("{n} problem(s)", n=n[checks.PROBLEM])),
-                ("orange", n[checks.WARNING], t("{n} warning(s)", n=n[checks.WARNING])),
-                ("green", n[checks.FINE], t("{n} fine", n=n[checks.FINE])))))
-        st.button(t("Open the design check"), on_click=open_design_check, width="stretch", key="open_checks",
-                  icon=":material/fact_check:")
+    with st.container(width="stretch"):
+        if errors:
+            ui.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
+                           "; ".join(f"{section_step.get(k, '')}: {t(properties.get(k).label)}" for k in errors))
+        elif "calc_error" in st.session_state:
+            ui.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
+        elif "result_json" in st.session_state:
+            res = cached_size(st.session_state.result_json)
+            last = t("{n} × {length:.1f} m, {total:,.0f} m in total", n=res.number_of_boreholes,
+                     length=res.borehole_length, total=res.total_length)
+            if st.session_state.result_json != current_json:
+                ui.calc_status("warn", t("Inputs changed – results out of date"), t("Last result: {x}", x=last))
+            else:
+                ui.calc_status("ok", t("Result up to date"), last)
+        else:
+            ui.calc_status("grey", t("Not calculated yet"))
+    if errors:
+        st.button(t("Show"), on_click=first_error_step, key="calc_goto_error", icon=":material/arrow_upward:")
+    check_label = " · ".join(x for x in (
+        t("{n} problem(s)", n=n[checks.PROBLEM]) if n[checks.PROBLEM] else "",
+        t("{n} warning(s)", n=n[checks.WARNING]) if n[checks.WARNING] else "") if x) or t("Design check")
+    st.button(check_label, on_click=open_design_check, key="open_checks", help=t("Open the design check"),
+              icon=":material/error:" if n[checks.PROBLEM] else ":material/warning:" if n[checks.WARNING]
+              else ":material/fact_check:")
+    if st.button(action, type="primary", disabled=bool(errors), icon=":material/play_arrow:", key="calc_go"):
+        calculate()
 
 
 # ---------------------------------------------------------------- results
@@ -1105,7 +1196,7 @@ def view_export(result, sized_inputs, sized_json) -> None:
     extra = extra_tables(sized_json)
     included = ", ".join(extra) if extra else t("none yet; run them under Further analysis to include them")
     st.markdown(t("The files are made when you click, so the page stays fast. The PDF report and the Excel workbook "
-                  "are in the language chosen in the sidebar."))
+                  "are in the language chosen at the top."))
     c1, c2 = st.columns(2)
     with c1, st.container(border=True):
         st.markdown(t("**Excel workbook**"))
@@ -1197,11 +1288,88 @@ def view_field(result, sized_json) -> None:
                            icon=":material/download:", on_click="ignore")
 
 
+def answer_section(result, key, sized_inputs, limits, sized_json) -> None:
+    """The answer first: a card with the design and the design check, the key figures as tiles, the warnings and the
+    most used downloads."""
+    years = sized_inputs["load"].values["simulation_period"]
+    vals = key.values
+    t_lo, t_hi = (round(vals[k], 1) + 0.0 for k in ("t_min", "t_max"))  # + 0.0 avoids "-0.0"
+    if result.sizing_method == "check":
+        ok = bool(vals.get("passes"))
+        lead = t("Check of the given length")
+        big = t("{n} boreholes × {length:.1f} m", n=result.number_of_boreholes, length=result.borehole_length)
+        sub = (t("The given length of {length:.0f} m keeps the fluid within the limits.", length=result.borehole_length)
+               if ok else t("The given length of {length:.0f} m does not keep the fluid within the limits.",
+                            length=result.borehole_length))
+    else:
+        ok = True
+        lead = t("Answer")
+        big = t("{n} boreholes × {length:.1f} m", n=result.number_of_boreholes, length=result.borehole_length)
+        if abs(vals["margin_cold"] - vals["margin_warm"]) < 0.3:
+            decides = t("heating and cooling need about the same length")
+        elif vals["margin_cold"] < vals["margin_warm"]:
+            decides = t("heating decides the length")
+        else:
+            decides = t("cooling decides the length")
+        sub = t("{total:,.0f} m drilled · fluid between {lo:.1f} and {hi:.1f} °C over {years} years · {decides} "
+                "({method})", total=result.total_length, lo=t_lo, hi=t_hi, years=years, decides=decides,
+                method=t(report.METHOD[result.sizing_method]))
+    n = checks.counts(found_checks)
+    chip_items = [("bad", t("{n} problem(s)", n=n[checks.PROBLEM]))] if n[checks.PROBLEM] else []
+    if n[checks.WARNING]:
+        chip_items.append(("warn", t("{n} warning(s)", n=n[checks.WARNING])))
+    chip_items.append(("ok", t("{n} fine", n=n[checks.FINE])))
+    ui.answer_card(ok, lead, big, sub, chip_items)
+
+    def margin_note(margin: float, limit: float) -> str:
+        if abs(margin) < 0.05:  # sizing stops within a few hundredths of a kelvin of the limit
+            return t("limit {x:g} °C", x=limit) + " · " + t("at the limit")
+        return t("limit {x:g} °C", x=limit) + " · " + (t("{x:+.1f} K margin", x=margin) if margin > 0 else
+                                                       t("{x:.1f} K beyond the limit", x=-margin))
+    items = [
+        ("📏 " + (t("Borehole length") if result.sizing_method == "check" else t("Required borehole length")),
+         fmt("{x:.1f} m", x=result.borehole_length), t("{n} boreholes", n=result.number_of_boreholes), ""),
+        ("Σ " + t("Total borehole length"), fmt("{x:,.0f} m", x=result.total_length),
+         t("{n} boreholes", n=result.number_of_boreholes), ""),
+        ("❄️ " + t("Lowest fluid temperature"), fmt("{x:.1f} °C", x=t_lo), margin_note(vals["margin_cold"],
+                                                                                       limits["T_min"]), "cold"),
+        ("🔥 " + t("Highest fluid temperature"), fmt("{x:.1f} °C", x=t_hi), margin_note(vals["margin_warm"],
+                                                                                        limits["T_max"]), "warm"),
+        ("⭕ " + t("Borehole thermal resistance"), fmt("{x:.3f} m·K/W", x=result.borehole_resistance),
+         t("effective Rb"), ""),
+    ]
+    if "spf_heating" in vals:
+        items.append(("⚡ " + t("Seasonal performance factor (SPF), heating"), fmt("{x:.2f}", x=vals["spf_heating"]),
+                      t("heat pump electricity {x:,.1f} MWh per year", x=vals.get("electricity_mwh", 0.0)), ""))
+    if "dp_kpa" in vals:
+        items.append(("💧 " + t("Pressure drop per borehole"), fmt("{x:.1f} kPa", x=vals["dp_kpa"]),
+                      t("{w:,.0f} W electrical", w=vals["pump_electric_w"]), ""))
+    ui.tiles(items)
+    for w in key.warnings:
+        st.warning(w, icon=":material/warning:")
+    stem = name.strip() or "ghetool-project"
+    with st.container(horizontal=True, gap="small", key="quick_downloads"):
+        st.download_button(t("PDF summary"), lambda: i18n.call_in(
+            lang, report.make_pdf, result, sized_inputs, name,
+            report.ReportOptions(kind="summary", title=name.strip()), {}),
+            f"{stem}_summary.pdf", "application/pdf", icon=":material/picture_as_pdf:", on_click="ignore")
+        st.download_button(t("Excel"), in_language(export.excel_workbook, result, sized_inputs, name,
+                                                   extra_tables(sized_json)),
+                           f"{stem}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                           icon=":material/table_view:", on_click="ignore")
+        st.download_button(t("Save project"), model.to_json(inputs, name, language=lang, mode=ui_mode).encode(),
+                           f"{stem}.json", "application/json", icon=":material/save:", key="quick_save")
+        st.button(t("Full report and more downloads"), icon=":material/download:",
+                  on_click=lambda: st.session_state.update(result_view_id="export"))
+
+
 RESULT_VIEWS = {"checks": "Design check", "field": "Borefield map", "overview": "Overview", "temperatures": "Temperatures", "energy": "Energy", "hourly": "Hourly",
                 "heat_pump": "Heat pump", "hydraulics": "Hydraulics", "ground": "Ground", "layers": "Layers",
                 "load_optimisation": "Load optimisation", "analysis": "Further analysis", "export": "Export"}
 
 with step_tabs[RESULTS]:
+    if "calc_error" in st.session_state:
+        st.error(t("The calculation failed: {error}", error=st.session_state.calc_error), icon=":material/error:")
     if "result_json" not in st.session_state:
         st.info(t("No result yet. Check the inputs in the steps above, then press **{action}**.", action=action),
                 icon=":material/info:")
@@ -1218,37 +1386,7 @@ with step_tabs[RESULTS]:
         if sized_json != current_json:
             st.warning(t("The inputs changed since this result was calculated. Press **{action}** to update it.",
                          action=action), icon=":material/update:")
-        if result.sizing_method == "check":
-            if key.values.get("passes"):
-                st.success(t("The given length of {length:.0f} m keeps the fluid within the limits.",
-                             length=result.borehole_length), icon=":material/check_circle:")
-            else:
-                st.error(t("The given length of {length:.0f} m does not keep the fluid within the limits.",
-                           length=result.borehole_length), icon=":material/cancel:")
-        else:
-            st.success(t("{n} boreholes of {length:.1f} m keep the fluid between {t_min:g} and {t_max:g} °C for "
-                         "{years} years ({method}).", n=result.number_of_boreholes, length=result.borehole_length,
-                         t_min=limits["T_min"], t_max=limits["T_max"],
-                         years=sized_inputs["load"].values["simulation_period"],
-                         method=t(report.METHOD[result.sizing_method])),
-                       icon=":material/check_circle:")
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric(t("Borehole length") if result.sizing_method == "check" else t("Required borehole length"),
-                  fmt("{x:.1f} m", x=result.borehole_length))
-        c2.metric(t("Total borehole length"), fmt("{x:,.0f} m", x=result.total_length),
-                  t("{n} boreholes", n=result.number_of_boreholes), delta_color="off", delta_arrow="off")
-        t_lo, t_hi = (round(key.values[k], 1) + 0.0 for k in ("t_min", "t_max"))  # + 0.0 avoids "-0.0"
-        for col, label, temp, margin in ((c3, t("Lowest fluid temperature"), t_lo, key.values["margin_cold"]),
-                                         (c4, t("Highest fluid temperature"), t_hi, key.values["margin_warm"])):
-            if abs(margin) < 0.05:  # sizing stops within a few hundredths of a kelvin of the limit
-                col.metric(label, fmt("{x:.1f} °C", x=temp), t("at the limit"), delta_color="off", delta_arrow="off")
-            else:
-                col.metric(label, fmt("{x:.1f} °C", x=temp), t("{x:+.1f} K margin", x=margin) if margin > 0 else
-                           t("{x:.1f} K beyond the limit", x=-margin), delta_color="normal" if margin > 0 else "inverse")
-        c5.metric(t("Borehole thermal resistance"), fmt("{x:.3f} m·K/W", x=result.borehole_resistance),
-                  t("effective Rb"), delta_color="off", delta_arrow="off")
-        for w in key.warnings:
-            st.warning(w, icon=":material/warning:")
+        answer_section(result, key, sized_inputs, limits, sized_json)
 
         views = ["overview", "checks", "temperatures", "energy"]
         if result.hourly_temperatures is not None:
