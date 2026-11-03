@@ -28,7 +28,7 @@ def cached_design(project_json: str) -> design.Design:
 
 
 def _chart(c) -> None:
-    st.altair_chart(i18n.localize_chart(c), width="stretch")
+    ui.show_chart(c)
 
 
 def _key_table(rows: list[tuple[str, str, str]]) -> None:

@@ -43,6 +43,10 @@ table.keys td {border: none; border-bottom: 1px solid rgba(128,128,128,0.18); pa
 table.keys tr:last-child td {border-bottom: none;}
 table.keys td.val {text-align: right; font-weight: 600; white-space: nowrap; padding-left: 12px;}
 table.keys .note {font-size: 0.78rem; opacity: 0.65; line-height: 1.25;}
+@media (max-width: 640px) {
+  table.keys td:first-child {width: 55%;}
+  table.keys td.val {white-space: normal; padding-left: 8px;}
+}
 </style>""")
 
 # ---------------------------------------------------------------- app bar, language first (everything below follows it)
@@ -83,7 +87,7 @@ def in_language(fn, *args):
 
 
 def chart(c, width="stretch") -> None:
-    st.altair_chart(i18n.localize_chart(c), width=width)
+    ui.show_chart(c, width)
 
 
 FIG = {"view": 0, "n": 0}  # figure numbers on the results page: number of the view . figure in the view
@@ -94,16 +98,16 @@ def _picture(spec: dict, kind: str) -> bytes:
     return vlc.vegalite_to_png(spec, scale=3) if kind == "png" else vlc.vegalite_to_svg(spec).encode()
 
 
-def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, width="stretch", phone=None) -> None:
+def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, width="stretch") -> None:
     """A result chart with its figure number, a caption and downloads: the picture (PNG for reports, SVG to edit) with
-    the number, title and caption, and the numbers as CSV. ``phone``: a smaller version of a fixed-size chart, shown
-    instead on narrow screens."""
+    the number, title and caption, and the numbers as CSV. On the page the title stands above the chart as text, so
+    it wraps on a phone instead of being cut off."""
     FIG["n"] += 1
     number = f"{FIG['view']}.{FIG['n']}" if FIG["view"] else str(FIG["n"])
     title = c.title if isinstance(c.title, str) else ""
-    head = st.container(horizontal=True, vertical_alignment="center", gap="small", key=f"fighead.{number}")
-    head.markdown(f"<span class='fignum'>{html.escape(t('Figure {n}', n=number))}</span>", unsafe_allow_html=True)
-    head.space("stretch")
+    head = st.container(horizontal=True, gap="small", key=f"fighead.{number}")
+    head.markdown(f"<span class='fignum'>{html.escape(t('Figure {n}', n=number))}</span>"
+                  + (f"<div class='figtitle'>{html.escape(title)}</div>" if title else ""), unsafe_allow_html=True)
     config = i18n.chart_config(background="white").to_dict()
     stem = "".join(ch if ch.isalnum() else "_" for ch in title)[:50].strip("_") or "figure"
     stem = f"figure_{number.replace('.', '-')}_{stem}"
@@ -117,7 +121,7 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
                         "anchor": "start"}
         return out
 
-    with head.popover(t("Download"), icon=":material/download:"):
+    with head.popover(t("Download"), icon=":material/download:", width="content"):
         st.download_button(t("Picture for reports (PNG)"), in_language(lambda: _picture(spec(), "png")),
                            f"{stem}.png", "image/png", icon=":material/image:", width="stretch",
                            key=f"fig.{number}.png")
@@ -128,13 +132,7 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
             st.download_button(t("The numbers (CSV)"), in_language(lambda: data.to_csv(index=False).encode()),
                                f"{stem}.csv", "text/csv", icon=":material/table:", width="stretch",
                                key=f"fig.{number}.csv")
-    if phone is None:
-        chart(c, width)
-    else:
-        with st.container(key=f"figwide.{number}"):
-            chart(c, width)
-        with st.container(key=f"fignarrow.{number}"):
-            chart(phone, width)
+    ui.show_chart(c, width, title=not title)
     if caption:
         st.caption(caption)
 
@@ -1062,8 +1060,8 @@ def view_ground(result, sized_json, north: bool = False) -> None:
               delta_color="off", delta_arrow="off")
     left, right = st.columns([11, 9], gap="medium")
     with left:
-        figure(plots.ground_map_chart(m, north), data=m["table"].round(4), width="content",
-               phone=plots.ground_map_chart(m, north, size=290))
+        figure(plots.ground_map_chart(m, north, size=290 if ui.is_phone() else 420), data=m["table"].round(4),
+               width="content")
     with right:
         st.caption(t("How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of "
                      "the simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a "

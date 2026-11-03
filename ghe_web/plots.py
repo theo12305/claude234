@@ -788,8 +788,11 @@ def ground_map_chart(m: dict, north: bool = False, size: int = 420) -> alt.Chart
                        legend=alt.Legend(format=f"+.{decimals}f", orient="right" if size >= 400 else "bottom",
                                          direction="vertical" if size >= 400 else "horizontal"))
     half = cell * 0.6  # a little overlap, so no seams show between the cells
-    heat = alt.Chart(table.assign(x1=table["x"] - half, x2=table["x"] + half, y1=table["y"] - half,
-                                  y2=table["y"] + half)).mark_rect().encode(
+    # cell edges and the temperature are calculated in the browser: a third of the data to send to a phone
+    cells = table[["x", "y", "Change"]].round({"x": 2, "y": 2, "Change": 4})
+    heat = alt.Chart(cells).transform_calculate(
+        x1=f"datum.x - {half}", x2=f"datum.x + {half}", y1=f"datum.y - {half}", y2=f"datum.y + {half}",
+        Temperature=f"datum.Change + {float(m['t_ground'])}").mark_rect().encode(
         x=alt.X("x1:Q", title="x [m]", scale=alt.Scale(domain=dom_x, nice=False), axis=alt.Axis(grid=False)),
         x2="x2:Q",
         y=alt.Y("y1:Q", title="y [m]", scale=alt.Scale(domain=dom_y, nice=False), axis=alt.Axis(grid=False)),
