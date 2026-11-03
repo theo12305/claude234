@@ -98,6 +98,28 @@ def month(index: int) -> str:
     return months()[index]
 
 
+LONG_MONTHS = {"en": ("January", "February", "March", "April", "May", "June", "July", "August", "September",
+                      "October", "November", "December"),
+               "de": ("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober",
+                      "November", "Dezember")}
+
+
+def long_month(index: int) -> str:
+    """The full month name, index 0 = January."""
+    return LONG_MONTHS.get(language(), LONG_MONTHS[DEFAULT])[index]
+
+
+def chart_config(**extra):
+    """Chart settings with the number format of the current language, e.g. for a picture download."""
+    locale = CHART_LOCALE.get(language())
+    return alt_config(locale=locale, **extra) if locale else alt_config(**extra)
+
+
+def alt_config(**kw):
+    import altair as alt
+    return alt.Config(**kw)
+
+
 def localize_chart(chart):
     """Gives an Altair chart the number format of the current language."""
     locale = CHART_LOCALE.get(language())

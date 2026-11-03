@@ -57,6 +57,27 @@ def _geocode(query: str):
     return lookup.geocode(query)
 
 
+def geocode(query: str) -> list[dict] | None:
+    """Addresses matching ``query`` (cached), or None with the reason shown when the search is not reachable."""
+    try:
+        return _geocode(query)
+    except lookup.LookupError_ as exc:
+        st.error(str(exc), icon=":material/error:")
+        return None
+
+
+def address() -> str:
+    """The address typed in the site plan (or on the start page), saved with the project."""
+    return (_ss("address") or "").strip()
+
+
+def set_address(text: str) -> None:
+    """From a project file: the address goes into the search box; the parcel is loaded when asked."""
+    if text:
+        _set("address", text)
+        _set("find_by", "address")
+
+
 @st.cache_data(ttl=3600, show_spinner=False, max_entries=200)
 def _state_at(lon: float, lat: float) -> str | None:
     state = lookup.state_at(lon, lat)
@@ -65,26 +86,47 @@ def _state_at(lon: float, lat: float) -> str | None:
 
 # ---------------------------------------------------------------- 1 find the parcel
 
+def start_from_address(address: str, hit: dict) -> None:
+    """Called from the start page: the site plan opens with this address and loads the parcel under it."""
+    _set("pending", {"address": address, "hit": hit})
+
+
+def _load_parcel_at(lon, lat, chosen_state) -> bool:
+    """Loads the parcel at a point into the site plan. False (with the reason shown) when that fails."""
+    state = chosen_state
+    if state is None:
+        key = _safe_state(lon, lat)
+        state = by_key(key) if key else None
+    if state is None:
+        st.error(t("Could not tell which state this is. Choose the Bundesland above."))
+        return False
+    with st.spinner(t("Loading the parcel from the cadastre of {state}...", state=state.name)):
+        try:
+            feat, state = lookup.parcel_at(lon, lat, state)
+        except lookup.LookupError_ as exc:
+            st.error(str(exc), icon=":material/error:")
+            _set("view_centre", (lat, lon))  # for clicking or drawing the parcel instead
+            _set("view_zoom", 18)
+            return False
+    _set_parcel(feat, state.key)
+    return True
+
+
 def _find_parcel(chosen_state):
+    pending = st.session_state.pop(K + "pending", None)
+    if pending:  # from the start page: the address search is filled in and the parcel under the address is loaded
+        _set("find_by", "address")
+        _set("address", pending["address"])
+        _set("hits", [pending["hit"]])
+        _set("hit", pending["hit"]["label"])
+        if _load_parcel_at(pending["hit"]["lon"], pending["hit"]["lat"], chosen_state):
+            st.rerun()
     how = st.radio(t("Find the parcel by"), list(HOW), format_func=lambda k: t(HOW[k]), horizontal=True,
                    key=K + "find_by")
 
     def fetch_at(lon, lat):
-        state = chosen_state
-        if state is None:
-            key = _safe_state(lon, lat)
-            state = by_key(key) if key else None
-        if state is None:
-            st.error(t("Could not tell which state this is. Choose the Bundesland above."))
-            return
-        with st.spinner(t("Loading the parcel from the cadastre of {state}...", state=state.name)):
-            try:
-                feat, state = lookup.parcel_at(lon, lat, state)
-            except lookup.LookupError_ as exc:
-                st.error(str(exc), icon=":material/error:")
-                return
-        _set_parcel(feat, state.key)
-        st.rerun()
+        if _load_parcel_at(lon, lat, chosen_state):
+            st.rerun()
 
     if how == "address":
         c1, c2 = st.columns([4, 1], vertical_alignment="bottom")
