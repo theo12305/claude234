@@ -37,9 +37,8 @@ def test_result_charts_build(result):
     for c in (plots.temperature_chart(result.temperatures, limits),
               plots.temperature_chart(result.temperatures, limits, (10, 20)),
               plots.last_year_chart(result.temperatures, limits, compact=True),
-              plots.energy_balance_chart(energy), plots.imbalance_chart(energy, 50),
-              plots.ground_map_chart(m, north=True), plots.ground_map_chart(m, size=290),
-              plots.ground_profile_chart(m)):
+              plots.energy_balance_chart(energy),
+              plots.ground_map_chart(m, north=True), plots.ground_map_chart(m, size=290)):
         c.to_dict()
 
 
@@ -52,7 +51,7 @@ def test_energy_colours_follow_the_ground(result):
 
 def test_picture_download(result):
     vlc = pytest.importorskip("vl_convert")
-    spec = plots.imbalance_chart(analysis.monthly_ground_energy(result), 50).to_dict()
+    spec = plots.energy_balance_chart(analysis.monthly_ground_energy(result)).to_dict()
     spec["config"] = i18n.chart_config(background="white").to_dict()
     assert vlc.vegalite_to_png(spec, scale=1)[:4] == b"\x89PNG"
     assert vlc.vegalite_to_svg(spec).startswith("<svg")

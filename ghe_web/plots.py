@@ -641,26 +641,8 @@ def energy_balance_chart(df: pd.DataFrame) -> alt.Chart:
     chart += alt.Chart(line).mark_line(point=alt.OverlayMarkDef(size=40, filled=True), strokeWidth=1.8).encode(
         x=x, y="Energy:Q", color=colour, tooltip=tip)
     imbalance = float(df["Injection"].sum() - df["Extraction"].sum())
-    return chart.properties(height=360, title=t("Energy taken from and returned to the ground (year balance "
+    return chart.properties(height=440, title=t("Energy taken from and returned to the ground (year balance "
                                                 "{x:+,.0f} MWh)", x=imbalance))
-
-
-def imbalance_chart(df: pd.DataFrame, years: int) -> alt.Chart:
-    """The yearly imbalance added up over the simulation period."""
-    net = float(df["Injection"].sum() - df["Extraction"].sum())
-    data = pd.DataFrame({"Year": np.arange(0, years + 1)})
-    data["Total"] = data["Year"] * net
-    colour = EXTRACTION if net < 0 else INJECTION
-    x = alt.X("Year:Q", title=t("Year"), scale=alt.Scale(domain=[0, years], nice=False))
-    y = alt.Y("Total:Q", title=t("Added up [MWh]"))
-    tip = [alt.Tooltip("Year:Q", title=t("Year")), alt.Tooltip("Total:Q", format="+,.0f", title="MWh")]
-    area = alt.Chart(data).mark_area(opacity=0.15, color=colour).encode(x=x, y=y)
-    line = alt.Chart(data).mark_line(color=colour, strokeWidth=2).encode(x=x, y=y, tooltip=tip)
-    end = data.tail(1).assign(Label=t("{x:+,.0f} MWh after {n} years", x=net * years, n=years))
-    label = alt.Chart(end).mark_text(align="right", dx=-18, dy=14 if net >= 0 else -14, fontWeight="bold",
-                                     fontSize=12, color=colour).encode(x="Year:Q", y="Total:Q", text="Label:N")
-    dot = alt.Chart(end).mark_point(filled=True, size=60, color=colour).encode(x="Year:Q", y="Total:Q")
-    return (area + line + dot + label).properties(height=360, title=t("The yearly balance added up"))
 
 
 def heatmap_chart(hourly: pd.DataFrame) -> alt.Chart:
@@ -787,17 +769,9 @@ def _scale_bar_length(span: float) -> float:
     return float(max((v for v in (1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000) if v <= target), default=1))
 
 
-def section_row(m: dict) -> float:
-    """The y of the grid row through the middle of the field: the line A–A' of the map and the profile."""
-    ys = np.sort(m["table"]["y"].unique())
-    holes = m["boreholes"]["y"].to_numpy()
-    middle = holes[np.argmin(np.abs(holes - holes.mean()))]
-    return float(ys[np.argmin(np.abs(ys - middle))])
-
-
 def ground_map_chart(m: dict, north: bool = False, size: int = 420) -> alt.Chart:
     """Ground temperature change at mid-depth around the field at the end of the simulation: colour classes,
-    labelled isolines, the boreholes, a scale bar, the section line A–A' and (for real coordinates) north."""
+    labelled isolines, the boreholes, a scale bar and (for real coordinates) north."""
     import contourpy
     table, holes, cell = m["table"], m["boreholes"], m["cell"]
     gx, gy = np.sort(table["x"].unique()), np.sort(table["y"].unique())
@@ -862,15 +836,6 @@ def ground_map_chart(m: dict, north: bool = False, size: int = 420) -> alt.Chart
         lab = alt.Chart(pd.DataFrame(labels)).encode(x="x:Q", y="y:Q", text="Label:N")
         out += lab.mark_text(fontSize=10, fontWeight="bold", dy=-6, color="#ffffff").transform_filter("datum.dark")
         out += lab.mark_text(fontSize=10, fontWeight="bold", dy=-6, color="#1f2937").transform_filter("!datum.dark")
-    # section line A–A'
-    row_y = section_row(m)
-    sec = pd.DataFrame({"x": [dom_x[0], dom_x[1]], "y": [row_y, row_y], "Label": ["A", "A′"],
-                        "align": ["left", "right"]})
-    out += alt.Chart(sec).mark_line(color="#111827", strokeDash=[2, 3], strokeWidth=1.2).encode(x="x:Q", y="y:Q")
-    for align, dx in (("left", 4), ("right", -4)):
-        out += alt.Chart(sec[sec["align"] == align]).mark_text(fontWeight="bold", fontSize=12, dy=-8, dx=dx,
-                                                               align=align, color="#111827").encode(
-            x="x:Q", y="y:Q", text="Label:N")
     # scale bar, bottom right
     span = dom_x[1] - dom_x[0]
     length = _scale_bar_length(span)
@@ -889,34 +854,6 @@ def ground_map_chart(m: dict, north: bool = False, size: int = 420) -> alt.Chart
     return out.properties(width=size, height=size, autosize=alt.AutoSizeParams(type="pad"),
                           title=t("Ground temperature change at {depth:.0f} m depth after {years} years",
                                   depth=m["depth"], years=m["years"]))
-
-
-def ground_profile_chart(m: dict) -> alt.Chart:
-    """The temperature change along the line A–A' of the map, with the boreholes on that line."""
-    table, holes, cell = m["table"], m["boreholes"], m["cell"]
-    row_y = section_row(m)
-    row = table[np.isclose(table["y"], row_y)].sort_values("x")
-    x0 = float(row["x"].min())
-    data = pd.DataFrame({"Distance": row["x"] - x0, "Change": row["Change"],
-                         "Temperature": row["Temperature"]})
-    on_line = holes[np.abs(holes["y"] - row_y) <= cell]
-    x = alt.X("Distance:Q", title=t("Distance along A–A′ [m]"), scale=alt.Scale(nice=False))
-    y = alt.Y("Change:Q", title=t("Change [K]"))
-    lo = float(data["Change"].min())
-    colour = EXTRACTION if lo < 0 else INJECTION
-    out = alt.Chart(pd.DataFrame({"Distance": on_line["x"] - x0})).mark_rule(color=NEUTRAL, opacity=0.6, strokeDash=[3, 2]).encode(x=x)
-    out += alt.Chart(data).mark_area(opacity=0.15, color=colour).encode(x=x, y=y)
-    out += alt.Chart(data).mark_line(color=colour, strokeWidth=2).encode(
-        x=x, y=y, tooltip=[alt.Tooltip("Distance:Q", format=".1f", title=t("Distance m")),
-                           alt.Tooltip("Change:Q", format="+.2f", title=t("Change K")),
-                           alt.Tooltip("Temperature:Q", format=".2f", title=t("Ground °C"))])
-    ends = pd.DataFrame({"Distance": [float(data["Distance"].min()), float(data["Distance"].max())],
-                         "Label": ["A", "A′"], "align": ["left", "right"]})
-    for align, dx in (("left", 4), ("right", -4)):
-        out += alt.Chart(ends[ends["align"] == align]).mark_text(
-            fontWeight="bold", fontSize=12, align=align, dx=dx, y=10, color=NEUTRAL).encode(
-            x="Distance:Q", text="Label:N")
-    return out.properties(height=460, title=t("Along the line A–A′ (grey: boreholes on the line)"))
 
 
 def optimisation_chart(monthly: pd.DataFrame) -> alt.Chart:

@@ -2291,18 +2291,10 @@ DE: dict[str, str] = {
         'üblicher Auslegungszeitraum',
     "**{place}** – now choose the heat source below.":
         "**{place}** – jetzt unten die Wärmequelle wählen.",
-    "Added up [MWh]":
-        "Aufsummiert [MWh]",
-    "Along the line A–A′ (grey: boreholes on the line)":
-        "Entlang der Linie A–A′ (grau: Sonden auf der Linie)",
     "Blue, below zero: heat taken from the ground for heating; it cools the ground. Red, above zero: heat put into the ground by cooling; it warms it. Grey line: what is left each month. Energy in the ground, after the heat pump efficiency.":
         "Blau, unter null: Wärme, die zum Heizen dem Untergrund entzogen wird; sie kühlt ihn ab. Rot, über null: Wärme, die beim Kühlen in den Untergrund eingetragen wird; sie erwärmt ihn. Graue Linie: was in jedem Monat übrig bleibt. Energie im Untergrund, nach dem Wirkungsgrad der Wärmepumpe.",
     "Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without peaks. Brown: the borehole wall. Dashed: your limits. Move the pointer over the chart for the exact values.":
         "Blau: das Fluid bei den Heizspitzen, am kältesten. Rot: bei den Kühlspitzen, am wärmsten. Grau: ohne Spitzen. Braun: die Bohrlochwand. Gestrichelt: Ihre Grenzwerte. Mit dem Zeiger über dem Diagramm erscheinen die genauen Werte.",
-    "Distance along A–A′ [m]":
-        "Abstand entlang A–A′ [m]",
-    "Distance m":
-        "Abstand m",
     "Download":
         "Herunterladen",
     "Each year {x:,.0f} MWh more is returned to the ground than taken, so the ground slowly warms up.":
@@ -2341,16 +2333,12 @@ DE: dict[str, str] = {
         "Mit {what} an dieser Adresse starten",
     "Taken from the ground (cools it)":
         "Dem Untergrund entzogen (kühlt ihn)",
-    "The change along the dotted line A–A′ of the map. Calculated with the finite line source (uniform heat flow per metre, with the mirror image at the surface), which is also the basis of the g-function.":
-        "Die Änderung entlang der gepunkteten Linie A–A′ der Karte. Berechnet mit der finiten Linienquelle (gleichmäßiger Wärmestrom je Meter, mit Spiegelquelle an der Oberfläche), die auch der g-Funktion zugrunde liegt.",
     "The last year enlarged: blue, grey and red as on the left.":
         "Das letzte Jahr vergrößert: Blau, Grau und Rot wie links.",
     "The lowest fluid temperature changes by {x:+.1f} K from year 1 to year {n}.":
         "Die tiefste Fluidtemperatur ändert sich von Jahr 1 bis Jahr {n} um {x:+.1f} K.",
     "The numbers (CSV)":
         "Die Zahlen (CSV)",
-    "The yearly balance added up":
-        "Die Jahresbilanz aufsummiert",
     "Vector graphic (SVG)":
         "Vektorgrafik (SVG)",
     "Where is the site? (optional)":
@@ -2367,6 +2355,6 @@ DE: dict[str, str] = {
         "Jahr {year}, {month}",
     "{name}: {value} ({when})":
         "{name}: {value} ({when})",
-    "{x:+,.0f} MWh after {n} years":
-        "{x:+,.0f} MWh nach {n} Jahren",
+    "Calculated with the finite line source (uniform heat flow per metre, with the mirror image at the surface), which is also the basis of the g-function.":
+        "Berechnet mit der finiten Linienquelle (gleichmäßiger Wärmestrom je Meter, mit Spiegelquelle an der Oberfläche), die auch der g-Funktion zugrunde liegt.",
 }

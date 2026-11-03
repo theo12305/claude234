@@ -1002,22 +1002,17 @@ def view_temperatures(result, limits) -> None:
 def view_energy(result, key) -> None:
     energy = analysis.monthly_ground_energy(result)
     years = round(float(result.temperatures.index.max()))
-    left, right = st.columns([3, 2], gap="medium")
-    with left:
-        figure(plots.energy_balance_chart(energy),
-               t("Blue, below zero: heat taken from the ground for heating; it cools the ground. Red, above zero: heat "
-                 "put into the ground by cooling; it warms it. Grey line: what is left each month. Energy in the "
-                 "ground, after the heat pump efficiency."), energy.round(3))
-    with right:
-        drift = key.values.get("drift_k")
-        net = float(energy["Injection"].sum() - energy["Extraction"].sum())
-        text = t("Each year {x:,.0f} MWh more is taken from the ground than returned, so the ground slowly cools "
-                 "down.", x=-net) if net < 0 else t("Each year {x:,.0f} MWh more is returned to the ground than "
-                                                    "taken, so the ground slowly warms up.", x=net)
-        if drift is not None:
-            text += " " + t("The lowest fluid temperature changes by {x:+.1f} K from year 1 to year {n}.", x=drift,
-                            n=years)
-        figure(plots.imbalance_chart(energy, years), text)
+    drift = key.values.get("drift_k")
+    net = float(energy["Injection"].sum() - energy["Extraction"].sum())
+    text = t("Each year {x:,.0f} MWh more is taken from the ground than returned, so the ground slowly cools down.",
+             x=-net) if net < 0 else t("Each year {x:,.0f} MWh more is returned to the ground than taken, so the "
+                                       "ground slowly warms up.", x=net)
+    if drift is not None:
+        text += " " + t("The lowest fluid temperature changes by {x:+.1f} K from year 1 to year {n}.", x=drift, n=years)
+    figure(plots.energy_balance_chart(energy),
+           t("Blue, below zero: heat taken from the ground for heating; it cools the ground. Red, above zero: heat put "
+             "into the ground by cooling; it warms it. Grey line: what is left each month. Energy in the ground, after "
+             "the heat pump efficiency.") + " " + text, energy.round(3))
     c1, c2, c3 = st.columns(3)
     c1.metric(t("Extracted from the ground"), t("{x:,.0f} MWh/yr", x=key.values["extraction_mwh"]))
     c2.metric(t("Injected into the ground"), t("{x:,.0f} MWh/yr", x=key.values["injection_mwh"]))
@@ -1067,16 +1062,16 @@ def view_ground(result, sized_json, north: bool = False) -> None:
               delta_color="off", delta_arrow="off")
     left, right = st.columns([11, 9], gap="medium")
     with left:
-        figure(plots.ground_map_chart(m, north), t(
-            "How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of the "
-            "simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a borehole. "
-            "Boreholes in the middle change most because their neighbours add up. The seasonal swing on top of this "
-            "averages out over a year and is left out.", step=plots.ground_classes(m["table"]["Change"])[0]),
-            m["table"].round(4), width="content", phone=plots.ground_map_chart(m, north, size=290))
+        figure(plots.ground_map_chart(m, north), data=m["table"].round(4), width="content",
+               phone=plots.ground_map_chart(m, north, size=290))
     with right:
-        figure(plots.ground_profile_chart(m), t(
-            "The change along the dotted line A–A′ of the map. Calculated with the finite line source (uniform heat "
-            "flow per metre, with the mirror image at the surface), which is also the basis of the g-function."))
+        st.caption(t("How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of "
+                     "the simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a "
+                     "borehole. Boreholes in the middle change most because their neighbours add up. The seasonal "
+                     "swing on top of this averages out over a year and is left out.",
+                     step=plots.ground_classes(m["table"]["Change"])[0]))
+        st.caption(t("Calculated with the finite line source (uniform heat flow per metre, with the mirror image at "
+                     "the surface), which is also the basis of the g-function."))
     with st.expander(t("g-function (for specialists)"), icon=":material/show_chart:"):
         st.caption(t("The dimensionless step response of the field. Its rise at large times shows how strongly the "
                      "boreholes influence each other."))
