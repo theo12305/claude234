@@ -3,6 +3,9 @@
 - BGR, geological map of Germany 1:250,000 (GÜK250, INSPIRE lithology): the rock at the surface, all of Germany.
 - Geologischer Dienst NRW, borehole database (DABO) as BoreholeML web feature service: layered logs of released
   boreholes in North Rhine-Westphalia.
+- LGRB Baden-Württemberg, borehole database (ADB) as BoreholeML web feature service: the layered logs that the
+  portal LGRBbohrungen shows (published under the Geologiedatengesetz; the service states no fees and no access
+  restrictions).
 - Borehole points of seven more state surveys (Berlin, Brandenburg, Hessen, Mecklenburg-Vorpommern, Niedersachsen,
   Sachsen, Schleswig-Holstein): location, depth and a link to the log, which these states publish only as a picture
   or web page, so the user reads it and types the layers in.
@@ -29,9 +32,11 @@ from .predict import Borehole, LogLayer
 
 GUEK250 = "https://services.bgr.de/arcgis/rest/services/inspire_ge/guek250/MapServer/{layer}/query"
 NRW_BML = "https://www.bml3.nrw.de/service/bml"
+LGRB_BML = "https://services.lgrb-bw.de/boreholeml/services/bml"
 
 # Services with layered borehole logs, per state key (as in siteplan.states)
-LOG_SERVICES = {"NW": "Geologischer Dienst NRW, borehole database (BoreholeML)"}
+LOG_SERVICES = {"NW": "Geologischer Dienst NRW, borehole database (BoreholeML)",
+                "BW": "LGRB Baden-Württemberg, borehole database (BoreholeML)"}
 
 
 # ---------------------------------------------------------------- geological map (BGR)
@@ -120,13 +125,17 @@ def parse_bml(content: bytes, source: str = "BoreholeML") -> list[Borehole]:
             names = [(_number(_text(lith, "percentageTo")) or 0, _text(lith, "rockName"))
                      for lith in _children(interval, "Lithology")]
             names = [n for _, n in sorted(names, key=lambda t: -t[0]) if n]
+            text = _text(interval, "rockNameText")  # LGRB: the description in words
+            if text:
+                names.append(text)
             rock = rocks.classify(code)
             if rock == rocks.UNKNOWN:
                 for n in names:
                     rock = rocks.classify(n)
                     if rock != rocks.UNKNOWN:
                         break
-            layers.append(LogLayer(top, bottom, rock, code or ", ".join(names)))
+            layers.append(LogLayer(top, bottom, rock, (f"{code}: {text}" if code and text else
+                                                       code or text or ", ".join(names))))
         if not layers:
             continue
         point = _position(hole)
@@ -178,9 +187,41 @@ def nrw_boreholes(x: float, y: float, radius: float, max_features: int = 400) ->
     return parse_bml(r.content, "GD NRW")
 
 
+_BOREHOLE_TAG = re.compile(rb"<(?:[\w.-]+:)?Borehole[\s>]")
+
+
+def lgrb_boreholes(x: float, y: float, radius: float, enough: int = 12, per_request: int = 40
+                   ) -> list[Borehole]:
+    """Logged boreholes around (x, y) from the LGRB borehole database (Baden-Württemberg).
+
+    One borehole with its layers is 20 to 50 kB, so the search starts close to the site and widens until enough
+    logged boreholes are found, a search square is full (the nearest are then already inside) or ``radius`` is
+    reached. If a wider search fails, the boreholes found so far are kept."""
+    found: dict[str, Borehole] = {}
+    for r in sorted({min(radius, s) for s in (300, 800, 2000)} | {radius}):
+        try:
+            answer = lookup._get(LGRB_BML, {
+                "SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature", "TYPENAMES": "bml:Borehole",
+                "COUNT": per_request, "SRSNAME": "urn:ogc:def:crs:EPSG::25832",
+                "BBOX": f"{x - r},{y - r},{x + r},{y + r},urn:ogc:def:crs:EPSG::25832"})
+            holes = parse_bml(answer.content, "LGRB BW")
+        except LookupError_:
+            if found:
+                break
+            raise
+        for h in holes:
+            if ((h.x - x) ** 2 + (h.y - y) ** 2) ** 0.5 <= radius:
+                found.setdefault(f"{h.name}@{h.x:.0f},{h.y:.0f}", h)
+        if len(found) >= enough or len(_BOREHOLE_TAG.findall(answer.content)) >= per_request:
+            break
+    return sorted(found.values(), key=lambda h: (h.x - x) ** 2 + (h.y - y) ** 2)
+
+
 def boreholes_online(state_key: str | None, x: float, y: float, radius: float) -> list[Borehole]:
     if state_key == "NW":
         return nrw_boreholes(x, y, radius)
+    if state_key == "BW":
+        return lgrb_boreholes(x, y, radius)
     return []
 
 
@@ -417,7 +458,8 @@ def _near(points: list[BoreholePoint], x: float, y: float, radius: float) -> lis
 # What each state survey offers, for the page's overview (state key -> survey, portal, what is open)
 PORTALS = {
     "BW": ("LGRB Baden-Württemberg (LGRBbohrungen)", "https://bohrungen.lgrb-bw.de",
-           "Connected: boreholes with depth and BO number; layer logs in LGRBbohrungen."),
+           "Connected: logs with layers (BoreholeML), used for the prediction directly; all other boreholes "
+           "with depth and BO number."),
     "BY": ("LfU Bayern", "https://www.umweltatlas.bayern.de",
            "Boreholes in the UmweltAtlas (Geologie); no open download service."),
     "BE": ("Senatsverwaltung Berlin", "https://gdi.berlin.de",

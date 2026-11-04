@@ -691,6 +691,7 @@ DE: dict[str, str] = {
     "Geological map (BGR GÜK250) at the site: {units}": "Geologische Karte (BGR GÜK250) am Standort: {units}",
     "Geological map: {error}": "Geologische Karte: {error}",
     "Geologischer Dienst NRW, borehole database (BoreholeML)": "Geologischer Dienst NRW, Bohrungsdatenbank (BoreholeML)",
+    "LGRB Baden-Württemberg, borehole database (BoreholeML)": "LGRB Baden-Württemberg, Bohrdatenbank (BoreholeML)",
     "Go": "Los",
     "Go to an address": "Zu einer Adresse springen",
     "Grid": "Raster",
@@ -1538,10 +1539,12 @@ DE: dict[str, str] = {
         '**{name}**: {depth} tief, {d:,.0f} m vom Standort',
     'Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: boreholes of the state survey (darker = deeper, grey = under 30 m); their logs are pictures or web pages and are not in the prediction until you enter them.':
         'Klicken Sie auf eine Bohrung für ihre Daten. Grün: Schichtenverzeichnisse mit Schichten, in der Vorhersage verwendet. Blau: Bohrungen des Landesdienstes (dunkler = tiefer, grau = unter 30 m); ihre Schichtenverzeichnisse sind Bilder oder Webseiten und fließen erst in die Vorhersage ein, wenn Sie sie eingeben.',
+    'Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: further boreholes of the state survey (darker = deeper, grey = under 30 m) without layers in the service, or beyond the number of boreholes used.':
+        'Klicken Sie auf eine Bohrung für ihre Daten. Grün: Schichtenverzeichnisse mit Schichten, in der Vorhersage verwendet. Blau: weitere Bohrungen des Landesdienstes (dunkler = tiefer, grau = unter 30 m) ohne Schichten im Dienst oder über die Zahl der verwendeten Bohrungen hinaus.',
     'Click the borehole on the map below to fill this in; nearer logs weigh more.':
         'Klicken Sie die Bohrung in der Karte unten an, um dies auszufüllen; nähere Bohrungen zählen mehr.',
-    'Connected: boreholes with depth and BO number; layer logs in LGRBbohrungen.':
-        'Angebunden: Bohrungen mit Endteufe und BO-Nummer; Schichtenverzeichnisse in LGRBbohrungen.',
+    'Connected: logs with layers (BoreholeML), used for the prediction directly; all other boreholes with depth and BO number.':
+        'Angebunden: Schichtenverzeichnisse (BoreholeML), direkt in der Vorhersage genutzt; alle übrigen Bohrungen mit Endteufe und BO-Nummer.',
     'Copy the layer list from the portal (or download its PDF) and the layers are read from it. Pictures and scans cannot be read for free; type their layers into the box.':
         'Kopieren Sie die Schichtliste aus dem Portal (oder laden Sie das PDF herunter); die Schichten werden daraus gelesen. Bilder und Scans lassen sich nicht kostenlos lesen; tippen Sie deren Schichten in das Feld.',
     'Enter a log from text or a PDF (e.g. copied from LGRBbohrungen)':
