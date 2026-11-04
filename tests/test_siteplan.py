@@ -130,7 +130,7 @@ def test_service_error_is_reported():
 def test_flurstueckskennzeichen():
     nw = next(s for s in STATES if s.key == "NW")
     assert lookup.flurstueckskennzeichen(nw, "1234", "1", "123", "4") == "05123400100123" + "0004"
-    assert lookup.flurstueckskennzeichen(nw, "1234", "", "56", "") == "05123400000056"
+    assert lookup.flurstueckskennzeichen(nw, "1234", "", "56", "") == "051234???00056"
 
 
 def test_every_state_is_configured():

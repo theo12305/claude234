@@ -250,14 +250,15 @@ def wfs_by_attribute(service, prop: str, pattern: str, max_features: int = 50) -
     vr = "ValueReference" if v2 else "PropertyName"
     lit = pattern.replace("&", "&amp;").replace("<", "&lt;")
     prefix = prop.split(":")[0] if ":" in prop else ""
-    ns = f' xmlns:{prefix}="{NAMESPACES[prefix]}"' if prefix in NAMESPACES else ""
+    uri = getattr(service, "namespace", None) or NAMESPACES.get(prefix)
+    ns = f' xmlns:{prefix}="{uri}"' if uri else ""
     filt = (f'<fes:Filter xmlns:fes="{fes}"{ns}><fes:PropertyIsLike wildCard="*" singleChar="?" escapeChar="\\">'
             f'<fes:{vr}>{prop}</fes:{vr}><fes:Literal>{lit}</fes:Literal></fes:PropertyIsLike></fes:Filter>')
     params = {"SERVICE": "WFS", "VERSION": service.version, "REQUEST": "GetFeature",
               ("TYPENAMES" if v2 else "TYPENAME"): service.typename, "SRSNAME": f"EPSG:{service.epsg}",
               ("COUNT" if v2 else "MAXFEATURES"): max_features, "FILTER": filt}
-    if prefix in NAMESPACES and v2:
-        params["NAMESPACES"] = f"xmlns({prefix},{NAMESPACES[prefix]})"
+    if uri and v2:
+        params["NAMESPACES"] = f"xmlns({prefix},{uri})"
     params.update(service.extra_params)
     r = _get(service.url, params)
     return parse_gml(r.content, service.epsg)
@@ -305,7 +306,8 @@ def flurstueckskennzeichen(state: State, gemarkung: str, flur: str, zaehler: str
     g, f, z, n = (re.sub(r"\D", "", s or "") for s in (gemarkung, flur, zaehler, nenner))
     if not g or not z:
         raise LookupError_(t("The Gemarkung number and the Flurstück number (Zähler) are needed."))
-    key = f"{state.code}{int(g):04d}{int(f or 0):03d}{int(z):05d}"
+    # without a Flur, any three characters: states without Flur write "000" or "___" (Hamburg, Sachsen)
+    key = f"{state.code}{int(g):04d}{f'{int(f):03d}' if f else '???'}{int(z):05d}"
     return key + (f"{int(n):04d}" if n else "")
 
 
@@ -319,7 +321,7 @@ def parcel_by_number(state: State, gemarkung: str, flur: str, zaehler: str, nenn
         feats = wfs_by_attribute(state.parcels, state.parcels.ref_property, "*" + key + "*")
     if not nenner:
         # without a Nenner, prefer the parcel that has none (0000 or ____)
-        plain = [f for f in feats if re.search(key + r"(0000|____)", _ref(f))]
+        plain = [f for f in feats if re.search(key.replace("?", ".") + r"(0000|____)", _ref(f))]
         feats = plain or feats
     for f in feats:
         f.attrs["_label"] = _parcel_label(f.attrs)

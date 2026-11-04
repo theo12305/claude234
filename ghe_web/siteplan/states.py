@@ -17,6 +17,7 @@ class Wfs:
     epsg: int = 25832
     ref_property: str | None = None  # attribute holding the Flurstückskennzeichen, for the search by number
     extra_params: dict = field(default_factory=dict)
+    namespace: str | None = None  # namespace of the ref_property prefix, where it differs from lookup.NAMESPACES
 
 
 @dataclass(frozen=True)
@@ -138,7 +139,8 @@ STATES: list[State] = [
           5.0, "LQS Bohrungen/Erdwärmesonden Sachsen-Anhalt 2016, section 2.1.3: 5 m to the border."),
     State("TH", "16", "Thüringen",
           Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:Flurstueck",
-              ref_property=AVE_REF, extra_params=TH_SRS),
+              ref_property=AVE_REF, extra_params=TH_SRS,
+              namespace="http://repository.gdi-de.org/schemas/adv/produkt/alkis-vereinfacht/1.0"),
           Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:GebaeudeBauwerk",
               extra_params=TH_SRS),
           Wms("https://www.geoproxy.geoportal-th.de/geoproxy/services/DOP", "th_dop", "© GDI-Th, CC BY 4.0"),
