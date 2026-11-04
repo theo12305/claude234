@@ -7,7 +7,7 @@ from ..i18n import t
 from .base import PresetGroup, Property, Section, Variant
 from .registry import register
 
-K_G = Property("k_g", "Grout thermal conductivity", 1.5, "W/(m·K)", min=0.1, max=5.0, step=0.1)
+K_G = Property("k_g", "Grout thermal conductivity", 1.6, "W/(m·K)", min=0.1, max=5.0, step=0.1)
 K_P = Property("k_p", "Pipe thermal conductivity", 0.42, "W/(m·K)", min=0.05, max=5.0, step=0.01)
 U_PROPS = (
     K_G,
@@ -49,10 +49,11 @@ register(Section(
     label="Borehole heat exchanger",
     order=30,
     variants=(
-        Variant("single_u", "Single U-tube", U_PROPS, checks=(_radii_ok,), presets=U_PRESETS,
-                build=lambda v: SingleUTube(**_u_kwargs(v))),
+        # double U-tube first: the default
         Variant("double_u", "Double U-tube", U_PROPS, checks=(_radii_ok,), presets=U_PRESETS,
                 build=lambda v: DoubleUTube(**_u_kwargs(v))),
+        Variant("single_u", "Single U-tube", U_PROPS, checks=(_radii_ok,), presets=U_PRESETS,
+                build=lambda v: SingleUTube(**_u_kwargs(v))),
         Variant(
             "coaxial", "Coaxial",
             (

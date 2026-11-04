@@ -14,7 +14,7 @@ register(Section(
             key="constant_per_borehole",
             label="Constant flow per borehole",
             properties=(
-                Property("mfr", "Mass flow rate per borehole", 0.3, "kg/s", min=0.01, max=5.0, step=0.01),
+                Property("mfr", "Mass flow rate per borehole", 0.6, "kg/s", min=0.01, max=5.0, step=0.01),
                 Property("pump_efficiency", "Pump efficiency", 35.0, "%", min=5.0, max=90.0, step=1.0,
                          help="Wire-to-water efficiency of the circulation pump (motor and pump together). "
                               "Small brine circulators reach 25 to 40 %, large pumps 50 to 70 %. Only used for the "

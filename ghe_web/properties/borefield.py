@@ -54,7 +54,7 @@ COMMON = (
              help="Start value; sizing calculates the required length."),
     Property("D", "Buried depth", 0.7, "m", min=0.0, max=20.0, step=0.1,
              help="Depth of the top of the borehole below ground level."),
-    Property("r_b_mm", "Borehole radius", 75.0, "mm", min=20.0, max=200.0, step=1.0,
+    Property("r_b_mm", "Borehole radius", 76.0, "mm", min=20.0, max=200.0, step=1.0,
              help="Half the drilling diameter."),
 )
 

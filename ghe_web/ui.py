@@ -3,10 +3,11 @@ the results, the range bars next to the inputs and the calculate bar fixed at th
 from __future__ import annotations
 
 import html
+import textwrap
 
 import streamlit as st
 
-from . import guidance
+from . import guidance, i18n
 from .i18n import t
 
 # Light and dark colours. The Streamlit theme (.streamlit/config.toml) uses the same values.
@@ -23,6 +24,49 @@ PALETTE = {
 
 # The logo: a gradient tile (warm above, cool below) with three boreholes, drawn with CSS (no image file).
 LOGO = "<div class='logo'><i></i><i></i><i></i></div>"
+
+
+def is_phone() -> bool:
+    """True on a phone (by the browser's user agent; tablets count as wide screens). Charts then get legends in
+    one column and wrapped titles, and fixed-size charts a smaller size."""
+    try:
+        agent = st.context.headers.get("User-Agent", "") or ""
+    except Exception:
+        return False
+    return ("Mobi" in agent or "iPhone" in agent) and "iPad" not in agent
+
+
+def _for_phone(spec: dict) -> dict:
+    """Adapts a Vega-Lite spec to a narrow screen: legends above the chart in one column instead of one long row,
+    and titles wrapped instead of cut off with "…"."""
+    def walk(node):
+        if isinstance(node, dict):
+            legend = node.get("legend")
+            if isinstance(legend, dict) and legend.get("orient", "top") == "top":
+                legend.update(columns=1, labelLimit=330)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+    walk(spec)
+    title = spec.get("title")
+    if isinstance(title, str):
+        spec["title"] = textwrap.wrap(title, 40) or title
+    elif isinstance(title, dict) and isinstance(title.get("text"), str):
+        title["text"] = textwrap.wrap(title["text"], 40) or title["text"]
+    return spec
+
+
+def show_chart(c, width="stretch", title: bool = True) -> None:
+    """An Altair chart in the current language's number format. ``title=False`` leaves the chart's own title out
+    (the page shows it above the chart, where it can wrap)."""
+    spec = i18n.localize_chart(c).to_dict()
+    if not title:
+        spec.pop("title", None)
+    if is_phone():
+        spec = _for_phone(spec)
+    st.vega_lite_chart(spec, width=width)
 
 
 def theme() -> str:
@@ -97,13 +141,17 @@ div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {{background: var(
 .tile .d {{font-size: .8rem; color: var(--muted); margin-top: 2px;}}
 .tile .v.cold {{color: var(--cold);}} .tile .v.warm {{color: var(--warm);}}
 .fignum {{font-size: .78rem; font-weight: 700; color: var(--muted); letter-spacing: .05em; text-transform: uppercase;}}
-div[class*="st-key-fighead"] {{margin-bottom: -10px;}}
+.figtitle {{font-weight: 600; font-size: .98rem; line-height: 1.3; margin-top: 1px;}}
+div[class*="st-key-fighead"] {{align-items: flex-start; flex-wrap: nowrap;}}
+div[class*="st-key-fighead"] > div:first-child {{flex: 1 1 0; min-width: 0;}}
+div[class*="st-key-fighead"] [data-testid="stMarkdownContainer"] p {{margin: 0;}}
 div[class*="st-key-fighead"] button {{min-height: 1.9rem; padding: 0 .6rem;}}
-div[class*="st-key-fignarrow"] {{display: none;}}
-@media (max-width: 640px) {{
-  div[class*="st-key-fignarrow"] {{display: flex;}}
-  div[class*="st-key-figwide"] {{display: none;}}
-}}
+details.more {{font-size: .875rem; color: var(--muted); line-height: 1.45; margin: -4px 0 8px;}}
+details.more summary {{cursor: pointer; list-style: none;}}
+details.more summary::-webkit-details-marker {{display: none;}}
+details.more summary span {{color: var(--accent); font-weight: 600; white-space: nowrap;}}
+details.more summary span::after {{content: " ▾";}}
+details.more[open] summary span {{display: none;}}
 .rangebar {{margin: -6px 0 10px;}}
 .rangebar .track {{position: relative; height: 6px; border-radius: 3px; background: var(--track);}}
 .rangebar .band {{position: absolute; top: 0; height: 6px; border-radius: 3px; background: var(--band);}}
@@ -134,6 +182,15 @@ div[class*="st-key-fignarrow"] {{display: none;}}
   .st-key-calcbar button {{padding-left: 10px; padding-right: 10px;}}
   .st-key-open_checks button p, .st-key-calc_goto_error button p {{display: none;}}
   .welcome h2 {{font-size: 1.5rem;}}
+  /* tabs: wrap onto two lines as pills instead of a row that scrolls (the Results tab was out of sight) */
+  .st-key-step [role="tablist"] {{flex-wrap: wrap; gap: 6px; overflow: visible !important; width: 100%;}}
+  .st-key-step [role="tablist"] + *, .st-key-step [data-testid="stTabs"] > div:first-child > div:not([role]) {{display: none;}}
+  .st-key-step [role="tab"] {{height: auto; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    margin: 0 !important; flex: none;}}
+  .st-key-step [role="tab"]::after {{display: none;}}
+  .st-key-step [role="tab"] p {{font-size: .85rem;}}
+  .st-key-step [role="tab"][aria-selected="true"] {{background: var(--accent); border-color: var(--accent);}}
+  .st-key-step [role="tab"][aria-selected="true"] p {{color: #fff;}}
 }}
 </style>""")
 
@@ -170,6 +227,18 @@ def range_bar(value: float, rng: guidance.Typical, low_limit, high_limit, rock: 
             f"width:{(band_hi - band_lo) * 100:.1f}%'></div><div class='dot' style='left:{dot * 100:.1f}%'></div>"
             f"</div><div class='txt{' warn' if unusual else ''}'>{html.escape(guidance.verdict_text(value, rng, rock))}"
             f"</div></div>")
+
+
+def caption(text: str) -> None:
+    """A caption that shows its first sentence; the rest opens with "more", so long explanations don't fill the
+    page."""
+    import re
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ(])", text.strip(), maxsplit=1)
+    if len(parts) == 1:
+        st.caption(text)
+        return
+    st.html(f"<details class='more'><summary>{html.escape(parts[0])} <span>{html.escape(t('more'))}</span>"
+            f"</summary>{html.escape(parts[1])}</details>")
 
 
 def side_note(text: str) -> None:

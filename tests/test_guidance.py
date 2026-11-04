@@ -39,3 +39,22 @@ def test_mode_is_saved_with_the_project():
     assert model.saved_setting(text, "mode") == "expert"
     assert model.saved_language(text) == "de"
     assert model.from_json(text)[0] == "x"
+
+
+def test_simple_labels_name_real_fields():
+    keys = {(s.key, p.key) for s in properties.sections() for v in s.variants for p in v.properties}
+    assert set(guidance.SIMPLE_LABELS) <= keys
+
+
+def test_defaults_match_a_drop_down_choice():
+    """The drop-downs start on a typical choice, so the default values are one of their options."""
+    for section in properties.sections():
+        for variant in section.variants:
+            defaults = variant.defaults()
+            for group in variant.presets:
+                assert any(all(abs(float(defaults[k]) - float(v)) < 1e-9 for k, v in vals.items())
+                           for vals in group.options.values()), (section.key, variant.key, group.label)
+
+
+def test_double_u_tube_is_the_default():
+    assert properties.get("pipe").variant().key == "double_u"

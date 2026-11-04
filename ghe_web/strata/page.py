@@ -56,7 +56,7 @@ def _location(key: str):
     plan = _site_from_plan()
     names = {"plan": t("The parcel from the site plan"), "address": t("An address"), "coordinates": t("Coordinates")}
     options = (["plan"] if plan else []) + ["address", "coordinates"]
-    how = st.radio(t("Location"), options, format_func=names.get, horizontal=True, key=f"{key}.where",
+    how = st.selectbox(t("Location"), options, format_func=names.get, key=f"{key}.where",
                    help=t("Where the boreholes will be. Find your parcel in step ⓪ Site plan to use it here."))
     if how == "plan":
         st.caption(f"📍 {plan[2]}")
@@ -490,7 +490,7 @@ def layers_input(prop, value: dict, key: str, prefix: str, length: float, buried
                     help=t("Each layer keeps its own conductivity and heat capacity; GHEtool averages them over the "
                            "borehole length while it sizes, so a deeper borehole reaches other layers. Off: the "
                            "single values above are used."))
-    with st.expander(t("🔮 Predict the layers from nearby borehole logs and the geological map"), expanded=not rows):
+    with st.expander(t("🔮 Predict the layers from nearby borehole logs and the geological map"), expanded=False):
         st.caption(t("Looks for logged boreholes around the site and interpolates their layers (nearer logs weigh "
                      "more), then gives every layer its VDI 4640 conductivity and heat capacity. It is a first "
                      "estimate for planning; a thermal response test measures the real value."))

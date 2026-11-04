@@ -5,11 +5,11 @@ from ..i18n import t
 from .base import PresetGroup, Property, Section, Variant
 from .registry import register
 
-K_S = Property("k_s", "Ground thermal conductivity", 3.0, "W/(m·K)", min=0.1, max=10.0, step=0.1)
+K_S = Property("k_s", "Ground thermal conductivity", 2.8, "W/(m·K)", min=0.1, max=10.0, step=0.1)
 T_G = Property("T_g", "Undisturbed ground temperature", 10.0, "°C", min=-10.0, max=40.0, step=0.5)
 T_SURFACE = Property("T_g", "Ground surface temperature", 10.0, "°C", min=-10.0, max=40.0, step=0.5,
                      help="Average yearly temperature at the surface; it increases with depth.")
-C_VOL = Property("volumetric_heat_capacity", "Volumetric heat capacity", 2.4, "MJ/(m³·K)",
+C_VOL = Property("volumetric_heat_capacity", "Volumetric heat capacity", 2.2, "MJ/(m³·K)",
                  min=0.5, max=5.0, step=0.1)
 LAYERS = Property("layers", "Ground layers", {"use": False, "rows": ()}, kind="layers",
                   help="Layers from the surface down, each with its own conductivity and heat capacity. Predicted "

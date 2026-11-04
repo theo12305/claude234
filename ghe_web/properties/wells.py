@@ -27,7 +27,7 @@ register(Section(
 KF = Property("kf", "Hydraulic conductivity kf", 1e-3, "m/s", min=1e-7, max=1e-1, step=1e-4, format="%.1e",
               help="From a pumping test if you have one; the drop-down gives typical values. Wells need about "
                    "1e-4 m/s or more.")
-POROSITY = Property("porosity", "Effective porosity", 0.2, min=0.01, max=0.5, step=0.01,
+POROSITY = Property("porosity", "Effective porosity", 0.22, min=0.01, max=0.5, step=0.01,
                     help="The share of the volume the groundwater flows through. Sets how fast water and heat move.")
 GRADIENT = Property("gradient", "Hydraulic gradient", 2.0, "‰", min=0.0, max=50.0, step=0.1,
                     help="Slope of the groundwater table, from the groundwater contour map of the state (in ‰: "
