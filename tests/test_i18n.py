@@ -78,6 +78,7 @@ def _data_texts() -> set[str]:
             texts.add(f"{who} {kind} [MWh]")
     texts |= {"Month", "Heating demand", "Cooling demand", "Ground extraction", "Ground injection"}
     texts |= {s.source for s in guidance.TYPICAL.values()} | {"VDI 4640 for {rock}", "yearly mean in Germany"}
+    texts |= set(guidance.SIMPLE_LABELS.values())
     texts |= {x for _, label, text in guidance.HEAT_SOURCES.values() for x in (label, text)}
     texts |= set(wells_page.VIEWS.values()) | set(wells_plots.COMPASS) | {"problem", "warning", "fine"}
     texts |= {text for topic, method, _ in wells_sources.SOURCES for text in (topic, method)}

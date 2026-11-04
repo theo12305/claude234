@@ -81,6 +81,18 @@ with mode_slot:
                                    required=True, key="ui_mode", label_visibility="collapsed")
 
 
+if ui_mode == "expert":  # Expert: denser inputs, so the two modes look different and more fits on the screen
+    st.html("""<style>
+.stTabs [data-testid="stVerticalBlock"] {gap: .55rem;}
+.stTabs [data-testid="stNumberInput"] input {height: 2.1rem; font-size: .9rem;}
+.stTabs [data-baseweb="select"] > div {min-height: 2.1rem; font-size: .9rem;}
+.stTabs [data-testid="stWidgetLabel"] p {font-size: .82rem;}
+.stTabs h5 {font-size: 1rem; padding-bottom: .3rem;}
+.stTabs div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {padding: 10px 14px;}
+.rangebar {margin: -4px 0 6px;} .rangebar .txt {font-size: .7rem;}
+</style>""")
+
+
 def in_language(fn, *args):
     """For downloads made when the button is clicked: they run outside this page run, so they get the language."""
     return lambda: i18n.call_in(lang, fn, *args)
@@ -90,7 +102,7 @@ def chart(c, width="stretch") -> None:
     ui.show_chart(c, width)
 
 
-FIG = {"view": 0, "n": 0}  # figure numbers on the results page: number of the view . figure in the view
+FIG = {"view": 0, "n": 0, "plain": False}  # figure numbers on the results page: number of the view . figure in the view
 
 
 def _picture(spec: dict, kind: str) -> bytes:
@@ -102,9 +114,16 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
     """A result chart with its figure number, a caption and downloads: the picture (PNG for reports, SVG to edit) with
     the number, title and caption, and the numbers as CSV. On the page the title stands above the chart as text, so
     it wraps on a phone instead of being cut off."""
+    title = c.title if isinstance(c.title, str) else ""
+    if FIG["plain"]:  # Simple results page: the chart with its title, no number and no download menu
+        if title:
+            st.markdown(f"<div class='figtitle'>{html.escape(title)}</div>", unsafe_allow_html=True)
+        ui.show_chart(c, width, title=not title)
+        if caption:
+            ui.caption(caption)
+        return
     FIG["n"] += 1
     number = f"{FIG['view']}.{FIG['n']}" if FIG["view"] else str(FIG["n"])
-    title = c.title if isinstance(c.title, str) else ""
     head = st.container(horizontal=True, gap="small", key=f"fighead.{number}")
     head.markdown(f"<span class='fignum'>{html.escape(t('Figure {n}', n=number))}</span>"
                   + (f"<div class='figtitle'>{html.escape(title)}</div>" if title else ""), unsafe_allow_html=True)
@@ -146,6 +165,12 @@ WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer"
                     "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
                     "results": "📊 Results"}
 
+# Simple mode: the borehole, fluid and limits are part of the Loads step, which becomes step 2
+SIMPLE_STEP_LABELS = {"Loads": "② Loads"}
+# Input methods for specialists: listed in Expert only (and in Simple while a project uses them)
+EXPERT_ONLY = {("load", "monthly"), ("load", "hourly_building"), ("heat_pump", "curve"), ("pipe", "coaxial"),
+               ("pipe", "constant_rb")}
+
 # Values the widgets start from: the defaults, or a project the user loaded.
 # Widget keys include a generation number, so loading a project rebuilds every widget.
 if "project" not in st.session_state:
@@ -174,7 +199,12 @@ gen = st.session_state.generation
 # The heat source decides the sections and tabs. Its radio is drawn further down, so read its value here.
 system = st.session_state.get(f"{gen}.system.variant_key", model.system(start))
 LABELS = WELL_STEP_LABELS if system == "open" else STEP_LABELS
+SIMPLE = ui_mode != "expert"
+if SIMPLE:  # three input steps: the borehole, fluid and limits come with typical values under Loads
+    LABELS = {**LABELS, **SIMPLE_STEP_LABELS}
 STEPS = {k: t(v) for k, v in LABELS.items()}
+if SIMPLE:
+    STEPS["Borehole"] = STEPS["Design"] = STEPS["Loads"]
 SITE_PLAN, MORE, RESULTS = STEPS["site_plan"], STEPS["more"], STEPS["results"]
 if st.session_state.pop("goto_results", False):
     st.session_state.step = RESULTS
@@ -183,7 +213,7 @@ if "goto_step" in st.session_state:
 if st.session_state.get("step") not in (None, *STEPS.values()):  # language or heat source changed: same tab, new label
     for code in i18n.LANGUAGES:
         with i18n.using(code):
-            match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS) for k, v in labels.items()
+            match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS, SIMPLE_STEP_LABELS) for k, v in labels.items()
                      if t(v) == st.session_state.step]
         if match:
             st.session_state.step = STEPS[match[0]]
@@ -266,8 +296,12 @@ def choose_heat_source(choice: str, hit: dict | None = None) -> None:
     """Start with this heat source. Like opening a project, so every widget starts from the stored inputs. With an
     address found on the start page, the site plan opens and loads the parcel there."""
     _, inputs_now = st.session_state.project
-    st.session_state.project = (st.session_state.get(f"{gen}.name", project_name),
-                                {**inputs_now, "system": SectionInput(choice, {})})
+    inputs_now = {**inputs_now, "system": SectionInput(choice, {})}
+    if st.session_state.get("ui_mode", "simple") != "expert" and inputs_now["load"].variant == "monthly":
+        # Simple asks about the building (heat per year, peak, cooling), not the monthly ground load
+        building = properties.get("load").variant("annual_building")
+        inputs_now["load"] = SectionInput(building.key, building.defaults())
+    st.session_state.project = (st.session_state.get(f"{gen}.name", project_name), inputs_now)
     st.session_state.generation += 1
     st.session_state.welcomed = True
     if hit is not None:
@@ -345,11 +379,20 @@ calc_slot = st.container(key="calcbar", horizontal=True, vertical_alignment="cen
 
 # ---------------------------------------------------------------- inputs
 
+def simple_label(section_key: str, prop: Property) -> str:
+    return t(guidance.SIMPLE_LABELS.get((section_key, prop.key), prop.label))
+
+
 def widget(prop: Property, value, key: str):
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
+    help_text = t(prop.help) or None
+    plain = guidance.SIMPLE_LABELS.get((key.split(".")[1], prop.key)) if SIMPLE else None
+    if plain:  # Simple: everyday words; the technical name (and an unusual unit) behind the question mark
+        unit = f" [{t(prop.unit)}]" if prop.unit else ""
+        label = t(plain) + (unit if prop.unit in guidance.PLAIN_UNITS else "")
+        help_text = f"**{t(prop.label)}{unit}**" + (f"  \n{t(prop.help)}" if prop.help else "")
     # A preset may already have put a value in the session state; then the widget must not get one too.
     initial = {} if key in st.session_state else None
-    help_text = t(prop.help) or None
     if prop.kind == "float":
         kw = initial if initial is not None else {"value": float(value)}
         as_float = lambda x: float(x) if x is not None else None  # noqa: E731 (Streamlit refuses mixed int/float)
@@ -384,17 +427,30 @@ def field_help(prop: Property, value, values: dict, prefix: str) -> None:
 
 
 def field_grid(props: list[Property], values: dict, prefix: str, n_cols: int) -> None:
-    cols = st.columns(n_cols)
+    # on a phone the columns stack, which would mix up the order (column by column): one column there
+    cols = st.columns(1 if ui.is_phone() else n_cols)
     for i, prop in enumerate(props):
         with cols[i % len(cols)]:
             values[prop.key] = widget(prop, values[prop.key], f"{prefix}.{prop.key}")
             field_help(prop, values[prop.key], values, prefix)
 
 
-def preset_pickers(variant: Variant, key_prefix: str) -> None:
-    """Drop-downs such as "Rock type" that fill in several fields at once."""
+def matching_preset(group, now: dict) -> str:
+    """The choice of a drop-down whose values are the ones entered, or "" (own values)."""
+    def same(a, b):
+        return abs(float(a) - float(b)) < 1e-9 if isinstance(b, (int, float)) and not isinstance(b, bool) else a == b
+    for option, vals in group.options.items():
+        if all(k in now and same(now[k], v) for k, v in vals.items()):
+            return option
+    return ""
+
+
+def preset_pickers(variant: Variant, key_prefix: str, values: dict) -> None:
+    """Drop-downs such as "Rock type" that fill in several fields at once. They start on the choice that matches
+    the values (the defaults are typical choices), or on "Own values"."""
     if not variant.presets:
         return
+    now = {k: st.session_state.get(f"{key_prefix}.{k}", v) for k, v in values.items()}
     cols = st.columns(max(2, len(variant.presets)))
     for col, group in zip(cols, variant.presets):
         def apply(group=group, pick_key=f"{key_prefix}.preset.{group.label}"):
@@ -403,8 +459,9 @@ def preset_pickers(variant: Variant, key_prefix: str) -> None:
             for field, val in group.options.get(choice, {}).items():
                 st.session_state[f"{key_prefix}.{field}"] = float(val) if kinds.get(field) == "float" else val
         with col:
-            st.selectbox(f"🗂 {t(group.label)}", [""] + list(group.options),
-                         format_func=lambda o: t(o) if o else t("Choose to fill in typical values…"),
+            options = [""] + list(group.options)
+            st.selectbox(f"🗂 {t(group.label)}", options, index=options.index(matching_preset(group, now)),
+                         format_func=lambda o: t(o) if o else t("Own values"),
                          key=f"{key_prefix}.preset.{group.label}", on_change=apply,
                          help=t(group.help) if group.help else t("Fills in the fields below with typical values."))
 
@@ -529,7 +586,9 @@ def section_inputs(section) -> tuple[SectionInput, object]:
             about = " ".join(x for x in (about, t(variant.help)) if x)
         st.markdown(f"##### {t(section.label)}", help=about)
         if len(section.variants) > 1:
-            keys = [v.key for v in section.variants]
+            current = st.session_state.get(f"{gen}.{section.key}.variant_key", variant.key)
+            keys = [v.key for v in section.variants if not SIMPLE or (section.key, v.key) not in EXPERT_ONLY
+                    or v.key in (variant.key, current)]
             shown = section.variant(st.session_state.get(f"{gen}.{section.key}.variant_key", variant.key))
             picked = st.selectbox(t("Input method"), keys, index=keys.index(variant.key),
                                   format_func=lambda k: t(section.variant(k).label),
@@ -550,15 +609,18 @@ def section_inputs(section) -> tuple[SectionInput, object]:
         form_col, drawing_col = st.columns([3, 2], gap="large") if side else (st.container(), None)
         prefix = f"{gen}.{section.key}.{variant.key}"
         with form_col:
-            preset_pickers(variant, prefix)
+            preset_pickers(variant, prefix, values)
             for prop in hourly_props:
                 values[prop.key] = hourly_input(prop, values[prop.key], f"{prefix}.{prop.key}")
             for prop in point_props:
                 values[prop.key] = points_input(prop, values[prop.key], f"{prefix}.{prop.key}")
             # Simple mode: specialist fields under "More options" (still read and used); Expert: all in line.
-            basic = [p for p in simple if ui_mode == "expert" or not guidance.is_advanced(section.key, p.key)]
+            # Simple: fields a drop-down fills in (rock type, pipe, grout, ...) go under "More options" too
+            filled = {k for group in variant.presets for option in group.options.values() for k in option}
+            basic = [p for p in simple if not SIMPLE or not (guidance.is_advanced(section.key, p.key) or
+                                                              p.key in filled)]
             more = [p for p in simple if p not in basic]
-            field_grid(basic, values, prefix, 2 if side else 3)
+            field_grid(basic, values, prefix, (2 if side else 3) if SIMPLE else (3 if side else 4))
             if more:
                 with st.expander(t("More options ({n})", n=len(more)), icon=":material/tune:"):
                     st.caption(t("Fields most people leave at their typical value. They are always part of the "
@@ -596,14 +658,53 @@ def next_step_button(step: str) -> None:
 grouped: dict[str, list] = {}
 for section in properties.sections(system):
     grouped.setdefault(STEPS.get(section.group, MORE), []).append(section)
-step_names = [SITE_PLAN] + [s for s in [STEPS[k] for k in ("Site", "Borehole", "Loads", "Design")] + [MORE]
-                            if s in grouped] + [RESULTS]
+step_names = [SITE_PLAN] + list(dict.fromkeys(s for s in [STEPS[k] for k in ("Site", "Borehole", "Loads", "Design")]
+                                              + [MORE] if s in grouped)) + [RESULTS]
 step_tabs = dict(zip(step_names, st.tabs(step_names, default=STEPS["Site"], key="step", on_change="rerun")))
 
 inputs: dict[str, SectionInput] = {}
 notes: dict[str, object] = {}
 section_step: dict[str, str] = {}
 pending_drawings = []  # (where, section, variant), drawn once every section is read
+typical_cards = []  # (where, sections): the summary of the typical values in Simple, written once all are read
+
+
+def read_section(section, step: str) -> None:
+    inputs[section.key], target = section_inputs(section)
+    section_step[section.key] = step
+    # Drawn later because some drawings use other sections too
+    # (the borehole picture needs the radius from "Borefield").
+    if target is not None:
+        pending_drawings.append((target, section.key, inputs[section.key].variant))
+
+
+def typical_summary(sections) -> str:
+    """One line per section: the input method, the drop-down choices and the main values."""
+    lines = []
+    for section in sections:
+        chosen = inputs[section.key]
+        variant = section.variant(chosen.variant)
+        prefix = f"{gen}.{section.key}.{variant.key}"
+        parts = [t(variant.label)] if len(section.variants) > 1 else []
+        filled = set()
+        for group in variant.presets:
+            pick = st.session_state.get(f"{prefix}.preset.{group.label}")
+            if pick:
+                parts.append(t(pick))
+                filled |= {k for k in group.options[pick]}
+        for prop in variant.properties:
+            if prop.kind in ("float", "int", "choice") and prop.key not in filled and \
+                    not guidance.is_advanced(section.key, prop.key) and len(parts) < 5:
+                value = chosen.values.get(prop.key)
+                if prop.kind == "choice":
+                    parts.append(t(str(value)))
+                else:
+                    parts.append(f"{simple_label(section.key, prop)} {value:g}" + (f" {t(prop.unit)}" if prop.unit
+                                                                                   else ""))
+        lines.append(f"**{t(section.label)}:** " + " · ".join(parts))
+    return "  \n".join(lines)
+
+
 for step, sections in grouped.items():
     with step_tabs[step]:
         if step == STEPS["Site"] and "site_plan_done" in st.session_state:
@@ -613,13 +714,18 @@ for step, sections in grouped.items():
             st.success(t("Wells set from the site plan: {p} production and {i} injection well(s), {d:.0f} m apart, "
                          "{b:.0f} m to the parcel border downstream.", **st.session_state.pop("well_plan_done")),
                        icon=":material/check_circle:")
-        for section in sections:
-            inputs[section.key], target = section_inputs(section)
-            section_step[section.key] = step
-            # Drawn later because some drawings use other sections too
-            # (the borehole picture needs the radius from "Borefield").
-            if target is not None:
-                pending_drawings.append((target, section.key, inputs[section.key].variant))
+        typical = [x for x in sections if SIMPLE and x.group in ("Borehole", "Design")]
+        for section in [x for x in sections if x not in typical]:
+            read_section(section, step)
+        if typical:  # Simple: one card with typical values, opened to change them
+            st.markdown("##### " + t("Typical values"), help=t(
+                "These inputs start with values that suit most projects. Open the card to change them; Expert at the "
+                "top shows them as steps of their own."))
+            summary_slot = st.empty()
+            with st.expander(t("Change the typical values"), icon=":material/tune:"):
+                for section in typical:
+                    read_section(section, step)
+            typical_cards.append((summary_slot, typical))
         next_step_button(step)
 
 for key, chosen in start.items():  # keep the inputs of the other heat source in the project file
@@ -659,6 +765,9 @@ def aquifer_from_layers() -> None:
 if system == "open":
     aquifer_from_layers()
 current_json = model.to_json(inputs)
+for slot, sections in typical_cards:
+    with slot.container(border=True):
+        st.markdown(typical_summary(sections))
 for target, section_key, variant_key in pending_drawings:
     if section_key in errors or "borefield" in errors:
         continue
@@ -1515,7 +1624,24 @@ def answer_section(result, key, sized_inputs, limits, sized_json) -> None:
                   on_click=lambda: st.session_state.update(result_view_id="export"))
 
 
-SIMPLE_VIEWS = ["overview", "checks", "temperatures", "energy"]
+def simple_results(result, limits, sized_json) -> None:
+    """Simple mode: the results on one page, the temperatures and the design check, then More results."""
+    FIG["plain"] = True
+    if result.hourly_basis:
+        figure(plots.hourly_band_chart(result.hourly_temperatures, limits),
+               t("Daily range of the hourly average fluid temperature. Dashed: your limits."))
+    else:
+        figure(plots.temperature_chart(result.temperatures, limits), TEMPERATURE_CAPTION())
+    FIG["plain"] = False
+    if sized_json != current_json:
+        st.info(t("This list is for the current inputs; the results for them are not calculated yet."),
+                icon=":material/info:")
+    show_design_check(found_checks)
+    st.button(t("More results"), icon=":material/expand_more:", key="more_results", width="stretch",
+              help=t("Energy, hydraulics, the ground around the field, each borehole, further analysis and the full "
+                     "report."), on_click=lambda: st.session_state.update(all_views=True))
+
+
 RESULT_VIEWS = {"checks": "Design check", "field": "Borefield map", "overview": "Overview", "temperatures": "Temperatures", "energy": "Energy", "hourly": "Hourly",
                 "heat_pump": "Heat pump", "hydraulics": "Hydraulics", "ground": "Ground", "layers": "Layers",
                 "load_optimisation": "Load optimisation", "analysis": "Further analysis", "export": "Export"}
@@ -1552,22 +1678,28 @@ with step_tabs[RESULTS]:
         if sized_inputs["load"].variant == "hourly_building":
             views.append("load_optimisation")
         views += ["analysis", "export"]
-        # Simple: the four main views, the others after "More results" (or when a button opens one of them)
-        if st.session_state.get("result_view_id", "overview") not in SIMPLE_VIEWS:
-            st.session_state.all_views = True  # a button opened one of the other views: keep them all listed
-        if ui_mode != "expert" and not st.session_state.get("all_views"):
-            views = SIMPLE_VIEWS
+        # Simple: one page (temperatures and design check); "More results" or a button that opens another view
+        # (the full report, for example) lists all views
+        if st.session_state.get("result_view_id", "overview") not in ("overview", "checks"):
+            st.session_state.all_views = True
+        one_page = SIMPLE and not st.session_state.get("all_views")
         if st.session_state.get("result_view_id") not in views:
             st.session_state.result_view_id = "overview"
-        # Only the chosen view is drawn, so large hourly charts are not sent to the browser on every click.
-        with st.container(horizontal=True, vertical_alignment="bottom", key="viewbar"):
-            view = st.selectbox(t("View"), views, format_func=lambda k: t(RESULT_VIEWS[k]), key="result_view_id",
-                                width=320)
-            if views is SIMPLE_VIEWS:
-                st.button(t("More results"), icon=":material/expand_more:", type="tertiary",
-                          on_click=lambda: st.session_state.update(all_views=True))
-        FIG["view"] = views.index(view) + 1
-        if view == "overview":
+        view = None
+        if one_page:
+            simple_results(result, limits, sized_json)
+        else:
+            # Only the chosen view is drawn, so large hourly charts are not sent to the browser on every click.
+            with st.container(horizontal=True, vertical_alignment="bottom", key="viewbar"):
+                view = st.selectbox(t("View"), views, format_func=lambda k: t(RESULT_VIEWS[k]),
+                                    key="result_view_id", width=320)
+                if SIMPLE:
+                    st.button(t("Back to the summary"), icon=":material/arrow_back:", type="tertiary",
+                              on_click=lambda: st.session_state.update(all_views=False, result_view_id="overview"))
+            FIG["view"] = views.index(view) + 1
+        if view is None:
+            pass
+        elif view == "overview":
             view_overview(result, key, limits)
         elif view == "temperatures":
             view_temperatures(result, limits)
