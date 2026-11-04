@@ -30,9 +30,26 @@ MONTHS = {"en": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", 
 CHART_LOCALE = {"de": {"number": {"decimal": ",", "thousands": ".", "grouping": [3], "currency": ["", " €"]}}}
 
 
+_EXTRA: dict[str, dict[str, str]] = {}  # texts of feature packages, see add_table()
+_MERGED: dict[str, dict[str, str]] = {}
+
+
+def add_table(code: str, table: dict[str, str]) -> None:
+    """Adds the translations of a feature package (its own de.py), so it does not have to touch i18n_de.py."""
+    _EXTRA.setdefault(code, {}).update(table)
+    _MERGED.clear()
+
+
+def table(code: str) -> dict[str, str]:
+    """All translations of a language: i18n_de.py and the feature packages."""
+    if code not in _MERGED:
+        from .i18n_de import DE
+        _MERGED[code] = {**(DE if code == "de" else {}), **_EXTRA.get(code, {})}
+    return _MERGED[code]
+
+
 def _tables() -> dict[str, dict[str, str]]:
-    from .i18n_de import DE
-    return {"de": DE}
+    return {code: table(code) for code in LANGUAGES if code != DEFAULT}
 
 
 def set_language(code: str | None) -> str:
@@ -81,7 +98,7 @@ def translate(text: str) -> str:
     lang = language()
     if lang == DEFAULT or not text:
         return text
-    return _tables().get(lang, {}).get(text, text)
+    return table(lang).get(text, text)
 
 
 def t(text: str, **values) -> str:

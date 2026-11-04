@@ -61,7 +61,8 @@ def _for_phone(spec: dict) -> dict:
 def show_chart(c, width="stretch", title: bool = True) -> None:
     """An Altair chart in the current language's number format. ``title=False`` leaves the chart's own title out
     (the page shows it above the chart, where it can wrap)."""
-    spec = i18n.localize_chart(c).to_dict()
+    # no schema validation on every page run: the charts are fixed code and covered by the tests (saves ~0.1 s/chart)
+    spec = i18n.localize_chart(c).to_dict(validate=False)
     if not title:
         spec.pop("title", None)
     if is_phone():

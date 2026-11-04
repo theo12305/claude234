@@ -285,15 +285,19 @@ PROJECT_FORMAT = 1
 
 
 def to_json(inputs: dict[str, SectionInput], name: str = "", language: str | None = None,
-            mode: str | None = None, address: str | None = None) -> str:
+            mode: str | None = None, address: str | None = None, plugins: dict | None = None) -> str:
     """The project as JSON. ``language`` and ``mode`` (Simple / Expert) are page settings stored with it, ``address``
-    the address of the site plan."""
+    the address of the site plan, ``plugins`` the settings of result views ({view key: dict}, see
+    ghe_web/results/registry.py)."""
     import json
     extra = {"language": language} if language else {}
     if mode:
         extra["mode"] = mode
     if address:
         extra["address"] = address
+    plugins = {k: _plain(v) for k, v in (plugins or {}).items() if v}
+    if plugins:
+        extra["plugins"] = plugins
     return json.dumps({
         "format": PROJECT_FORMAT,
         "name": name,
@@ -339,6 +343,16 @@ def saved_setting(text: str, key: str) -> str | None:
     except (ValueError, AttributeError):
         return None
     return value if isinstance(value, str) else None
+
+
+def saved_plugins(text: str) -> dict:
+    """The settings of the result views stored in a project file ({} if none)."""
+    import json
+    try:
+        value = json.loads(text).get("plugins")
+    except (ValueError, AttributeError):
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 def saved_language(text: str) -> str | None:

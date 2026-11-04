@@ -8,7 +8,11 @@ import pytest
 
 from ghe_web import analysis, catalog, guidance, i18n, model, plots, properties, report
 from ghe_web.i18n import fmt, t
-from ghe_web.i18n_de import DE
+from ghe_web import results
+from ghe_web.materials import page as materials_page, quantities as materials
+from ghe_web.results import registry as results_registry
+
+DE = i18n.table("de")  # i18n_de.py and the de.py of the feature packages
 from ghe_web.siteplan import page as siteplan_page, states
 from ghe_web.strata import rocks, sources
 from ghe_web.wells import page as wells_page, plots as wells_plots, sources as wells_sources
@@ -31,12 +35,14 @@ def _literal_calls() -> set[str]:
 
 
 def _app_tables() -> set[str]:
-    """Dictionaries of labels in app.py (tabs, result views, ...) whose values are translated with t()."""
+    """Dictionaries of labels in app.py and the result views (tabs, chart choices, ...) translated with t()."""
     texts = set()
-    tree = ast.parse((ROOT / "app.py").read_text(encoding="utf-8"))
-    for node in tree.body:
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict) and node.targets[0].id.isupper():
-            texts |= {v.value for v in node.value.values if isinstance(v, ast.Constant)}
+    files = [ROOT / "app.py", *(ROOT / "ghe_web" / "results").rglob("*.py")]
+    for path in files:
+        for node in ast.parse(path.read_text(encoding="utf-8")).body:
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict) and node.targets[0].id.isupper():
+                texts |= {v.value for v in node.value.values if isinstance(v, ast.Constant)}
+    texts |= {v.title for v in results_registry.all_views()}
     return texts
 
 
@@ -82,6 +88,9 @@ def _data_texts() -> set[str]:
     texts |= {x for _, label, text in guidance.HEAT_SOURCES.values() for x in (label, text)}
     texts |= set(wells_page.VIEWS.values()) | set(wells_plots.COMPASS) | {"problem", "warning", "fine"}
     texts |= {text for topic, method, _ in wells_sources.SOURCES for text in (topic, method)}
+    texts |= set(materials_page.TOOLS.values()) | set(materials.MANIFOLD_MODES.values()) | {"Parcel", "Building"}
+    texts |= {"Drilling", "Borehole heat exchangers", "Grouting", "Horizontal piping", "Heat transfer fluid",
+              "Tests and documentation", "pcs", "m", "m³", "l", "kg", "LS"}  # groups and units of the material list
     return texts
 
 
