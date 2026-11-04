@@ -1,0 +1,28 @@
+name: Check data sources
+
+# Tests every state service and portal link of the app (tools/check_sources.py). Run it from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/project-thread-qbqs8b"]
+    paths: ["tools/**", "ghe_web/siteplan/**", "ghe_web/strata/**", ".github/workflows/check-sources.yml"]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python tools/check_sources.py
+      - run: cat source_status.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-status
+          path: source_status.*
