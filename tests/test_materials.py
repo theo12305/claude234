@@ -97,7 +97,7 @@ def test_view_settings_are_saved_with_the_project_but_do_not_change_the_inputs()
 
 def test_every_result_view_is_registered_once_in_order():
     keys = [v.key for v in registry.all_views()]
-    assert keys[:2] == ["overview", "checks"] and keys[-2:] == ["analysis", "export"]
+    assert keys[:2] == ["overview", "checks"] and keys[-2:] == ["analysis", "export"]  # hidden views stay registered
     assert "materials" in keys and len(keys) == len(set(keys))
     with pytest.raises(ValueError):
         registry.register(registry.get("overview"))

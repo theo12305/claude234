@@ -312,7 +312,7 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
     import json
     data = json.loads(text)
     if data.get("format") != PROJECT_FORMAT:
-        raise ValueError(t("This file is not a GHEtool Web project."))
+        raise ValueError(t("This file is not a GHEtool & Co. project."))
     inputs = default_inputs()
     for key, saved in data.get("sections", {}).items():
         try:
@@ -320,6 +320,9 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
         except KeyError:
             continue
         values = variant.defaults()
+        if (key, variant.key) == ("load", "annual_building"):  # files from before the full-load hours
+            from .properties.load import from_annual_energy
+            values.update(from_annual_energy(saved.get("values", {})))
         for p in variant.properties:
             if p.key in saved.get("values", {}):
                 v = saved["values"][p.key]

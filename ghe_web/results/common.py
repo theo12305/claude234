@@ -20,7 +20,7 @@ def in_language(fn, *args):
 
 def _fig() -> dict:
     """Figure numbering of this visitor: number of the view . figure in the view (per browser session)."""
-    return st.session_state.setdefault("_fig", {"view": 0, "n": 0, "plain": False})
+    return st.session_state.setdefault("_fig", {"view": 0, "n": 0})
 
 
 def start_figures(view_number: int) -> None:
@@ -28,13 +28,11 @@ def start_figures(view_number: int) -> None:
     _fig().update(view=view_number, n=0)
 
 
-def plain_figures(on: bool) -> None:
-    """Simple results page: charts with their title, no number and no download menu."""
-    _fig()["plain"] = on
-
-
 def _picture(spec: dict, kind: str) -> bytes:
     import vl_convert as vlc
+    from ..report import _register_chart_fonts
+    _register_chart_fonts()  # DejaVu from matplotlib: the text is there even on a server without fonts
+    spec["config"] = {**spec.get("config", {}), "font": "DejaVu Sans"}
     return vlc.vegalite_to_png(spec, scale=3) if kind == "png" else vlc.vegalite_to_svg(spec).encode()
 
 
@@ -44,13 +42,6 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
     it wraps on a phone instead of being cut off."""
     title = c.title if isinstance(c.title, str) else ""
     state = _fig()
-    if state["plain"]:
-        if title:
-            st.markdown(f"<div class='figtitle'>{html.escape(title)}</div>", unsafe_allow_html=True)
-        ui.show_chart(c, width, title=not title)
-        if caption:
-            ui.caption(caption)
-        return
     state["n"] += 1
     number = f"{state['view']}.{state['n']}" if state["view"] else str(state["n"])
     head = st.container(horizontal=True, gap="small", key=f"fighead.{number}")
@@ -94,5 +85,5 @@ def key_table(rows: list[tuple[str, str, str]]) -> None:
 
 def TEMPERATURE_CAPTION() -> str:  # noqa: N802 (a text in the current language)
     return t("Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without "
-             "peaks. Brown: the borehole wall. Dashed: your limits. Move the pointer over the chart for the exact "
-             "values.")
+             "peaks. Dashed: your limits. Move the pointer over the chart for the exact values. Switch lines and "
+             "markers on or off under Customize the results.")

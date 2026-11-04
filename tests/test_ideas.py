@@ -21,8 +21,8 @@ def _small_house() -> dict:
     inputs = model.default_inputs()
     inputs["borefield"].values.update(N_1=3, N_2=1, B_1=8.0)
     inputs["load"] = SectionInput("annual_building", {
-        **properties.get("load").variant("annual_building").defaults(), "annual_heating_mwh": 18.0,
-        "peak_heating_kw": 10.0, "annual_cooling_mwh": 0.0, "peak_cooling_kw": 0.0, "dhw_mwh": 3.0})
+        **properties.get("load").variant("annual_building").defaults(), "full_load_hours_heating": 1800.0,
+        "peak_heating_kw": 10.0, "full_load_hours_cooling": 0.0, "peak_cooling_kw": 0.0, "dhw_mwh": 3.0})
     inputs["limits"].values["T_min"] = -1.5
     return inputs
 

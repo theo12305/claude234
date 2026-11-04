@@ -4,7 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from ...i18n import t
-from ..registry import Ctx, ResultView, register
+from ..registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:
@@ -14,4 +14,5 @@ def render(ctx: Ctx) -> None:
     ctx.show_design_check(ctx.found_checks)
 
 
-register(ResultView("checks", "Design check", 20, render, fragment=False))
+# The design check is a step of its own before the results now (app.py); the view stays for later use.
+register(ResultView("checks", "Design check", 20, render, fragment=False, available=hidden))

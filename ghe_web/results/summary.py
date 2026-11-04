@@ -7,7 +7,8 @@ import streamlit as st
 from .. import analysis, checks, export, i18n, model, plots, report, ui
 from ..i18n import fmt, t
 from .cache import *  # noqa: F403 (the cached calculations)
-from .common import TEMPERATURE_CAPTION, figure, in_language, plain_figures
+from . import sheet
+from .common import in_language, key_table
 from .registry import Ctx, extra_tables
 
 
@@ -18,6 +19,7 @@ def answer_section(ctx: Ctx) -> None:
     name, lang, found_checks = ctx.name, i18n.language(), ctx.found_checks
     ui_mode = "simple" if ctx.simple else "expert"
     project_json = ctx.project_json
+    choice = sheet.choice()
     years = sized_inputs["load"].values["simulation_period"]
     vals = key.values
     t_lo, t_hi = (round(vals[k], 1) + 0.0 for k in ("t_min", "t_max"))  # + 0.0 avoids "-0.0"
@@ -71,16 +73,20 @@ def answer_section(ctx: Ctx) -> None:
     if "dp_kpa" in vals:
         items.append(("💧 " + t("Pressure drop per borehole"), fmt("{x:.1f} kPa", x=vals["dp_kpa"]),
                       t("{w:,.0f} W electrical", w=vals["pump_electric_w"]), ""))
-    ui.tiles(items if ui_mode == "expert" else items[:4])
-    for w in key.warnings:
-        st.warning(w, icon=":material/warning:")
+    if sheet.on("tiles"):
+        ui.tiles(items if ui_mode == "expert" else items[:4])
+    if sheet.on("key_table"):
+        key_results_table(key)
+    if sheet.on("warnings"):
+        for w in key.warnings:
+            st.warning(w, icon=":material/warning:")
     stem = name.strip() or "ghetool-project"
     # Simple: one Download button with everything in it; Expert: the buttons in a row
     with st.popover(t("Download"), icon=":material/download:") if ui_mode != "expert" else \
             st.container(horizontal=True, gap="small", key="quick_downloads"):
         st.download_button(t("PDF summary"), lambda: i18n.call_in(
             lang, report.make_pdf, result, sized_inputs, name,
-            report.ReportOptions(kind="summary", title=name.strip()), {}),
+            report.ReportOptions(kind="summary", title=name.strip(), sheet=choice), {}),
             f"{stem}_summary.pdf", "application/pdf", icon=":material/picture_as_pdf:", on_click="ignore")
         st.download_button(t("Excel"), in_language(export.excel_workbook, result, sized_inputs, name,
                                                    extra_tables(ctx)),
@@ -88,26 +94,19 @@ def answer_section(ctx: Ctx) -> None:
                            icon=":material/table_view:", on_click="ignore")
         st.download_button(t("Save project"), lambda: project_json().encode(),
                            f"{stem}.json", "application/json", icon=":material/save:", key="quick_save", on_click="ignore")
-        st.button(t("Full report and more downloads"), icon=":material/download:",
-                  on_click=lambda: st.session_state.update(result_view_id="export"))
+        st.caption(t("Full report and more downloads at the end of the page."))
 
 
-def simple_results(ctx: Ctx) -> None:
-    """Simple mode: the results on one page, the temperatures and the design check, then More results."""
-    result, limits, sized_json, current_json = ctx.result, ctx.limits, ctx.sized_json, ctx.current_json
-    found_checks, show_design_check = ctx.found_checks, ctx.show_design_check
-    plain_figures(True)
-    if result.hourly_basis:
-        figure(plots.hourly_band_chart(result.hourly_temperatures, limits),
-               t("Daily range of the hourly average fluid temperature. Dashed: your limits."))
-    else:
-        figure(plots.temperature_chart(result.temperatures, limits), TEMPERATURE_CAPTION())
-    plain_figures(False)
-    if sized_json != current_json:
-        st.info(t("This list is for the current inputs; the results for them are not calculated yet."),
-                icon=":material/info:")
-    show_design_check(found_checks)
-    st.button(t("More results"), icon=":material/expand_more:", key="more_results", width="stretch",
-              help=t("Energy, hydraulics, the ground around the field, each borehole, further analysis and the full "
-                     "report."), on_click=lambda: st.session_state.update(all_views=True))
-
+def key_results_table(key) -> None:
+    """The key results in groups, spread over two columns so both end at about the same height."""
+    parts, heights = ([], []), [0, 0]
+    for group, rows in key.by_group().items():
+        side = heights.index(min(heights))
+        parts[side].append((group, rows))
+        heights[side] += len(rows) + 1
+    for col, part in zip(st.columns(2, gap="large"), parts):
+        with col:
+            for group, rows in part:
+                with st.container(border=True):
+                    st.markdown(f"**{group}**")
+                    key_table(rows)

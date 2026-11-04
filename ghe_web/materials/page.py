@@ -304,4 +304,5 @@ def tables(ctx: Ctx) -> dict[str, pd.DataFrame]:
         return {}
 
 
-register(ResultView(KEY, "Material list", 850, render, tables=tables))
+# Hidden for now (theo, 2026-11-04: "keep it hidden, we might need it later"). To show it again, drop available=.
+register(ResultView(KEY, "Material list", 850, render, tables=tables, available=lambda ctx: False))

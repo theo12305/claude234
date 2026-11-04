@@ -8,7 +8,7 @@ from ... import analysis, export, i18n, model, plots, report, ui
 from ...i18n import fmt, t
 from ..cache import *  # noqa: F403 (the cached calculations)
 from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from ..registry import Ctx, ResultView, register
+from ..registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:
@@ -37,4 +37,4 @@ def render(ctx: Ctx) -> None:
 
 
 
-register(ResultView("heat_pump", "Heat pump", 60, render, available=lambda ctx: ctx.result.heat_pump is not None))
+register(ResultView("heat_pump", "Heat pump", 60, render, available=hidden))  # not shown for now (theo, 2026-11-04)

@@ -84,7 +84,9 @@ def inject_css() -> None:
 :root {{--card:{c['card']};--line:{c['line']};--muted:{c['muted']};--accent:{c['accent']};--bar:{c['bar']};
   --bar-text:{c['bar_text']};--band:{c['band']};--track:{c['track']};--shadow:{c['shadow']};--cold:{c['cold']};
   --warm:{c['warm']};--answer:{c['answer']};}}
-.block-container {{padding-top: 3.2rem; padding-bottom: 8rem; max-width: 1280px;}}
+/* the page grows with the screen: full width up to very wide monitors, side margins scale with the width */
+.block-container {{padding-top: 3.2rem; padding-bottom: 8rem; max-width: 2400px;
+  padding-left: clamp(1rem, 2.5vw, 3.5rem); padding-right: clamp(1rem, 2.5vw, 3.5rem);}}
 [data-testid="stMetricValue"] {{font-size: 1.6rem;}}
 h1, h2, h3, h4, h5 {{letter-spacing: -0.01em;}}
 /* cards: containers get the card colour (the bordered ones are the input sections and result boxes) */
@@ -110,7 +112,7 @@ div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {{background: var(
 .appbrand .s {{font-size: .85rem; color: #94a3b8; line-height: 1.2;}}
 /* calculate bar, fixed at the bottom */
 .st-key-calcbar {{position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 990;
-  width: min(1240px, calc(100vw - 24px)); background: var(--bar); color: var(--bar-text); border-radius: 16px;
+  width: min(2360px, calc(100vw - 2 * clamp(1rem, 2.5vw, 3.5rem))); background: var(--bar); color: var(--bar-text); border-radius: 16px;
   padding: 10px 14px 10px 18px; box-shadow: 0 8px 30px rgba(15,23,42,.35); gap: 12px;}}
 .st-key-calcbar p, .st-key-calcbar span {{color: var(--bar-text);}}
 .st-key-calcbar [data-testid="stMarkdownContainer"] p {{margin: 0; font-size: .92rem; line-height: 1.3;}}
@@ -120,6 +122,9 @@ div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {{background: var(
 .calcstatus {{font-size: .92rem; line-height: 1.3; color: var(--bar-text);}}
 .calcstatus .chip {{margin-right: 6px;}}
 /* chips, tiles, answer card, range bars */
+/* the switches of the results sheet: wide enough for the labels */
+[data-testid="stPopoverBody"]:has(.st-key-sheetpanel) {{min-width: min(1000px, 94vw);}}
+.sheethead {{margin: 1.8rem 0 .2rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: 1.35rem;}}
 .chip {{display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 600;
   white-space: nowrap;}}
 .chip.ok {{background: #dcfce7; color: #166534;}} .chip.warn {{background: #fef3c7; color: #92400e;}}
@@ -197,7 +202,7 @@ details.more[open] summary span {{display: none;}}
 
 
 def brand(subtitle: str) -> None:
-    st.html(f"<div class='appbrand'>{LOGO}<div><div class='n'>GHEtool Web</div>"
+    st.html(f"<div class='appbrand'>{LOGO}<div><div class='n'>GHEtool &amp; Co.</div>"
             f"<div class='s'>{html.escape(subtitle)}</div></div></div>")
 
 

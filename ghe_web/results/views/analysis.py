@@ -97,4 +97,5 @@ def analysis_tables(ctx: Ctx) -> dict[str, pd.DataFrame]:
     return extra
 
 
-register(ResultView("analysis", "Further analysis", 900, render, tables=analysis_tables))
+# Drawn in its own step after the results (app.py), not on the results sheet
+register(ResultView("analysis", "Further analysis", 900, render, tables=analysis_tables, on_sheet=False))

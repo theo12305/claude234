@@ -5,6 +5,7 @@ Input charts are looked up per (section, variant) in DRAWINGS, so a new variant
 """
 from __future__ import annotations
 
+from dataclasses import dataclass, fields
 from typing import Callable
 
 import altair as alt
@@ -146,14 +147,14 @@ def ground_rows(inputs: dict[str, SectionInput]) -> tuple[list[dict], bool]:
 
 
 def borehole_log(rows: list[dict], length: float, buried: float = 0.0, title: str = "",
-                 groundwater: float | None = None) -> plt.Figure:
+                 groundwater: float | None = None, size: tuple[float, float] = (6.2, 6.4)) -> plt.Figure:
     """A borehole log: the layers with rock colours and hatching, the borehole, and the conductivity with depth
     next to it (dashed: the average over the borehole, which is what a single-value calculation uses)."""
     from .strata import predict, rocks
     end = buried + length
     deepest = max(end, float(rows[-1]["top"]) + 2) * 1.12  # the last layer continues downwards
     plt.rcParams["hatch.linewidth"] = 0.5
-    fig, (ax, axk) = plt.subplots(1, 2, figsize=(6.2, 6.4), sharey=True, gridspec_kw={"width_ratios": [1.5, 1]})
+    fig, (ax, axk) = plt.subplots(1, 2, figsize=size, sharey=True, gridspec_kw={"width_ratios": [1.5, 1]})
     for i, r in enumerate(rows):
         top = float(r["top"])
         bottom = float(r["bottom"]) if i < len(rows) - 1 else deepest
@@ -213,7 +214,7 @@ def ground_log_drawing(inputs: dict[str, SectionInput]) -> plt.Figure:
     rows, used = ground_rows(inputs)
     title = t("Ground layers") if used else (t("Ground layers (not used: switch on the layered calculation)")
                                              if rows[0].get("rock") != "Uniform ground" else t("Uniform ground"))
-    return borehole_log(rows, *_drawn_depth(inputs), title)
+    return borehole_log(rows, *_drawn_depth(inputs), title, size=(6.4, 3.6))  # compact next to the ground fields
 
 
 def conductivity_with_length(rows: list[dict], buried: float, lengths, sized: float | None = None) -> alt.Chart:
@@ -405,8 +406,34 @@ def input_drawings(inputs: dict[str, SectionInput]) -> list[tuple[str, object]]:
 
 # ---------------------------------------------------------------- results
 
-AVERAGE_COLUMNS = ["Borehole wall", "Average fluid (base load)", "Average fluid (peak extraction)",
-                   "Average fluid (peak injection)"]
+# The mean fluid temperatures in the charts (the borehole wall temperature stays in the tables and the Excel export)
+AVERAGE_COLUMNS = ["Average fluid (base load)", "Average fluid (peak extraction)", "Average fluid (peak injection)"]
+
+
+@dataclass(frozen=True)
+class ChartStyle:
+    """What the temperature charts show. Set on the results page ("Customize the results") and used in the PDF too."""
+    base: bool = True  # grey: the fluid without peaks
+    peak_heat: bool = True  # blue: the fluid at the heating peaks
+    peak_cool: bool = True  # red: the fluid at the cooling peaks
+    limits: bool = True  # dashed lines at the temperature limits
+    shading: bool = True  # light colour outside the limits
+    limit_labels: bool = True  # "min. limit 0 °C" at the lines
+    extremes: bool = True  # rings at the lowest and highest temperature
+    pointer: bool = True  # the line that follows the pointer with all values
+
+    @classmethod
+    def from_dict(cls, d: dict | None) -> "ChartStyle":
+        d = d or {}
+        return cls(**{f.name: bool(d.get(f.name, f.default)) for f in fields(cls)})
+
+    def series(self) -> list[str]:
+        """The mean fluid temperatures switched on (at least one: the peaks when everything is off)."""
+        on = [c for c, flag in zip(AVERAGE_COLUMNS, (self.base, self.peak_heat, self.peak_cool)) if flag]
+        return on or AVERAGE_COLUMNS[1:]
+
+
+DEFAULT_STYLE = ChartStyle()
 
 # One colour per series in every chart: blue = cold side (heating peaks), red = warm side (cooling peaks).
 SERIES_COLORS = {
@@ -436,8 +463,12 @@ def _translate_series(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def _limit_rules(limits: dict, field: str = "Temperature", labels: bool = True) -> alt.Chart:
-    """Dashed lines at the temperature limits, labelled on the right, with the area outside them shaded."""
+def _limit_rules(limits: dict, field: str = "Temperature", labels: bool = True,
+                 style: ChartStyle = DEFAULT_STYLE) -> alt.Chart | None:
+    """Dashed lines at the temperature limits, labelled on the left, with the area outside them shaded. Parts can be
+    switched off in ``style``; None when nothing is left."""
+    if not (style.limits or style.shading):
+        return None
     bounds = pd.DataFrame({field: [limits["T_min"], limits["T_max"]],
                            "Label": [t("min. limit {x:g} °C", x=limits["T_min"]),
                                      t("max. limit {x:g} °C", x=limits["T_max"])]})
@@ -447,12 +478,22 @@ def _limit_rules(limits: dict, field: str = "Temperature", labels: bool = True) 
         y=f"{field}:Q", y2=alt.value(0))
     below = alt.Chart(bounds.iloc[[0]]).mark_rect(color="#3b82f6", opacity=0.08).encode(
         y=f"{field}:Q", y2=alt.value("height"))
-    rules = above + below + base.mark_rule(strokeDash=[6, 4], color=NEUTRAL).encode(y=f"{field}:Q")
-    if not labels:
+    line = base.mark_rule(strokeDash=[6, 4], color=NEUTRAL).encode(y=f"{field}:Q")
+    rules = (above + below + line) if style.shading and style.limits else (above + below) if style.shading else line
+    if not labels or not style.limits or not style.limit_labels:
         return rules
     text = base.mark_text(align="left", dx=4, dy=-7, fontSize=11, color=NEUTRAL).encode(
         y=f"{field}:Q", x=alt.value(0), text="Label:N")
     return rules + text
+
+
+def _layers(*parts) -> alt.LayerChart | alt.Chart:
+    """The parts that are not None, layered."""
+    parts = [p for p in parts if p is not None]
+    out = parts[0]
+    for p in parts[1:]:
+        out = out + p
+    return out
 
 
 def when(years: float) -> str:
@@ -501,49 +542,55 @@ def _crosshair(wide: pd.DataFrame, x: str, x_type: str, columns: list[str], when
     ).add_params(hover)
 
 
-def temperature_domain(temps: pd.DataFrame, limits: dict) -> list[float]:
-    """The temperature axis: all mean fluid temperatures and both limits, with room for the labels."""
-    values = temps[AVERAGE_COLUMNS].to_numpy()
+def temperature_domain(temps: pd.DataFrame, limits: dict, columns: list[str] | None = None) -> list[float]:
+    """The temperature axis: the mean fluid temperatures shown and both limits, with room for the labels."""
+    values = temps[columns or AVERAGE_COLUMNS].to_numpy()
     low, high = min(float(values.min()), limits["T_min"]), max(float(values.max()), limits["T_max"])
     pad = (high - low) * 0.1
     return [low - pad, high + pad]
 
 
-def temperature_chart(temps: pd.DataFrame, limits: dict, period: tuple[float, float] | None = None) -> alt.Chart:
+def temperature_chart(temps: pd.DataFrame, limits: dict, period: tuple[float, float] | None = None,
+                      style: ChartStyle = DEFAULT_STYLE) -> alt.Chart:
     """The mean fluid temperatures over the simulation, with the limits, the lowest and highest value and a
     line that shows all values at the pointer. ``period`` (from, to) in years shows a part only."""
     # Altair treats [ ] in field names specially, so units go in titles, not column names.
-    domain = temperature_domain(temps, limits)
-    temps = temps[AVERAGE_COLUMNS]
+    columns = style.series()
+    domain = temperature_domain(temps, limits, columns)
+    temps = temps[columns]
     if period is not None:
         temps = temps[(temps.index >= period[0] - 1e-9) & (temps.index <= period[1] + 1e-9)]
     data = temps.reset_index().melt("Years", var_name="Series", value_name="Temperature")
     extremes = data[data["Series"].isin(["Average fluid (peak extraction)", "Average fluid (peak injection)"])]
+    if extremes.empty:
+        extremes = data
     data = _translate_series(data)
     x = alt.X("Years:Q", title=t("Time [years]"), scale=alt.Scale(nice=False, domain=[
         float(temps.index.min()) if period else 0.0, float(temps.index.max())]))
     lines = alt.Chart(data).mark_line(strokeWidth=1.6).encode(
         x=x, y=alt.Y("Temperature:Q", title=t("Mean fluid temperature [°C]"), scale=alt.Scale(domain=domain, nice=False)),
-        color=_series_color(AVERAGE_COLUMNS))
+        color=_series_color(columns))
     wide = temps.reset_index()
     wide["When"] = [when(y) for y in wide["Years"]]
-    hover = _crosshair(wide, "Years", "Q", AVERAGE_COLUMNS, "When", t("Time"))
-    marks = _extreme_marks(extremes.reset_index(drop=True), "Years", label=when)
-    return (lines + _limit_rules(limits) + marks + hover).properties(
+    hover = _crosshair(wide, "Years", "Q", columns, "When", t("Time")) if style.pointer else None
+    marks = _extreme_marks(extremes.reset_index(drop=True), "Years", label=when) if style.extremes else None
+    return _layers(lines, _limit_rules(limits, style=style), marks, hover).properties(
         height=500, title=t("Fluid temperature in the boreholes over {n} years", n=round(float(temps.index.max()))))
 
 
-def last_year_chart(temps: pd.DataFrame, limits: dict, compact: bool = False) -> alt.Chart:
+def last_year_chart(temps: pd.DataFrame, limits: dict, compact: bool = False,
+                    style: ChartStyle = DEFAULT_STYLE) -> alt.Chart:
     """Zoom on the last simulated year, with supply and return temperatures when they are known. ``compact``: the
     mean temperatures only, small, to stand next to the chart over the years."""
-    domain = temperature_domain(temps, limits)
+    columns = style.series()
+    domain = temperature_domain(temps, limits, columns)
     last = temps.tail(12).copy()
-    if compact:
-        last = last[AVERAGE_COLUMNS[1:]]
-    elif "Into borefield (peak extraction)" in last:
-        last = last.drop(columns=["Borehole wall", "Average fluid (base load)"])
+    if not compact and "Into borefield (peak extraction)" in last:
+        kinds = [k for k, flag in (("extraction", style.peak_heat), ("injection", style.peak_cool)) if flag] or \
+            ["extraction", "injection"]
+        last = last[[c for c in last.columns if c.startswith(("Into", "Out of")) and any(k in c for k in kinds)]]
     else:
-        last = last[AVERAGE_COLUMNS]
+        last = last[columns]
     year = round(float(temps.index.max()))
     last.index = pd.Index(_months(), name="Month")
     data = _translate_series(last.reset_index().melt("Month", var_name="Series", value_name="Temperature"))
@@ -555,13 +602,14 @@ def last_year_chart(temps: pd.DataFrame, limits: dict, compact: bool = False) ->
         alt.Color("Series:N", scale=alt.Scale(domain=[t(s) for s in last.columns],
                                               range=[SERIES_COLORS[s] for s in last.columns]), legend=None),
     )
-    hover = _crosshair(last.reset_index(), "Month", "N", list(last.columns), x_title=t("Month"), sort=_months())
-    chart = lines + _limit_rules(limits, labels=not compact) + hover
+    hover = _crosshair(last.reset_index(), "Month", "N", list(last.columns), x_title=t("Month"), sort=_months()) \
+        if style.pointer else None
+    chart = _layers(lines, _limit_rules(limits, labels=not compact, style=style), hover)
     return chart.properties(height=440 if compact else 380,
                             title=t("Year {n} (zoom)", n=year) if compact else t("Last year of the simulation"))
 
 
-def hourly_band_chart(hourly: pd.DataFrame, limits: dict) -> alt.Chart:
+def hourly_band_chart(hourly: pd.DataFrame, limits: dict, style: ChartStyle = DEFAULT_STYLE) -> alt.Chart:
     """Daily min-max band of the hourly fluid temperature over the whole simulation."""
     days = hourly["Average fluid"].groupby((hourly.index - 1) // 24).agg(["min", "max"])
     days["Years"] = ((days.index + 1) / 365).round(4)
@@ -573,31 +621,29 @@ def hourly_band_chart(hourly: pd.DataFrame, limits: dict) -> alt.Chart:
                  alt.Tooltip("min:Q", format=".2f", title=t("Daily minimum °C")),
                  alt.Tooltip("max:Q", format=".2f", title=t("Daily maximum °C"))],
     )
-    return (band + _limit_rules(limits)).properties(height=380, title=t("Hourly fluid temperature (daily range)"))
+    return _layers(band, _limit_rules(limits, style=style)).properties(
+        height=380, title=t("Hourly fluid temperature (daily range)"))
 
 
-def hourly_last_year_chart(hourly: pd.DataFrame, limits: dict) -> alt.Chart:
-    """The last simulated year: the fluid as a 3-hour min-max band (keeps every peak, a third of the points)
-    and the borehole wall as a line."""
+def hourly_last_year_chart(hourly: pd.DataFrame, limits: dict, style: ChartStyle = DEFAULT_STYLE) -> alt.Chart:
+    """The last simulated year: the fluid as a 3-hour min-max band (keeps every peak, a third of the points)."""
     last = hourly.tail(8760).reset_index(drop=True)
     agg = last.groupby(last.index // 3).agg(["min", "max", "mean"])
     data = pd.DataFrame({"Day": ((agg.index.to_numpy() * 3 + 1.5) / 24).round(3),
                          "min": agg[("Average fluid", "min")].round(2).to_numpy(),
-                         "max": agg[("Average fluid", "max")].round(2).to_numpy(),
-                         "Wall": agg[("Borehole wall", "mean")].round(2).to_numpy()})
+                         "max": agg[("Average fluid", "max")].round(2).to_numpy()})
     x = alt.X("Day:Q", title=t("Day of the last year"), scale=alt.Scale(domain=[0, 365], nice=False))
     band = alt.Chart(data).mark_area(opacity=0.8, color=PIPE_UP).encode(
         x=x, y=alt.Y("min:Q", title=t("Temperature [°C]")), y2="max:Q",
         tooltip=[alt.Tooltip("Day:Q", format=".1f", title=t("Day")),
                  alt.Tooltip("min:Q", title=t("Fluid minimum °C")), alt.Tooltip("max:Q", title=t("Fluid maximum °C"))])
-    wall = alt.Chart(data).mark_line(strokeWidth=1.2, color=SERIES_COLORS["Borehole wall"]).encode(x=x, y="Wall:Q")
-    return (band + wall + _limit_rules(limits)).properties(
-        height=380, title=t("Hourly temperatures in the last year (band: fluid, line: borehole wall)"))
+    return _layers(band, _limit_rules(limits, style=style)).properties(
+        height=380, title=t("Hourly fluid temperature in the last year"))
 
 
 # ---------------------------------------------------------------- post-processing
 
-def yearly_extremes_chart(df: pd.DataFrame, limits: dict) -> alt.Chart:
+def yearly_extremes_chart(df: pd.DataFrame, limits: dict, style: ChartStyle = DEFAULT_STYLE) -> alt.Chart:
     data = _translate_series(df.melt("Year", var_name="Series", value_name="Temperature"))
     lines = alt.Chart(data).mark_line(point=True).encode(
         x=alt.X("Year:O", title=t("Year"), axis=alt.Axis(labelAngle=0)),
@@ -606,7 +652,8 @@ def yearly_extremes_chart(df: pd.DataFrame, limits: dict) -> alt.Chart:
         tooltip=[alt.Tooltip("Year:O", title=t("Year")), alt.Tooltip("Series:N", title=t("Series")),
                  alt.Tooltip("Temperature:Q", format=".2f", title="°C")],
     )
-    return (lines + _limit_rules(limits)).properties(height=320, title=t("Lowest and highest temperature per year"))
+    return _layers(lines, _limit_rules(limits, style=style)).properties(
+        height=320, title=t("Lowest and highest temperature per year"))
 
 
 def _energy_text(value: float, top: float) -> str:

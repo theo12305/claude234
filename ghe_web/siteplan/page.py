@@ -5,6 +5,7 @@ Streamlit code only; the geometry is in layout.py, the data services in lookup.p
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 import folium
 import shapely
@@ -110,7 +111,8 @@ def _load_parcel_at(lon, lat, chosen_state) -> bool:
         return False
     with st.spinner(t("Loading the parcel from the cadastre of {state}...", state=state.name)):
         try:
-            feat, state = lookup.parcel_at(lon, lat, state)
+            feat, key = _parcel_at(round(lon, 7), round(lat, 7), state.key, i18n.language())
+            state = by_key(key)
         except lookup.LookupError_ as exc:
             st.error(str(exc), icon=":material/error:")
             _set("view_centre", (lat, lon))  # for clicking or drawing the parcel instead
@@ -118,6 +120,48 @@ def _load_parcel_at(lon, lat, chosen_state) -> bool:
             return False
     _set_parcel(feat, state.key)
     return True
+
+
+@st.cache_data(ttl=3600, show_spinner=False, max_entries=100)
+def _parcel_at(lon: float, lat: float, state_key: str, language: str):
+    """The parcel at a point (cached: the same address again, or going back, loads at once)."""
+    with i18n.using(language):
+        feat, state = lookup.parcel_at(lon, lat, by_key(state_key))
+    return feat, state.key
+
+
+@st.cache_data(ttl=3600, show_spinner=False, max_entries=50)
+def _buildings(parcel_wkb: bytes, state_key: str | None, language: str):
+    """Cadastre and OpenStreetMap buildings around the parcel, both asked at the same time. Returns
+    (official, osm, notes)."""
+    parcel = shapely.from_wkb(parcel_wkb)
+    state = by_key(state_key) if state_key else None
+
+    def official():
+        if state is None or state.buildings is None:
+            return []
+        feats = i18n.call_in(language, lookup.buildings_official, state, parcel)
+        for f in feats:
+            f.attrs["source"] = "cadastre"
+        return feats
+
+    notes = []
+    with ThreadPoolExecutor(2) as pool:
+        jobs = {"official": pool.submit(official),
+                "osm": pool.submit(i18n.call_in, language, lookup.buildings_osm, parcel)}
+        found = {}
+        for name, job in jobs.items():
+            try:
+                found[name] = job.result()
+            except lookup.LookupError_ as exc:
+                found[name] = []
+                with i18n.using(language):
+                    notes.append(t("Cadastre buildings: {error}", error=exc) if name == "official" else str(exc))
+    if state is not None and state.buildings is None:
+        with i18n.using(language):
+            notes.insert(0, t("{state} has no open building service; buildings come from OpenStreetMap only.",
+                              state=state.name))
+    return found["official"], found["osm"], notes
 
 
 def _find_parcel(chosen_state):
@@ -405,22 +449,8 @@ def page(handoff, wells: dict | None = None) -> None:
 
     # ------------------------------------------------ buildings
     if _ss("buildings") is None:
-        official, osm, notes = [], [], []
         with st.spinner(t("Loading buildings from the cadastre and OpenStreetMap...")):
-            if state is not None and state.buildings is not None:
-                try:
-                    official = lookup.buildings_official(state, parcel)
-                    for f in official:
-                        f.attrs["source"] = "cadastre"
-                except lookup.LookupError_ as exc:
-                    notes.append(t("Cadastre buildings: {error}", error=exc))
-            elif state is not None:
-                notes.append(t("{state} has no open building service; buildings come from OpenStreetMap only.",
-                               state=state.name))
-            try:
-                osm = lookup.buildings_osm(parcel)
-            except lookup.LookupError_ as exc:
-                notes.append(str(exc))
+            official, osm, notes = _buildings(parcel.wkb, state.key if state else None, i18n.language())
         merged = lookup.merge_buildings(official, osm)
         # only what can matter: buildings within the building distance of the parcel (max 20 m)
         near = parcel.buffer(20)
@@ -548,24 +578,25 @@ def page(handoff, wells: dict | None = None) -> None:
         info = {"Parcel": _ss("parcel_label"), "State": state.name if state else t("unknown")}
         imagery = (state.imagery.url, state.imagery.layer) if state and state.imagery else None
         stem = "".join(ch if ch.isalnum() else "_" for ch in _ss("parcel_label"))[:40].strip("_") or "parcel"
+        lang = i18n.language()  # the downloads are made when clicked, outside this run
         c = st.columns(4)
-        c[0].download_button(t("BHE shapefile (.zip)"), export.borehole_zip(points, rules.spacing),
+        c[0].download_button(t("BHE shapefile (.zip)"), lambda: i18n.call_in(lang, export.borehole_zip, points, rules.spacing),
                              f"bhe_positions_{stem}.zip", "application/zip", width="stretch",
                              icon=":material/download:", key=K + "dl_bhe",
                              help=t("One point per borehole, ETRS89 / UTM 32N. Can be uploaded under Borefield."))
-        c[1].download_button(t("GIS project (.zip)"), _project_zip(site, rules, points, info, imagery),
+        c[1].download_button(t("GIS project (.zip)"), lambda: i18n.call_in(lang, _project_zip, site, rules, points, info, imagery),
                              f"site_plan_{stem}.zip", "application/zip", width="stretch",
                              icon=":material/folder_zip:", key=K + "dl_project",
                              help=t("Shapefiles of boreholes, parcel, buildings, drawn areas and allowed area, a QGIS "
                                     "project (site_plan.qgs) with the aerial image, the preview map and a read-me."))
-        png = _png(site, rules, points, _ss("parcel_label"))
-        c[2].download_button(t("Preview map (.png)"), png, f"site_plan_{stem}.png", "image/png", width="stretch",
-                             icon=":material/image:", key=K + "dl_png")
+        label = _ss("parcel_label")
+        c[2].download_button(t("Preview map (.png)"), lambda: i18n.call_in(lang, _png, site, rules, points, label), f"site_plan_{stem}.png",
+                             "image/png", width="stretch", icon=":material/image:", key=K + "dl_png")
         if c[3].button(t("Use in the sizing"), type="primary", width="stretch", icon=":material/arrow_forward:",
                        key=K + "handoff", help=t("Sets Borefield to an irregular field with these positions.")):
             handoff(points)
-        with st.expander(t("Preview map")):
-            st.image(png, width="stretch")
+        if st.toggle(t("Preview map"), key=K + "preview"):  # drawn only when asked for: it takes a moment
+            st.image(_png(site, rules, points, label), width="stretch")
 
 
 def _well_result(placement, parcel, allowed, direction, rules, site, state, handoff) -> None:
@@ -589,14 +620,15 @@ def _well_result(placement, parcel, allowed, direction, rules, site, state, hand
         for msg in check(points, site, rules):
             st.warning(msg)
         stem = "".join(ch if ch.isalnum() else "_" for ch in _ss("parcel_label"))[:40].strip("_") or "parcel"
+        lang = i18n.language()  # the downloads are made when clicked, outside this run
         c = st.columns(3)
-        c[0].download_button(t("Well shapefile (.zip)"), export.borehole_zip(points, rules.spacing),
+        c[0].download_button(t("Well shapefile (.zip)"), lambda: i18n.call_in(lang, export.borehole_zip, points, rules.spacing),
                              f"well_positions_{stem}.zip", "application/zip", width="stretch",
                              icon=":material/download:", key=K + "dl_wells",
                              help=t("One point per well (production first), ETRS89 / UTM 32N."))
-        png = _png(site, rules, points, _ss("parcel_label"))
-        c[1].download_button(t("Preview map (.png)"), png, f"well_plan_{stem}.png", "image/png", width="stretch",
-                             icon=":material/image:", key=K + "dl_wpng")
+        label = _ss("parcel_label")
+        c[1].download_button(t("Preview map (.png)"), lambda: i18n.call_in(lang, _png, site, rules, points, label), f"well_plan_{stem}.png",
+                             "image/png", width="stretch", icon=":material/image:", key=K + "dl_wpng")
         if c[2].button(t("Use in the sizing"), type="primary", width="stretch", icon=":material/arrow_forward:",
                        key=K + "handoff_wells",
                        help=t("Sets the numbers of wells, their distance (largest possible distance when sizing), the "
