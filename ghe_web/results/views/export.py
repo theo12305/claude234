@@ -8,6 +8,7 @@ from ... import analysis, export, i18n, model, plots, report, ui
 from ...i18n import fmt, t
 from ..cache import *  # noqa: F403 (the cached calculations)
 from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
+from .. import sheet
 from ..registry import Ctx, ResultView, register
 
 
@@ -31,13 +32,18 @@ def report_settings(sized_json: str, stem: str) -> tuple[report.ReportOptions, d
         intro = st.text_area(t("Introduction"), key="rep_intro", height=90,
                              placeholder=t("Project background, scope of the calculation..."))
         conclusion = st.text_area(t("Conclusion"), key="rep_conclusion", height=90)
-        include_map = st.checkbox(t("Include the ground temperature map"), value=True, key="rep_map")
+        with_inputs = st.checkbox(t("Include the inputs and their drawings"), value=True, key="rep_inputs")
+        st.caption(t("The charts in the report are the ones switched on under Customize the results, with the same "
+                     "lines and markers."))
+    choice = sheet.choice()
     options = report.ReportOptions(kind=kind, title=title, subtitle=subtitle, author=author, company=company,
                                    client=client, introduction=intro, conclusion=conclusion,
-                                   logo=logo.getvalue() if logo else None)
+                                   logo=logo.getvalue() if logo else None, sheet=choice, inputs=with_inputs)
     extras = {"load_optimisation": load_optimisation_done(sized_json)}
-    if include_map:
+    if choice["sections"].get("ground"):  # calculated for the page already, so cached
         extras["ground_map"] = cached_ground_map(sized_json)
+    if choice["sections"].get("field"):
+        extras["borehole_map"] = cached_borehole_map(sized_json, None)
     return options, extras
 
 
@@ -62,8 +68,9 @@ def render(ctx: Ctx) -> None:
                            type="primary", icon=":material/table_view:", on_click="ignore")
     with c2, st.container(border=True):
         st.markdown(t("**PDF report**"))
-        st.caption(t("Full report: cover page, results, inputs, drawings and all charts. One-page summary: the "
-                     "design, key results and the temperature chart. Fill in the report settings below first."))
+        st.caption(t("Full report: cover page, key results, the charts of this page, inputs and drawings. One-page "
+                     "summary: the design, key results and the temperature chart. Fill in the report settings below "
+                     "first."))
         st.download_button(t("Download PDF"),
                            lambda: i18n.call_in(lang, report.make_pdf, result, sized_inputs, name, options,
                                                 report_extras),
@@ -92,4 +99,4 @@ def render(ctx: Ctx) -> None:
 
 
 
-register(ResultView("export", "Export", 1000, render))
+register(ResultView("export", "Downloads", 1000, render, on_sheet=False))  # always at the end of the sheet

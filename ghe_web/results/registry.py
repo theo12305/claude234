@@ -56,6 +56,7 @@ class ResultView:
     available: Callable[[Ctx], bool] = lambda ctx: True
     tables: Callable[[Ctx], dict[str, pd.DataFrame]] | None = None  # extra sheets for the Excel workbook and zip
     fragment: bool = True
+    on_sheet: bool = True  # a section of the results sheet; False: drawn elsewhere (Further analysis, downloads)
 
 
 _VIEWS: dict[str, ResultView] = {}
@@ -75,6 +76,16 @@ def all_views() -> list[ResultView]:
 def views(ctx: Ctx) -> list[ResultView]:
     """The views that apply to this result, in drop-down order."""
     return [v for v in all_views() if v.available(ctx)]
+
+
+def sheet_views(ctx: Ctx) -> list[ResultView]:
+    """The sections of the results sheet for this result, in page order."""
+    return [v for v in views(ctx) if v.on_sheet]
+
+
+def hidden(ctx: Ctx) -> bool:
+    """For views kept in the code but not shown for now (they keep their tests and translations)."""
+    return False
 
 
 def get(key: str) -> ResultView:

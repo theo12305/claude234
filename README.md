@@ -1,4 +1,4 @@
-# GHEtool Web
+# GHEtool & Co.
 
 A browser interface for sizing borehole heat exchangers with [GHEtool](https://github.com/wouterpeere/GHEtool).
 

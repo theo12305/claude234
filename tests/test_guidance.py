@@ -25,8 +25,19 @@ def test_side_notes():
     assert "m³/h" in guidance.side_note("mfr", 0.3, {})
     assert guidance.side_note("H", 90.0, {"D": 0.7}) is None
     assert "BBergG" in guidance.side_note("H", 100.0, {"D": 0.7})
-    hours = guidance.side_note("annual_heating_mwh", 400.0, {"peak_heating_kw": 200.0})
-    assert "2,000" in hours
+    energy = guidance.side_note("full_load_hours_heating", 2000.0, {"peak_heating_kw": 200.0})
+    assert "400.0 MWh/yr" in energy
+
+
+def test_old_projects_with_yearly_energy_become_full_load_hours():
+    import json
+    text = json.loads(model.to_json(model.default_inputs()))
+    values = text["sections"]["load"]["values"] = {"annual_heating_mwh": 300.0, "peak_heating_kw": 150.0,
+                                                  "annual_cooling_mwh": 40.0, "peak_cooling_kw": 0.0}
+    text["sections"]["load"]["variant"] = "annual_building"
+    _, inputs = model.from_json(json.dumps(text))
+    assert values and inputs["load"].values["full_load_hours_heating"] == 2000.0
+    assert inputs["load"].values["full_load_hours_cooling"] == 0.0
 
 
 def test_advanced_fields_exist():
@@ -41,9 +52,9 @@ def test_mode_is_saved_with_the_project():
     assert model.from_json(text)[0] == "x"
 
 
-def test_simple_labels_name_real_fields():
+def test_simple_hidden_fields_exist():
     keys = {(s.key, p.key) for s in properties.sections() for v in s.variants for p in v.properties}
-    assert set(guidance.SIMPLE_LABELS) <= keys
+    assert guidance.SIMPLE_HIDDEN <= keys
 
 
 def test_defaults_match_a_drop_down_choice():

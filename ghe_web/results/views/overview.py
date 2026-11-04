@@ -8,7 +8,7 @@ from ... import analysis, export, i18n, model, plots, report, ui
 from ...i18n import fmt, t
 from ..cache import *  # noqa: F403 (the cached calculations)
 from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from ..registry import Ctx, ResultView, register
+from ..registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:
@@ -34,4 +34,5 @@ def render(ctx: Ctx) -> None:
 
 
 
-register(ResultView("overview", "Overview", 10, render))
+# Not shown for now (theo, 2026-11-04): the temperatures and the key figures are on the results sheet.
+register(ResultView("overview", "Overview", 10, render, available=hidden))

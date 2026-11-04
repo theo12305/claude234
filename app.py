@@ -35,10 +35,11 @@ from ghe_web.strata import page as strata_page
 from ghe_web.properties import Property, SectionInput, Variant
 from ghe_web.wells import page as wells_page
 from ghe_web import results
-from ghe_web.results import common as results_common, registry as results_registry, summary as results_summary
+from ghe_web.results import common as results_common, registry as results_registry, sheet as results_sheet, \
+    summary as results_summary
 from ghe_web.results.cache import cached_size
 
-st.set_page_config(page_title="GHEtool Web", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="GHEtool & Co.", page_icon="🌍", layout="wide")
 ui.inject_css()
 st.html("""<style>
 table.keys {width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0;}
@@ -106,14 +107,15 @@ def chart(c, width="stretch") -> None:
 # Input steps, in page order. A section with an unknown group lands in "More inputs", so new
 # sections show up without changes here. The tab labels follow the language; the ids stay the same.
 STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & borefield", "Borehole": "② Borehole & fluid",
-               "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs", "results": "📊 Results"}
+               "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
+               "check": "⑤ Design check", "results": "📊 Results", "analysis": "🔬 Further analysis"}
 # The same steps for groundwater wells (open loop)
 WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer", "Borehole": "② Wells",
                     "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
                     "results": "📊 Results"}
 
 # Simple mode: the borehole, fluid and limits are part of the Loads step, which becomes step 2
-SIMPLE_STEP_LABELS = {"Loads": "② Loads"}
+SIMPLE_STEP_LABELS = {"Loads": "② Loads", "check": "③ Design check"}
 # Input methods for specialists: listed in Expert only (and in Simple while a project uses them)
 EXPERT_ONLY = {("load", "monthly"), ("load", "hourly_building"), ("heat_pump", "curve"), ("pipe", "coaxial"),
                ("pipe", "constant_rb")}
@@ -154,6 +156,7 @@ STEPS = {k: t(v) for k, v in LABELS.items()}
 if SIMPLE:
     STEPS["Borehole"] = STEPS["Design"] = STEPS["Loads"]
 SITE_PLAN, MORE, RESULTS = STEPS["site_plan"], STEPS["more"], STEPS["results"]
+CHECK, ANALYSIS = STEPS.get("check"), STEPS.get("analysis")  # borehole heat exchangers only
 if st.session_state.pop("goto_results", False):
     st.session_state.step = RESULTS
 if "goto_step" in st.session_state:
@@ -328,18 +331,9 @@ calc_slot = st.container(key="calcbar", horizontal=True, vertical_alignment="cen
 
 # ---------------------------------------------------------------- inputs
 
-def simple_label(section_key: str, prop: Property) -> str:
-    return t(guidance.SIMPLE_LABELS.get((section_key, prop.key), prop.label))
-
-
 def widget(prop: Property, value, key: str):
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
     help_text = t(prop.help) or None
-    plain = guidance.SIMPLE_LABELS.get((key.split(".")[1], prop.key)) if SIMPLE else None
-    if plain:  # Simple: everyday words; the technical name (and an unusual unit) behind the question mark
-        unit = f" [{t(prop.unit)}]" if prop.unit else ""
-        label = t(plain) + (unit if prop.unit in guidance.PLAIN_UNITS else "")
-        help_text = f"**{t(prop.label)}{unit}**" + (f"  \n{t(prop.help)}" if prop.help else "")
     # A preset may already have put a value in the session state; then the widget must not get one too.
     initial = {} if key in st.session_state else None
     if prop.kind == "float":
@@ -524,6 +518,21 @@ def borehole_depth() -> tuple[float, float]:
             float(st.session_state.get(f"{gen}.borefield.{variant}.D", defaults["D"])))
 
 
+def variant_choices(section, chosen: str) -> list[str]:
+    """The input methods listed for a section: all in Expert; in Simple the specialist ones only while in use."""
+    current = st.session_state.get(f"{gen}.{section.key}.variant_key", chosen)
+    return [v.key for v in section.variants if not SIMPLE or (section.key, v.key) not in EXPERT_ONLY
+            or v.key in (chosen, current)]
+
+
+def hidden_in_simple(section) -> bool:
+    """Simple mode leaves out a section with nothing to choose: one input method and no fields (the heat pump
+    efficiency with the SCOP/SEER of the building demand)."""
+    chosen = start.get(section.key) or SectionInput(section.variant().key, {})
+    keys = variant_choices(section, chosen.variant)
+    return SIMPLE and len(keys) == 1 and not section.variant(keys[0]).properties
+
+
 def section_inputs(section) -> tuple[SectionInput, object]:
     """Draws one section and returns its values and where its drawing goes (or None)."""
     with st.container(border=True):
@@ -531,23 +540,24 @@ def section_inputs(section) -> tuple[SectionInput, object]:
         variant = section.variant(chosen.variant)
         # descriptions sit behind the question marks, so the page shows the fields only
         about = t(section.help) if section.help else None
-        if len(section.variants) == 1 and variant.help:
-            about = " ".join(x for x in (about, t(variant.help)) if x)
+        keys = variant_choices(section, variant.key)
+        if len(keys) == 1 and section.variant(keys[0]).help:
+            about = " ".join(x for x in (about, t(section.variant(keys[0]).help)) if x)
         st.markdown(f"##### {t(section.label)}", help=about)
-        if len(section.variants) > 1:
-            current = st.session_state.get(f"{gen}.{section.key}.variant_key", variant.key)
-            keys = [v.key for v in section.variants if not SIMPLE or (section.key, v.key) not in EXPERT_ONLY
-                    or v.key in (variant.key, current)]
+        if len(keys) > 1:  # the section heading names it, so the drop-down has no label of its own
             shown = section.variant(st.session_state.get(f"{gen}.{section.key}.variant_key", variant.key))
-            picked = st.selectbox(t("Input method"), keys, index=keys.index(variant.key),
+            picked = st.selectbox(t(section.label), keys, index=keys.index(variant.key),
                                   format_func=lambda k: t(section.variant(k).label),
-                                  key=f"{gen}.{section.key}.variant_key",
+                                  key=f"{gen}.{section.key}.variant_key", label_visibility="collapsed",
                                   help=t(shown.help) if shown.help else None)
             variant = section.variant(picked)
+        elif keys[0] != variant.key:
+            variant = section.variant(keys[0])
         values = variant.defaults()
         if variant.key == chosen.variant:
             values.update(chosen.values)
-        simple = [p for p in variant.properties if p.kind not in ("monthly", "points", "hourly", "layers")]
+        simple = [p for p in variant.properties if p.kind not in ("monthly", "points", "hourly", "layers")
+                  and not (SIMPLE and (section.key, p.key) in guidance.SIMPLE_HIDDEN)]
         layer_props = [p for p in variant.properties if p.kind == "layers"]
         point_props = [p for p in variant.properties if p.kind == "points"]
         hourly_props = [p for p in variant.properties if p.kind == "hourly"]
@@ -608,7 +618,9 @@ grouped: dict[str, list] = {}
 for section in properties.sections(system):
     grouped.setdefault(STEPS.get(section.group, MORE), []).append(section)
 step_names = [SITE_PLAN] + list(dict.fromkeys(s for s in [STEPS[k] for k in ("Site", "Borehole", "Loads", "Design")]
-                                              + [MORE] if s in grouped)) + [RESULTS]
+                                              + [MORE] if s in grouped))
+# borehole heat exchangers: confirm the design check, then the results, then the further analysis
+step_names += [CHECK, RESULTS, ANALYSIS] if CHECK else [RESULTS]
 step_tabs = dict(zip(step_names, st.tabs(step_names, default=STEPS["Site"], key="step", on_change="rerun")))
 
 inputs: dict[str, SectionInput] = {}
@@ -648,7 +660,7 @@ def typical_summary(sections) -> str:
                 if prop.kind == "choice":
                     parts.append(t(str(value)))
                 else:
-                    parts.append(f"{simple_label(section.key, prop)} {value:g}" + (f" {t(prop.unit)}" if prop.unit
+                    parts.append(f"{t(prop.label)} {value:g}" + (f" {t(prop.unit)}" if prop.unit
                                                                                    else ""))
         lines.append(f"**{t(section.label)}:** " + " · ".join(parts))
     return "  \n".join(lines)
@@ -663,8 +675,15 @@ for step, sections in grouped.items():
             st.success(t("Wells set from the site plan: {p} production and {i} injection well(s), {d:.0f} m apart, "
                          "{b:.0f} m to the parcel border downstream.", **st.session_state.pop("well_plan_done")),
                        icon=":material/check_circle:")
-        typical = [x for x in sections if SIMPLE and x.group in ("Borehole", "Design")]
+        # Simple: the calculation method stays asked; the borehole, fluid and limits go in the typical values card
+        typical = [x for x in sections if SIMPLE and x.group in ("Borehole", "Design") and x.key != "calculation"]
         for section in [x for x in sections if x not in typical]:
+            if hidden_in_simple(section):
+                chosen = start.get(section.key)
+                key_ = variant_choices(section, chosen.variant if chosen else section.variant().key)[0]
+                inputs[section.key] = SectionInput(key_, chosen.values if chosen and chosen.variant == key_
+                                                   else section.variant(key_).defaults())
+                continue
             read_section(section, step)
         if typical:  # Simple: one card with typical values, opened to change them
             st.markdown("##### " + t("Typical values"), help=t(
@@ -720,12 +739,8 @@ for slot, sections in typical_cards:
 for target, section_key, variant_key in pending_drawings:
     if section_key in errors or "borefield" in errors:
         continue
-    with target:
-        if ui_mode == "expert":
-            show_drawing(cached_drawing(section_key, variant_key, current_json, lang))
-        else:  # Simple: folded, so the steps stay short on a phone
-            with st.expander(t("Show drawing"), icon=":material/image:"):
-                show_drawing(cached_drawing(section_key, variant_key, current_json, lang))
+    with target:  # always visible, in both modes
+        show_drawing(cached_drawing(section_key, variant_key, current_json, lang))
 
 
 def use_site_plan(points) -> None:
@@ -796,13 +811,20 @@ def well_plan_defaults() -> dict:
             "n_injection": n_i}
 
 
+@st.fragment
+def site_plan() -> None:
+    """The site plan as a fragment: a click on the map or a changed distance redraws only the site plan, not the
+    input steps and results. Loading a parcel and using the positions rerun the whole page."""
+    if system == "open":
+        siteplan_page.page(use_well_plan, well_plan_defaults())
+    else:
+        siteplan_page.page(use_site_plan)
+
+
 with step_tabs[SITE_PLAN]:
     # Only drawn while open: the map and the data services are slow.
     if st.session_state.get("step") == SITE_PLAN:
-        if system == "open":
-            siteplan_page.page(use_well_plan, well_plan_defaults())
-        else:
-            siteplan_page.page(use_site_plan)
+        site_plan()
     next_step_button(SITE_PLAN)
 
 _address, _plugins = siteplan_page.address(), results_registry.plugin_store()
@@ -893,8 +915,7 @@ def design_checks() -> list[checks.Check]:
 
 
 def open_design_check() -> None:
-    st.session_state.goto_results = True
-    st.session_state.result_view_id = "checks"
+    st.session_state.goto_step = "check"
 
 
 check_icons = {checks.PROBLEM: ":red[:material/cancel:]", checks.WARNING: ":orange[:material/warning:]",
@@ -951,45 +972,60 @@ with calc_slot:
         calculate()
 
 
-# ---------------------------------------------------------------- results (views: ghe_web/results)
+# ---------------------------------------------------------------- design check (a step of its own)
+
+with step_tabs[CHECK]:
+    st.markdown("##### " + t("Design check"), help=t(
+        "Every input check in one place; after a calculation also the temperature, flow, antifreeze and balance "
+        "checks. Confirm to calculate and open the results."))
+    show_design_check(found_checks)
+    if errors:
+        st.error(t("Correct the inputs marked in red first."), icon=":material/error:")
+    with st.container(horizontal=True, horizontal_alignment="right", key="check_confirm_row"):
+        st.button(t("Confirm and calculate"), type="primary", icon=":material/check:", disabled=bool(errors),
+                  key="check_confirm", on_click=lambda: st.session_state.update(calc_requested=True))
+
+
+# ---------------------------------------------------------------- results sheet (views: ghe_web/results)
+
+ctx = None
+if "result_json" in st.session_state:
+    sized_json = st.session_state.result_json
+    sized_inputs = model.from_json(sized_json)[1]
+    result = cached_size(sized_json)
+    ctx = results.Ctx(result=result, key=analysis.key_results(result, sized_inputs), sized_inputs=sized_inputs,
+                      sized_json=sized_json, current_json=current_json, inputs=inputs, name=name, simple=SIMPLE,
+                      found_checks=found_checks, show_design_check=show_design_check, project_json=project_json)
 
 with step_tabs[RESULTS]:
     if "calc_error" in st.session_state:
         st.error(t("The calculation failed: {error}", error=st.session_state.calc_error), icon=":material/error:")
-    if "result_json" not in st.session_state:
+    if ctx is None:
         st.info(t("No result yet. Check the inputs in the steps above, then press **{action}**.", action=action),
                 icon=":material/info:")
         if st.button(action, type="primary", disabled=bool(errors), key="results_calc"):
             calculate()
-        show_design_check(found_checks)
     else:
-        sized_json = st.session_state.result_json
-        sized_inputs = model.from_json(sized_json)[1]
-        result = cached_size(sized_json)
-        ctx = results.Ctx(result=result, key=analysis.key_results(result, sized_inputs), sized_inputs=sized_inputs,
-                          sized_json=sized_json, current_json=current_json, inputs=inputs, name=name, simple=SIMPLE,
-                          found_checks=found_checks, show_design_check=show_design_check, project_json=project_json)
-        if sized_json != current_json:
+        if ctx.sized_json != current_json:
             st.warning(t("The inputs changed since this result was calculated. Press **{action}** to update it.",
                          action=action), icon=":material/update:")
+        sections = results_registry.sheet_views(ctx)
+        with st.container(horizontal=True, horizontal_alignment="right", key="sheetbar"):
+            results_sheet.customize(sections)
         results_summary.answer_section(ctx)
+        number = 0
+        for view in sections:  # every section switched on, one below the other
+            if not results_sheet.section_on(view.key):
+                continue
+            number += 1
+            st.markdown(f"<h3 class='sheethead'>{number} · {html.escape(t(view.title))}</h3>", unsafe_allow_html=True)
+            results_registry.render(view, ctx, number)
+        st.markdown(f"<h3 class='sheethead'>{html.escape(t('Downloads'))}</h3>", unsafe_allow_html=True)
+        results_registry.render(results_registry.get("export"), ctx, number + 1)
 
-        views = results.views(ctx)
-        keys = [v.key for v in views]
-        # Simple: one page (temperatures and design check); "More results" or a button that opens another view
-        # (the full report, for example) lists all views
-        if st.session_state.get("result_view_id", "overview") not in ("overview", "checks"):
-            st.session_state.all_views = True
-        if st.session_state.get("result_view_id") not in keys:
-            st.session_state.result_view_id = "overview"
-        if SIMPLE and not st.session_state.get("all_views"):
-            results_summary.simple_results(ctx)
-        else:
-            # Only the chosen view is drawn, so large hourly charts are not sent to the browser on every click.
-            with st.container(horizontal=True, vertical_alignment="bottom", key="viewbar"):
-                view = st.selectbox(t("View"), keys, format_func=lambda k: t(results_registry.get(k).title),
-                                    key="result_view_id", width=320)
-                if SIMPLE:
-                    st.button(t("Back to the summary"), icon=":material/arrow_back:", type="tertiary",
-                              on_click=lambda: st.session_state.update(all_views=False, result_view_id="overview"))
-            results_registry.render(results_registry.get(view), ctx, keys.index(view) + 1)
+with step_tabs[ANALYSIS]:
+    if ctx is None:
+        st.info(t("The further analysis starts from a result. Calculate first."), icon=":material/info:")
+    else:
+        st.caption(t("Sensitivity, variants and a layout search, starting from the result in 📊 Results."))
+        results_registry.render(results_registry.get("analysis"), ctx, 1)

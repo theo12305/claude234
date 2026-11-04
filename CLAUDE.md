@@ -1,4 +1,4 @@
-# GHEtool Web: map for working on the code
+# GHEtool & Co.: map for working on the code
 
 Streamlit app on GHEtool (borehole heat exchanger sizing), live from `main` on Streamlit Community Cloud.
 Read only the files a change needs; this map says where things are.

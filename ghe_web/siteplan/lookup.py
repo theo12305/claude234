@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import xml.etree.ElementTree as ET
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 
 import requests
@@ -22,6 +24,17 @@ from .states import State, by_key
 EPSG = 25832
 USER_AGENT = "GHEtool-Web site plan (https://github.com/theo12305/claude234)"
 TIMEOUT = 40
+OSM_TIMEOUT = 20  # the OpenStreetMap mirrors are asked at the same time; the first answer wins
+
+_local = threading.local()
+
+
+def _session() -> requests.Session:
+    """One connection pool per thread: the second request to a service skips the TLS handshake."""
+    if not hasattr(_local, "session"):
+        _local.session = requests.Session()
+        _local.session.headers["User-Agent"] = USER_AGENT
+    return _local.session
 
 _to_utm = Transformer.from_crs(4326, EPSG, always_xy=True)
 _to_wgs = Transformer.from_crs(EPSG, 4326, always_xy=True)
@@ -63,13 +76,12 @@ class Feature:
     attrs: dict[str, str] = field(default_factory=dict)
 
 
-def _get(url: str, params: dict | None = None, data: str | None = None) -> requests.Response:
+def _get(url: str, params: dict | None = None, data: str | None = None, timeout: float = TIMEOUT) -> requests.Response:
     try:
         if data is None:
-            r = requests.get(url, params=params, timeout=TIMEOUT, headers={"User-Agent": USER_AGENT})
+            r = _session().get(url, params=params, timeout=timeout)
         else:
-            r = requests.post(url, data=data.encode(), timeout=TIMEOUT,
-                              headers={"User-Agent": USER_AGENT, "Content-Type": "text/xml"})
+            r = _session().post(url, data=data.encode(), timeout=timeout, headers={"Content-Type": "text/xml"})
     except requests.RequestException as exc:
         raise LookupError_(t("The service {host} did not answer ({error}).", host=url.split("/")[2],
                              error=type(exc).__name__)) from exc
@@ -338,16 +350,8 @@ def buildings_osm(area_utm) -> list[Feature]:
     lon1, lat1 = to_wgs84(maxx, maxy)
     query = (f"[out:json][timeout:25];(way[building]({lat0},{lon0},{lat1},{lon1});"
              f"relation[building]({lat0},{lon0},{lat1},{lon1}););out geom;")
-    last = None
-    for url in OVERPASS:
-        try:
-            r = _get(url, {"data": query})
-            data = r.json()
-            break
-        except (LookupError_, ValueError) as exc:
-            last = exc
-    else:
-        raise LookupError_(t("OpenStreetMap buildings could not be loaded: {error}", error=last))
+    data = _first_answer(lambda url: _get(url, {"data": query}, timeout=OSM_TIMEOUT).json(), OVERPASS,
+                         t("OpenStreetMap buildings could not be loaded: {error}", error="{error}"))
     out = []
     for el in data.get("elements", []):
         polys = []
@@ -364,6 +368,25 @@ def buildings_osm(area_utm) -> list[Feature]:
             if p.intersects(area_utm.buffer(10)):
                 out.append(Feature(p, {"source": "OpenStreetMap", "building": el.get("tags", {}).get("building", "")}))
     return out
+
+
+def _first_answer(fetch, urls, message: str):
+    """Asks all ``urls`` at the same time and returns the first good answer (the mirrors differ a lot in speed and
+    are often busy). ``message`` with {error} is raised when none answers."""
+    pool = ThreadPoolExecutor(len(urls))
+    pending = {pool.submit(fetch, url) for url in urls}
+    last = None
+    try:
+        while pending:
+            done, pending = wait(pending, return_when=FIRST_COMPLETED)
+            for f in done:
+                try:
+                    return f.result()
+                except (LookupError_, ValueError) as exc:
+                    last = exc
+        raise LookupError_(message.replace("{error}", str(last)))
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
 
 
 def merge_buildings(official: list[Feature], osm: list[Feature]) -> list[Feature]:

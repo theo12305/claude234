@@ -37,43 +37,8 @@ ADVANCED = {
 }
 
 
-# Simple mode: everyday names for the fields; the technical name stays behind the question mark. Units that read
-# naturally stay in the label, the others (W/(m·K), kg/s, ...) go behind the question mark too.
-SIMPLE_LABELS = {
-    ("ground", "T_g"): "Ground temperature",
-    ("ground", "k_s"): "How well the ground conducts heat",
-    ("borefield", "N_1"): "Boreholes per row",
-    ("borefield", "N_2"): "Number of rows",
-    ("borefield", "B_1"): "Distance between boreholes",
-    ("borefield", "B_2"): "Distance between rows",
-    ("borefield", "H"): "Borehole depth",
-    ("fluid", "name"): "Fluid in the pipes",
-    ("fluid", "percentage"): "Share of antifreeze",
-    ("flow", "mfr"): "Flow through each borehole",
-    ("load", "annual_heating_mwh"): "Heat needed per year",
-    ("load", "peak_heating_kw"): "Largest heating power",
-    ("load", "heating_profile"): "When heat is needed",
-    ("load", "annual_cooling_mwh"): "Cooling needed per year",
-    ("load", "peak_cooling_kw"): "Largest cooling power",
-    ("load", "cooling_profile"): "When cooling is needed",
-    ("load", "scop"): "Heat pump efficiency, heating",
-    ("load", "seer"): "Efficiency, cooling",
-    ("limits", "T_min"): "Coldest allowed fluid",
-    ("limits", "T_max"): "Warmest allowed fluid",
-    ("aquifer", "water_depth"): "Depth to the groundwater",
-    ("aquifer", "top"): "Top of the water-bearing layer",
-    ("aquifer", "bottom"): "Bottom of the water-bearing layer",
-    ("aquifer", "gradient"): "Slope of the groundwater",
-    ("wells", "dn_mm"): "Well pipe size",
-    ("wells", "spacing"): "Distance between wells of the same kind",
-    ("wells", "border"): "Distance to the parcel border downstream",
-    ("wells", "max_distance"): "Largest distance between the wells",
-    ("well_limits", "spread"): "Cooling of the water in the heat pump",
-    ("well_limits", "t_inj_min"): "Coldest water returned",
-    ("well_limits", "t_inj_max"): "Warmest water returned",
-    ("well_limits", "max_change"): "Largest change of the groundwater temperature",
-}
-PLAIN_UNITS = {"m", "mm", "°C", "K", "kW", "MWh/yr", "%", "% (mass)", "‰"}
+# Not shown in Simple mode: the typical choice is assumed (Expert shows them). The saved value is still used.
+SIMPLE_HIDDEN = {("load", "heating_profile"), ("load", "cooling_profile")}
 
 
 def is_advanced(section: str, key: str) -> bool:
@@ -180,9 +145,11 @@ def side_note(key: str, value: float, values: dict) -> str | None:
         # specific heat load of 40 W/m² (new, well insulated) to 100 W/m² (old, not refurbished)
         return t("≈ the heat load of {a:,.0f} m² (old building, 100 W/m²) to {b:,.0f} m² (new building, 40 W/m²) "
                  "of heated floor", a=value * 1000 / 100, b=value * 1000 / 40)
-    if key == "annual_heating_mwh" and value > 0 and values.get("peak_heating_kw"):
-        hours = value * 1000 / values["peak_heating_kw"]
-        return t("{h:,.0f} full-load hours with the peak heating above (VDI 4640 assumes 1,800–2,400 h)", h=hours)
+    if key in ("full_load_hours_heating", "full_load_hours_cooling"):
+        kind = key.rsplit("_", 1)[1]
+        energy = value * float(values.get(f"peak_{kind}_kw") or 0) / 1000
+        return t("Heating demand = {x:,.1f} MWh/yr (peak load × full-load hours)", x=energy) if kind == "heating" \
+            else t("Cooling demand = {x:,.1f} MWh/yr (peak load × full-load hours)", x=energy)
     if key == "H" and value + float(values.get("D") or 0) > 100:
         return t("Deeper than 100 m: the drilling must be reported to the mining authority (§ 127 BBergG).")
     return None

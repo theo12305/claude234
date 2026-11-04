@@ -8,7 +8,7 @@ from ... import analysis, export, i18n, model, plots, report, ui
 from ...i18n import fmt, t
 from ..cache import *  # noqa: F403 (the cached calculations)
 from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from ..registry import Ctx, ResultView, register
+from ..registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:
@@ -40,4 +40,4 @@ def render(ctx: Ctx) -> None:
 
 
 
-register(ResultView("hydraulics", "Hydraulics", 70, render))
+register(ResultView("hydraulics", "Hydraulics", 70, render, available=hidden))  # not shown for now

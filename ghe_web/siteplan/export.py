@@ -182,7 +182,7 @@ def project_zip(site: Site, rules: Rules, points, info: dict[str, str], imagery:
     files["site_plan.png"] = preview_png(site, rules, points, info.get("Parcel", ""))
     # QGIS draws the first layer of the tree on top, so reverse: boreholes on top, image at the bottom
     files["site_plan.qgs"] = _qgis_project(layers[::-1], imagery)
-    lines = [t("BHE site plan, created {date} with GHEtool Web", date=f"{dt.date.today():%Y-%m-%d}"), ""]
+    lines = [t("BHE site plan, created {date} with GHEtool & Co.", date=f"{dt.date.today():%Y-%m-%d}"), ""]
     lines += [f"{t(k)}: {v}" for k, v in info.items()]
     lines += ["", t("Boreholes: {n}", n=len(points)),
               t("Distance to the parcel border: {d:g} m", d=rules.border_distance),

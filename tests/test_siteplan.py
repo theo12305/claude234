@@ -165,11 +165,12 @@ def test_parcel_at_asks_the_state_service(monkeypatch):
     class Answer:
         status_code, content = 200, GML
 
-    def fake_get(url, params=None, **kw):
-        seen.update(url=url, params=params)
-        return Answer()
+    class FakeSession:
+        def get(self, url, params=None, **kw):
+            seen.update(url=url, params=params)
+            return Answer()
 
-    monkeypatch.setattr(lookup.requests, "get", fake_get)
+    monkeypatch.setattr(lookup, "_session", FakeSession)
     nw = next(s for s in STATES if s.key == "NW")
     lon, lat = lookup.to_wgs84(X0 + 30, Y0 + 20)
     feat, state = lookup.parcel_at(lon, lat, nw)
@@ -179,3 +180,20 @@ def test_parcel_at_asks_the_state_service(monkeypatch):
     by = next(s for s in STATES if s.key == "BY")
     with pytest.raises(lookup.LookupError_, match="Bayern"):
         lookup.parcel_at(lon, lat, by)
+
+
+def test_the_first_mirror_that_answers_wins():
+    import time
+
+    def fetch(url):
+        if url == "slow":
+            time.sleep(2)
+            return "slow"
+        if url == "broken":
+            raise lookup.LookupError_("down")
+        return "fast"
+    start = time.time()
+    assert lookup._first_answer(fetch, ["slow", "broken", "fast"], "none: {error}") == "fast"
+    assert time.time() - start < 1.5
+    with pytest.raises(lookup.LookupError_, match="none: down"):
+        lookup._first_answer(fetch, ["broken"], "none: {error}")

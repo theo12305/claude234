@@ -80,7 +80,6 @@ DE: dict[str, str] = {
         "Diagramme, weitere Analysen sowie PDF-Bericht und Excel-Export.\n\n"
         "Speichern Sie das Projekt im Menü ☰, um später weiterzuarbeiten. Die Berechnungen nutzen das "
         "Open-Source-Programm [GHEtool](https://github.com/wouterpeere/GHEtool).",
-    "Input method": "Eingabeart",
     "Fills in the fields below with typical values.": "Setzt typische Werte in die Felder darunter ein.",
     "Monthly values. Click a cell to edit; you can paste a column from Excel.":
         "Monatswerte. Zum Bearbeiten in eine Zelle klicken; Sie können eine Spalte aus Excel einfügen.",
@@ -212,14 +211,7 @@ DE: dict[str, str] = {
     "Peak injection": "Spitzeneintragsleistung",
     "Simulation period": "Simulationszeitraum",
     "Duration of the heating peak": "Dauer der Heizspitze",
-    "How long the peak load lasts (as in EED). GHEtool's default is 6 h.":
-        "Wie lange die Spitzenlast anhält (wie in EED). Standard in GHEtool sind 6 h.",
     "Duration of the cooling peak": "Dauer der Kühlspitze",
-    "Yearly building demand (EED style)": "Jährlicher Gebäudebedarf (wie EED)",
-    "Yearly heating and cooling demand of the building, split over the months with a profile. Peaks follow the "
-    "profile: the month with the largest share gets the full peak.":
-        "Jährlicher Heizwärme- und Kältebedarf des Gebäudes, mit einem Profil auf die Monate verteilt. Die "
-        "Spitzenlasten folgen dem Profil: Der Monat mit dem größten Anteil erhält die volle Spitze.",
     "Heating demand": "Heizwärmebedarf",
     "Heating profile": "Heizprofil",
     "Peak heating": "Heizlast (Spitze)",
@@ -339,7 +331,7 @@ DE: dict[str, str] = {
         "Die Last auf den Untergrund ist direkt eingegeben (monatliche Energie); es gibt also keine Wärmepumpe, auf "
         "die dies angewendet werden kann. Wählen Sie unter Wärmeentzug und -eintrag einen jährlichen oder stündlichen "
         "Gebäudebedarf.",
-    "This file is not a GHEtool Web project.": "Diese Datei ist kein GHEtool-Web-Projekt.",
+    "This file is not a GHEtool & Co. project.": "Diese Datei ist kein Projekt von GHEtool & Co.",
 
     # ------------------------------------------------------------ catalog
     "Clay / silt, dry": "Ton / Schluff, trocken",
@@ -478,13 +470,12 @@ DE: dict[str, str] = {
     "Average fluid (peak extraction)": "Mittlere Fluidtemperatur (Spitzenentzug)",
     "Average fluid (peak injection)": "Mittlere Fluidtemperatur (Spitzeneintrag)",
     "Average fluid temperature [°C]": "Mittlere Fluidtemperatur [°C]",
-    "Average fluid, daily range (hourly)": "Mittlere Fluidtemperatur, Tagesspanne (stündlich)",
     "Average heat capacity": "Mittlere Wärmekapazität",
     "Average over the borehole": "Mittelwert über die Sonde",
     "Average over the {length:.0f} m borehole: k = {k:.2f} W/(m·K), C = {c:.2f} MJ/(m³·K).":
         "Mittelwert über die {length:.0f} m lange Sonde: λ = {k:.2f} W/(m·K), C = {c:.2f} MJ/(m³·K).",
     "BHE shapefile (.zip)": "EWS-Shapefile (.zip)",
-    "BHE site plan, created {date} with GHEtool Web": "EWS-Lageplan, erstellt am {date} mit GHEtool Web",
+    "BHE site plan, created {date} with GHEtool & Co.": "EWS-Lageplan, erstellt am {date} mit GHEtool & Co.",
     "BHE {n}": "EWS {n}",
     "Backup cooling": "Zusatzkühlung",
     "Backup heating": "Zusatzheizung",
@@ -549,7 +540,6 @@ DE: dict[str, str] = {
     "Change in borehole length [%]": "Änderung der Sondenlänge [%]",
     "Change, higher [%]": "Änderung, höher [%]",
     "Change, lower [%]": "Änderung, niedriger [%]",
-    "Chart": "Diagramm",
     "Check against the limits": "Prüfung gegen die Grenzwerte",
     "Check of a given length": "Prüfung einer vorgegebenen Länge",
     "Check the distances with the local water authority (Untere Wasserbehörde) before planning:":
@@ -593,7 +583,6 @@ DE: dict[str, str] = {
     "Daily minimum °C": "Tagesminimum °C",
     "Daily peak demand": "Tägliche Spitzenlast",
     "Daily peak demand [kW]": "Tägliche Spitzenlast [kW]",
-    "Daily range": "Tagesspanne",
     "Daily range of the hourly average fluid temperature. Dashed: your limits.":
         "Tagesspanne der stündlichen mittleren Fluidtemperatur. Gestrichelt: Ihre Grenzwerte.",
     "Dashed: the calculated length. Where the curve rises, a deeper borehole reaches better ground.":
@@ -605,7 +594,6 @@ DE: dict[str, str] = {
     "Demand [kW]": "Bedarf [kW]",
     "Depth [m]": "Tiefe [m]",
     "Depth below ground [m]": "Tiefe unter Gelände [m]",
-    "Design": "Auslegung",
     "Detect automatically": "Automatisch erkennen",
     "Detect from the location": "Aus dem Standort ermitteln",
     "Detected from the address or the map point; choose it yourself if that fails.":
@@ -656,7 +644,6 @@ DE: dict[str, str] = {
     "External heating [MWh]": "Zusatzheizung [MWh]",
     "Extra distance around the areas drawn on the map.": "Zusätzlicher Abstand um die in der Karte gezeichneten Flächen.",
     "Extracted from the ground": "Dem Untergrund entzogen",
-    "Extraction": "Entzug",
     "Extraction [MWh]": "Entzug [MWh]",
     "Fill in the averages": "Mittelwerte übernehmen",
     "Find": "Suchen",
@@ -669,15 +656,10 @@ DE: dict[str, str] = {
     "Fluid going up (annulus)": "Fluid aufwärts (Ringraum)",
     "Fluid maximum °C": "Fluid Maximum °C",
     "Fluid minimum °C": "Fluid Minimum °C",
-    "Fluid temperatures over the simulation period": "Fluidtemperaturen über den Simulationszeitraum",
     "Flur": "Flur",
     "Flurstück (Zähler)": "Flurstück (Zähler)",
     "From [m]": "Von [m]",
     "Full report": "Vollständiger Bericht",
-    "Full report: cover page, results, inputs, drawings and all charts. One-page summary: the design, key results and the temperature chart. Fill in the report settings below first.":
-        "Vollständiger Bericht: Deckblatt, Ergebnisse, Eingaben, Zeichnungen und alle Diagramme. Einseitige "
-        "Zusammenfassung: Auslegung, wichtigste Ergebnisse und Temperaturdiagramm. Füllen Sie zuerst die "
-        "Berichtsangaben unten aus.",
     "Full-load hours, heating": "Volllaststunden Heizen",
     "Full-load hours, heating and hot water": "Volllaststunden Heizen und Trinkwarmwasser",
     "Further analysis": "Weitere Auswertungen",
@@ -698,7 +680,6 @@ DE: dict[str, str] = {
     "Ground cooling": "Kühlen über den Untergrund",
     "Ground cooling [MWh]": "Untergrund Kühlen [MWh]",
     "Ground energy": "Energie am Untergrund",
-    "Ground energy [MWh]": "Energie am Untergrund [MWh]",
     "Ground energy per year": "Energie am Untergrund pro Jahr",
     "Ground extraction": "Entzug aus dem Untergrund",
     "Ground heating": "Heizen über den Untergrund",
@@ -719,7 +700,6 @@ DE: dict[str, str] = {
         "HLNUG Leitfaden Erdwärmenutzung, 6. Auflage 2019: 5 m zur Grundstücksgrenze (bis 30 kW).",
     "Handlungsempfehlung Erdwärmenutzung in Brandenburg (2023, updated 2025): 3 m to the border.":
         "Handlungsempfehlung Erdwärmenutzung in Brandenburg (2023, aktualisiert 2025): 3 m zur Grundstücksgrenze.",
-    "Heat map": "Wärmekarte",
     "Heat pump": "Wärmepumpe",
     "Heat pump electricity per year": "Strombedarf der Wärmepumpe pro Jahr",
     "Heating": "Heizen",
@@ -740,8 +720,6 @@ DE: dict[str, str] = {
     "Hourly fluid temperature (daily range)": "Stündliche Fluidtemperatur (Tagesspanne)",
     "Hourly temperatures": "Stündliche Temperaturen",
     "Hourly temperatures (CSV)": "Stündliche Temperaturen (CSV)",
-    "Hourly temperatures in the last year (band: fluid, line: borehole wall)":
-        "Stündliche Temperaturen im letzten Jahr (Band: Fluid, Linie: Bohrlochwand)",
     "Hours": "Stunden",
     "Hours per year": "Stunden pro Jahr",
     "How many grid rotations and shifts are tried for the largest count.":
@@ -751,7 +729,6 @@ DE: dict[str, str] = {
         "Sinkt die niedrigste Temperatur (oder steigt die höchste) Jahr für Jahr weiter, ist der Untergrund nicht im "
         "Gleichgewicht. Ein längerer Simulationszeitraum zeigt, ob sie sich einpendelt.",
     "Imbalance": "Ungleichgewicht",
-    "Include the ground temperature map": "Karte der Untergrundtemperatur einfügen",
     "Injected into the ground": "In den Untergrund eingetragen",
     "Injection": "Eintrag",
     "Injection [MWh]": "Eintrag [MWh]",
@@ -788,7 +765,6 @@ DE: dict[str, str] = {
     "LQS EWS Baden-Württemberg 2018, section 2.1.3: half the borehole spacing of VDI 4640, typically 3 m.":
         "LQS EWS Baden-Württemberg 2018, Abschnitt 2.1.3: halber Sondenabstand nach VDI 4640, meist 3 m.",
     "Largest change": "Größte Änderung",
-    "Last year": "Letztes Jahr",
     "Last year of the simulation": "Letztes Jahr der Simulation",
     "Latitude [°]": "Breitengrad [°]",
     "Layer": "Schicht",
@@ -859,7 +835,6 @@ DE: dict[str, str] = {
     "Lower input": "Niedrigerer Eingabewert",
     "Lowest": "Niedrigste",
     "Lowest [°C]": "Niedrigste [°C]",
-    "Lowest and highest average fluid temperature per year": "Niedrigste und höchste mittlere Fluidtemperatur pro Jahr",
     "Lowest and highest temperature per year": "Niedrigste und höchste Temperatur pro Jahr",
     "Lowest average fluid temperature": "Niedrigste mittlere Fluidtemperatur",
     "Lowest fluid temperature": "Niedrigste Fluidtemperatur",
@@ -872,7 +847,6 @@ DE: dict[str, str] = {
     "Minimum spacing [m]": "Minimaler Abstand [m]",
     "Month": "Monat",
     "Monthly demand": "Monatlicher Bedarf",
-    "Monthly ground energy balance": "Monatliche Energiebilanz des Untergrunds",
     "Monthly ground load": "Monatliche Last am Untergrund",
     "Monthly temperatures": "Monatliche Temperaturen",
     "Monthly temperatures (CSV)": "Monatliche Temperaturen (CSV)",
@@ -928,7 +902,6 @@ DE: dict[str, str] = {
         "Sondenanzahl als Shapefile für das unregelmäßige Sondenfeld erhalten.",
     "Out of borefield (peak extraction)": "Austritt aus dem Sondenfeld (Spitzenentzug)",
     "Out of borefield (peak injection)": "Austritt aus dem Sondenfeld (Spitzeneintrag)",
-    "Over the years": "Über die Jahre",
     "Overview": "Übersicht",
     "Parcel": "Flurstück",
     "Parcel boundaries (cadastre map)": "Flurstücksgrenzen (Flurkarte)",
@@ -949,7 +922,6 @@ DE: dict[str, str] = {
     "Predicted layers": "Prognostizierte Schichten",
     "Prepared by": "Erstellt von",
     "Pressure drop against flow rate": "Druckverlust über dem Durchfluss",
-    "Pressure drop against flow rate (at the coldest fluid)": "Druckverlust über dem Durchfluss (beim kältesten Fluid)",
     "Pressure drop per borehole": "Druckverlust je Sonde",
     "Pressure drop per borehole [kPa]": "Druckverlust je Sonde [kPa]",
     "Preview map": "Übersichtskarte",
@@ -1042,7 +1014,6 @@ DE: dict[str, str] = {
         "Ergebnisse und Ihre weiteren Auswertungen (enthalten: {included}).",
     "Switch on the layered calculation above to use the layers.":
         "Schalten Sie oben die geschichtete Berechnung ein, um die Schichten zu verwenden.",
-    "Table": "Tabelle",
     "Table template": "Tabellenvorlage",
     "Temperature [°C]": "Temperatur [°C]",
     "Temperatures": "Temperaturen",
@@ -1178,7 +1149,6 @@ DE: dict[str, str] = {
     "Warmest fluid entering the borefield": "Wärmstes Fluid beim Eintritt ins Sondenfeld",
     "Warning": "Warnung",
     "Warnings": "Warnungen",
-    "Warnings: ": "Warnungen: ",
     "Weight": "Gewicht",
     "What the borehole length depends on most": "Wovon die Sondenlänge am stärksten abhängt",
     "When it gets cold or warm (average fluid temperature, last year)":
@@ -1196,7 +1166,6 @@ DE: dict[str, str] = {
     "Year": "Jahr",
     "Yearly imbalance": "Jährliches Ungleichgewicht",
     "Yearly min-max": "Jährlich Min–Max",
-    "Yearly min/max": "Jährliche Min./Max.",
     "Years": "Jahre",
     "Zoom in on the aerial image and click inside your parcel.":
         "Zoomen Sie im Luftbild heran und klicken Sie in Ihr Flurstück.",
@@ -1235,7 +1204,6 @@ DE: dict[str, str] = {
     "from the logs": "aus den Schichtenverzeichnissen",
     "from {top:.1f} to {bottom:.0f} m": "von {top:.1f} bis {bottom:.0f} m",
     "g-function": "g-Funktion",
-    "g-function (for specialists)": "g-Funktion (für Fachleute)",
     "g-function of the borefield (thermal interaction of the boreholes)":
         "g-Funktion des Sondenfelds (thermische Wechselwirkung der Sonden)",
     "geological map": "geologische Karte",
@@ -1291,7 +1259,6 @@ DE: dict[str, str] = {
     "{n} log": "{n} Bohrung",
     "{n} logs": "{n} Bohrungen",
     "{n} of {total}": "{n} von {total}",
-    "{n} years": "{n} Jahre",
     "{out:,.0f} MWh extracted, {inj:,.0f} MWh injected": "{out:,.0f} MWh entzogen, {inj:,.0f} MWh eingetragen",
     "{parts} MWh (average over the years)": "{parts} MWh (Mittel über die Jahre)",
     "{service}: {n} logged borehole(s) within {radius:,.0f} m.":
@@ -2200,8 +2167,6 @@ DE: dict[str, str] = {
         'Die Eingabeschritte ausfüllen, dann in der Leiste unten auf **Brunnen auslegen** klicken. Jedes Feld hat ein Fragezeichen mit Erklärung; die Auswahllisten setzen typische Werte ein.',
     'Free and without login. Your project stays on your device.':
         'Kostenlos und ohne Anmeldung. Ihr Projekt bleibt auf Ihrem Gerät.',
-    'Full report and more downloads':
-        'Vollständiger Bericht und weitere Downloads',
     'Inputs changed – results out of date':
         'Eingaben geändert – Ergebnis veraltet',
     'Last result: {x}':
@@ -2244,8 +2209,6 @@ DE: dict[str, str] = {
         'typisch ({source}: {lo:g}–{hi:g})',
     'limit {x:g} °C':
         'Grenze {x:g} °C',
-    '{h:,.0f} full-load hours with the peak heating above (VDI 4640 assumes 1,800–2,400 h)':
-        '{h:,.0f} Volllaststunden mit der Heizleistung oben (VDI 4640 geht von 1.800–2.400 h aus)',
     '{n} boreholes × {length:.1f} m':
         '{n} Sonden × {length:.1f} m',
     '{n} input(s) need attention':
@@ -2292,8 +2255,6 @@ DE: dict[str, str] = {
         "**{place}** – jetzt unten die Wärmequelle wählen.",
     "Blue, below zero: heat taken from the ground for heating; it cools the ground. Red, above zero: heat put into the ground by cooling; it warms it. Grey line: what is left each month. Energy in the ground, after the heat pump efficiency.":
         "Blau, unter null: Wärme, die zum Heizen dem Untergrund entzogen wird; sie kühlt ihn ab. Rot, über null: Wärme, die beim Kühlen in den Untergrund eingetragen wird; sie erwärmt ihn. Graue Linie: was in jedem Monat übrig bleibt. Energie im Untergrund, nach dem Wirkungsgrad der Wärmepumpe.",
-    "Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without peaks. Brown: the borehole wall. Dashed: your limits. Move the pointer over the chart for the exact values.":
-        "Blau: das Fluid bei den Heizspitzen, am kältesten. Rot: bei den Kühlspitzen, am wärmsten. Grau: ohne Spitzen. Braun: die Bohrlochwand. Gestrichelt: Ihre Grenzwerte. Mit dem Zeiger über dem Diagramm erscheinen die genauen Werte.",
     "Download":
         "Herunterladen",
     "Each year {x:,.0f} MWh more is returned to the ground than taken, so the ground slowly warms up.":
@@ -2357,45 +2318,71 @@ DE: dict[str, str] = {
     "Calculated with the finite line source (uniform heat flow per metre, with the mirror image at the surface), which is also the basis of the g-function.":
         "Berechnet mit der finiten Linienquelle (gleichmäßiger Wärmestrom je Meter, mit Spiegelquelle an der Oberfläche), die auch der g-Funktion zugrunde liegt.",
     "Calculate and show the results": "Berechnen und Ergebnisse zeigen",
-    "More results": "Weitere Ergebnisse",
     "Next: {step}": "Weiter: {step}",
-    "Show drawing": "Zeichnung zeigen",
     "more": "mehr",
-    "Back to the summary": "Zurück zur Übersicht",
     "Change the typical values": "Typische Werte ändern",
-    "Energy, hydraulics, the ground around the field, each borehole, further analysis and the full report.": "Energie, Hydraulik, der Untergrund um das Feld, jede Sonde, weitere Analysen und der vollständige Bericht.",
     "Own values": "Eigene Werte",
     "These inputs start with values that suit most projects. Open the card to change them; Expert at the top shows them as steps of their own.": "Diese Eingaben starten mit Werten, die zu den meisten Projekten passen. Öffnen Sie die Karte, um sie zu ändern; Experte oben zeigt sie als eigene Schritte.",
     "Typical values": "Typische Werte",
     "② Loads": "② Lasten",
-    "Ground temperature": "Untergrundtemperatur",
-    "How well the ground conducts heat": "Wie gut der Untergrund Wärme leitet",
-    "Boreholes per row": "Sonden pro Reihe",
-    "Number of rows": "Anzahl Reihen",
-    "Distance between boreholes": "Abstand zwischen den Sonden",
-    "Distance between rows": "Abstand zwischen den Reihen",
-    "Borehole depth": "Sondentiefe",
-    "Fluid in the pipes": "Flüssigkeit in den Rohren",
-    "Share of antifreeze": "Anteil Frostschutzmittel",
-    "Flow through each borehole": "Durchfluss je Sonde",
-    "Heat needed per year": "Wärmebedarf pro Jahr",
-    "Largest heating power": "Größte Heizleistung",
-    "When heat is needed": "Wann Wärme gebraucht wird",
-    "Cooling needed per year": "Kältebedarf pro Jahr",
-    "Largest cooling power": "Größte Kühlleistung",
-    "When cooling is needed": "Wann Kühlung gebraucht wird",
-    "Heat pump efficiency, heating": "Effizienz der Wärmepumpe, Heizen",
-    "Efficiency, cooling": "Effizienz, Kühlen",
-    "Coldest allowed fluid": "Kälteste zulässige Flüssigkeit",
-    "Warmest allowed fluid": "Wärmste zulässige Flüssigkeit",
-    "Top of the water-bearing layer": "Oberkante der wasserführenden Schicht",
-    "Bottom of the water-bearing layer": "Unterkante der wasserführenden Schicht",
-    "Slope of the groundwater": "Gefälle des Grundwassers",
-    "Well pipe size": "Brunnenrohr-Größe",
-    "Distance between wells of the same kind": "Abstand zwischen Brunnen derselben Art",
-    "Largest distance between the wells": "Größter Abstand zwischen den Brunnen",
-    "Cooling of the water in the heat pump": "Abkühlung des Wassers in der Wärmepumpe",
-    "Coldest water returned": "Kältestes zurückgegebenes Wasser",
-    "Warmest water returned": "Wärmstes zurückgegebenes Wasser",
-    "Largest change of the groundwater temperature": "Größte Änderung der Grundwassertemperatur",
+    # ------------------------------------------------------------ results sheet, design check step, full-load hours
+    '**Charts and tables**': '**Diagramme und Tabellen**',
+    '**Sections**': '**Abschnitte**',
+    '**Summary**': '**Zusammenfassung**',
+    '**Temperature charts**': '**Temperaturdiagramme**',
+    'Back to the standard sheet': 'Zurück zum Standardblatt',
+    'Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without peaks. Dashed: your limits. Move the pointer over the chart for the exact values. Switch lines and markers on or off under Customize the results.': 'Blau: das Fluid bei den Heizspitzen, am kältesten. Rot: bei den Kühlspitzen, am wärmsten. Grau: ohne Spitzen. Gestrichelt: Ihre Grenzwerte. Für die genauen Werte mit dem Zeiger über das Diagramm fahren. Linien und Markierungen unter Ergebnisse anpassen ein- oder ausschalten.',
+    'Choose what the results sheet shows. The PDF report follows the same choice. Saved with the project.': 'Wählen Sie, was das Ergebnisblatt zeigt. Der PDF-Bericht folgt derselben Auswahl. Wird mit dem Projekt gespeichert.',
+    'Confirm and calculate': 'Bestätigen und berechnen',
+    'Cooling demand = {x:,.1f} MWh/yr (peak load × full-load hours)': 'Kältebedarf = {x:,.1f} MWh/a (Spitzenlast × Volllaststunden)',
+    'Heating demand = {x:,.1f} MWh/yr (peak load × full-load hours)': 'Heizwärmebedarf = {x:,.1f} MWh/a (Spitzenlast × Volllaststunden)',
+    'Correct the inputs marked in red first.': 'Korrigieren Sie zuerst die rot markierten Eingaben.',
+    'Customize the results': 'Ergebnisse anpassen',
+    'Downloads': 'Downloads',
+    'Every input check in one place; after a calculation also the temperature, flow, antifreeze and balance checks. Confirm to calculate and open the results.': 'Alle Eingabeprüfungen an einer Stelle; nach einer Berechnung auch die Prüfungen von Temperatur, Durchfluss, Frostschutz und Bilanz. Bestätigen berechnet und öffnet die Ergebnisse.',
+    'Fluid at the cooling peaks (red)': 'Fluid bei den Kühlspitzen (rot)',
+    'Fluid at the heating peaks (blue)': 'Fluid bei den Heizspitzen (blau)',
+    'Fluid temperature over the years': 'Fluidtemperatur über die Jahre',
+    'Fluid without peaks (grey)': 'Fluid ohne Spitzen (grau)',
+    'Full report and more downloads at the end of the page.': 'Vollständiger Bericht und weitere Downloads am Ende der Seite.',
+    'Full-load hours cooling': 'Volllaststunden Kühlen',
+    'Full-load hours heating': 'Volllaststunden Heizen',
+    'Ground key figures': 'Kennwerte des Untergrunds',
+    'Ground temperature map': 'Karte der Untergrundtemperatur',
+    'Heat map of the last year': 'Wärmekarte des letzten Jahres',
+    'Hourly fluid temperature in the last year': 'Stündliche Fluidtemperatur im letzten Jahr',
+    "How long the peak load lasts. GHEtool's default is 6 h.": 'Wie lange die Spitzenlast anhält. Standard in GHEtool sind 6 h.',
+    'Key figures': 'Kennzahlen',
+    'Labels of the limits': 'Beschriftung der Grenzwerte',
+    'Last year next to it (zoom)': 'Letztes Jahr daneben (Zoom)',
+    'Last year with supply and return': 'Letztes Jahr mit Vor- und Rücklauf',
+    'Lowest and highest value marked': 'Tiefster und höchster Wert markiert',
+    'Monthly energy balance of the ground': 'Monatliche Energiebilanz des Untergrunds',
+    'Peak cooling load': 'Kühllast (Spitze)',
+    'Peak heating load': 'Heizlast (Spitze)',
+    'Peak heating and cooling power of the building and their full-load hours; the yearly energy is peak × full-load hours. It is split over the months with a profile, and the month with the largest share gets the full peak.': 'Heiz- und Kühllast (Spitze) des Gebäudes und ihre Volllaststunden; die Jahresenergie ist Spitzenlast × Volllaststunden. Sie wird mit einem Profil auf die Monate verteilt, und der Monat mit dem größten Anteil erhält die volle Spitze.',
+    'Sensitivity, variants and a layout search, starting from the result in 📊 Results.': 'Sensitivität, Varianten und eine Feldsuche, ausgehend vom Ergebnis unter 📊 Ergebnisse.',
+    'Shading outside the limits': 'Schattierung außerhalb der Grenzwerte',
+    'Table of the key results': 'Tabelle der wichtigsten Ergebnisse',
+    'Table of the monthly temperatures': 'Tabelle der Monatstemperaturen',
+    'Temperature limits (dashed lines)': 'Temperaturgrenzen (gestrichelte Linien)',
+    'The further analysis starts from a result. Calculate first.': 'Die weiteren Auswertungen gehen von einem Ergebnis aus. Bitte zuerst berechnen.',
+    'Values at the pointer': 'Werte am Zeiger',
+    'Yearly building demand': 'Jährlicher Gebäudebedarf',
+    'Yearly cooling energy divided by the peak cooling load.': 'Jährliche Kälteenergie geteilt durch die Kühllast (Spitze).',
+    'Yearly extraction, injection and imbalance': 'Jährlicher Entzug, Eintrag und Ungleichgewicht',
+    'Yearly heating energy divided by the peak heating load. VDI 4640 assumes 1,800–2,400 h for heating only; with hot water up to about 2,400 h.': 'Jährliche Heizenergie geteilt durch die Heizlast (Spitze). VDI 4640 geht für reines Heizen von 1.800–2.400 h aus; mit Trinkwarmwasser bis etwa 2.400 h.',
+    'h/yr': 'h/a',
+    '③ Design check': '③ Planungsprüfung',
+    '⑤ Design check': '⑤ Planungsprüfung',
+    '🔬 Further analysis': '🔬 Weitere Auswertungen',
+    'Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without peaks. Dashed: the temperature limits.': 'Blau: das Fluid bei den Heizspitzen, am kältesten. Rot: bei den Kühlspitzen, am wärmsten. Grau: ohne Spitzen. Gestrichelt: die Temperaturgrenzen.',
+    'Drawings of the inputs': 'Zeichnungen der Eingaben',
+    'Full report: cover page, key results, the charts of this page, inputs and drawings. One-page summary: the design, key results and the temperature chart. Fill in the report settings below first.': 'Vollständiger Bericht: Deckblatt, wichtigste Ergebnisse, die Diagramme dieser Seite, Eingaben und Zeichnungen. Einseitige Zusammenfassung: die Auslegung, die wichtigsten Ergebnisse und das Temperaturdiagramm. Füllen Sie zuerst die Berichtseinstellungen unten aus.',
+    'Include the inputs and their drawings': 'Eingaben und ihre Zeichnungen aufnehmen',
+    'Page {n}': 'Seite {n}',
+    'The charts in the report are the ones switched on under Customize the results, with the same lines and markers.': 'Der Bericht enthält die unter Ergebnisse anpassen eingeschalteten Diagramme, mit denselben Linien und Markierungen.',
+    'The given length does not keep the fluid within the limits.': 'Die vorgegebene Länge hält das Fluid nicht innerhalb der Grenzwerte.',
+    'The given length keeps the fluid within the limits.': 'Die vorgegebene Länge hält das Fluid innerhalb der Grenzwerte.',
+    '{total:,.0f} m drilled · fluid between {lo:.1f} and {hi:.1f} °C over {years} years': '{total:,.0f} m gebohrt · Fluid zwischen {lo:.1f} und {hi:.1f} °C über {years} Jahre',
 }

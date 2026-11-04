@@ -10,7 +10,7 @@ HOURS_PER_MONTH = (744, 672, 744, 720, 744, 720, 744, 744, 720, 744, 720, 744)
 
 PERIOD = Property("simulation_period", "Simulation period", 50, "years", kind="int", min=1, max=100, step=1)
 PEAK_EXTRACTION_HOURS = Property("peak_extraction_hours", "Duration of the heating peak", 6, "h", min=1, max=24, step=1,
-                                 help="How long the peak load lasts (as in EED). GHEtool's default is 6 h.")
+                                 help="How long the peak load lasts. GHEtool's default is 6 h.")
 PEAK_INJECTION_HOURS = Property("peak_injection_hours", "Duration of the cooling peak", 6, "h", min=1, max=24, step=1)
 SCOP = Property("scop", "SCOP heating", 4.0, min=1.0, max=10.0, step=0.1,
                 help="Seasonal efficiency of the heat pump in heating. Ground extraction = heating × (1 − 1/SCOP). "
@@ -30,16 +30,34 @@ def _with_peak_durations(load, v):
     return load
 
 
+def annual_energy_mwh(v) -> tuple[float, float]:
+    """Yearly heating and cooling demand [MWh]: peak power × full-load hours."""
+    return (v["peak_heating_kw"] * v["full_load_hours_heating"] / 1000,
+            v["peak_cooling_kw"] * v["full_load_hours_cooling"] / 1000)
+
+
+def from_annual_energy(saved: dict) -> dict:
+    """Projects saved before the full-load hours: the yearly energy [MWh] becomes hours (energy / peak)."""
+    out = {}
+    for kind in ("heating", "cooling"):
+        energy, peak = saved.get(f"annual_{kind}_mwh"), saved.get(f"peak_{kind}_kw")
+        if energy is not None and f"full_load_hours_{kind}" not in saved:
+            out[f"full_load_hours_{kind}"] = round(float(energy) * 1000 / float(peak), 1) if peak else 0.0
+    return out
+
+
 def _annual_to_monthly(v):
-    """EED-style input: yearly energy split over the months with a profile; peaks follow the profile shape."""
+    """Yearly energy (peak × full-load hours) split over the months with a profile; peaks follow the profile
+    shape."""
     def split(total_mwh, profile_name, peak_kw):
         shares = MONTHLY_PROFILES[profile_name]
         energy = [total_mwh * 1000 * s for s in shares]
         top = max(shares) or 1
         peaks = [max(peak_kw * s / top, e / h) if s > 0 else 0.0 for s, e, h in zip(shares, energy, HOURS_PER_MONTH)]
         return energy, peaks
-    heat, heat_peak = split(v["annual_heating_mwh"], v["heating_profile"], v["peak_heating_kw"])
-    cool, cool_peak = split(v["annual_cooling_mwh"], v["cooling_profile"], v["peak_cooling_kw"])
+    heat_mwh, cool_mwh = annual_energy_mwh(v)
+    heat, heat_peak = split(heat_mwh, v["heating_profile"], v["peak_heating_kw"])
+    cool, cool_peak = split(cool_mwh, v["cooling_profile"], v["peak_cooling_kw"])
     return heat, cool, heat_peak, cool_peak
 
 
@@ -81,22 +99,24 @@ register(Section(
         ),
         Variant(
             key="annual_building",
-            label="Yearly building demand (EED style)",
-            help="Yearly heating and cooling demand of the building, split over the months with a profile. "
-                 "Peaks follow the profile: the month with the largest share gets the full peak.",
+            label="Yearly building demand",
+            help="Peak heating and cooling power of the building and their full-load hours; the yearly energy is "
+                 "peak × full-load hours. It is split over the months with a profile, and the month with the largest "
+                 "share gets the full peak.",
             properties=(
-                Property("annual_heating_mwh", "Heating demand", 400.0, "MWh/yr", min=0.0, max=1e6, step=10.0,
+                Property("peak_heating_kw", "Peak heating load", 210.0, "kW", min=0.0, max=1e5, step=5.0,
                          scales_with_load=True),
+                Property("full_load_hours_heating", "Full-load hours heating", 1905.0, "h/yr", min=0.0, max=8760.0,
+                         step=50.0, help="Yearly heating energy divided by the peak heating load. VDI 4640 assumes "
+                                         "1,800–2,400 h for heating only; with hot water up to about 2,400 h."),
                 Property("heating_profile", "Heating profile", "Heating (office, GHEtool example)", kind="choice",
                          options=tuple(MONTHLY_PROFILES)),
-                Property("peak_heating_kw", "Peak heating", 210.0, "kW", min=0.0, max=1e5, step=5.0,
+                Property("peak_cooling_kw", "Peak cooling load", 80.0, "kW", min=0.0, max=1e5, step=5.0,
                          scales_with_load=True),
-                Property("annual_cooling_mwh", "Cooling demand", 150.0, "MWh/yr", min=0.0, max=1e6, step=10.0,
-                         scales_with_load=True),
+                Property("full_load_hours_cooling", "Full-load hours cooling", 1875.0, "h/yr", min=0.0, max=8760.0,
+                         step=50.0, help="Yearly cooling energy divided by the peak cooling load."),
                 Property("cooling_profile", "Cooling profile", "Cooling (office, GHEtool example)", kind="choice",
                          options=tuple(MONTHLY_PROFILES)),
-                Property("peak_cooling_kw", "Peak cooling", 80.0, "kW", min=0.0, max=1e5, step=5.0,
-                         scales_with_load=True),
                 SCOP, SEER, DHW, SCOP_DHW, PERIOD, PEAK_EXTRACTION_HOURS, PEAK_INJECTION_HOURS,
             ),
             build=_annual_build,
