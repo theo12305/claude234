@@ -339,8 +339,8 @@ def buildings_official(state: State, area_utm) -> list[Feature]:
     return [f for f in wfs_features(state.buildings, b, 1000) if f.geometry.intersects(area_utm.buffer(5))]
 
 
-OVERPASS = ("https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter",
-            "https://maps.mail.ru/osm/tools/overpass/api/interpreter")
+OVERPASS = ("https://overpass-api.de/api/interpreter", "https://lz4.overpass-api.de/api/interpreter",
+            "https://z.overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter")
 
 
 def buildings_osm(area_utm) -> list[Feature]:
