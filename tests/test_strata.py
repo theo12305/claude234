@@ -287,3 +287,78 @@ def test_read_log_text_html_and_pdf():
     assert hole.layers[-1].bottom == 25.0
     with pytest.raises(reader.ReadError, match="free"):  # no paid reading of pictures
         reader.read_file("shot.png", b"\x89PNG", 0, 0)
+
+
+def _lgrb_hole(i: int, x: float, y: float) -> str:
+    """One borehole as the LGRB BoreholeML service sends it (structure of ADB_148394, Karlsruhe)."""
+    return f"""<wfs:member>
+    <bml:Borehole xmlns:bml="http://www.infogeo.de/boreholeml/3.0" gml:id="ADB_{i}">
+      <bml:location><!--Inlined geometry 'ADB_{i}_BML_LOCATION'-->
+        <gml:Point gml:id="ADB_{i}_BML_LOCATION" srsName="urn:ogc:def:crs:EPSG::25832">
+          <gml:pos>{x} {y}</gml:pos></gml:Point></bml:location>
+      <bml:boreholePath><gml:LineString gml:id="ADB_{i}_BML_BOREHOLEPATH" srsName="urn:ogc:def:crs:EPSG::25832">
+        <gml:posList>{x} {y} {x} {y}</gml:posList></gml:LineString></bml:boreholePath>
+      <bml:id>ADB_{i}</bml:id><bml:shortName>6916-0{i}</bml:shortName>
+      <bml:fullName>GWM MAG {i} Funnel-and-Gate Gaswerk Ost Karlsruhe</bml:fullName>
+      <bml:totalLength uom="m">15.600</bml:totalLength>
+      <bml:layerDataLegalAvail codeSpace="http://www.infogeo.de/boreholeml/3.0/codelists/LegalAvailabilityList.xml">KE</bml:layerDataLegalAvail>
+      <bml:intervalSeries><bml:IntervalSeries><bml:description>ERST</bml:description><bml:version>0</bml:version>
+        <bml:layer><bml:Interval><bml:from uom="m">0</bml:from><bml:to uom="m">0.1</bml:to>
+          <bml:rockCode>gS(fs,ms,fg,mg,u2)</bml:rockCode>
+          <bml:rockNameText>Grobsand [0,63-2,0 mm] (feinsandig, mittelsandig, feinkiesig, mittelkiesig, schwach schluffig)</bml:rockNameText>
+          <bml:genesis codeSpace="http://www.infogeo.de/boreholeml/3.0/codelists/GenesisList.xml">yf</bml:genesis>
+          <bml:lithology><bml:Lithology><bml:rockName codeSpace="http://www.infogeo.de/boreholeml/3.0/codelists/RockNameList.xml">gS</bml:rockName></bml:Lithology></bml:lithology>
+          <bml:lithology xsi:nil="true"/>
+          <bml:stratigraphy><bml:Stratigraphy><bml:chronoStratigraphy>Q2</bml:chronoStratigraphy></bml:Stratigraphy></bml:stratigraphy>
+        </bml:Interval></bml:layer>
+        <bml:layer><bml:Interval><bml:from uom="m">0.1</bml:from><bml:to uom="m">0.7</bml:to>
+          <bml:rockCode>(mS-gS)(fs,fg-gg,u2,h,x)</bml:rockCode></bml:Interval></bml:layer>
+        <bml:layer><bml:Interval><bml:from uom="m">0.7</bml:from><bml:to uom="m">15.6</bml:to>
+          <bml:rockCode>mG(fg,gs,ms2)</bml:rockCode></bml:Interval></bml:layer>
+      </bml:IntervalSeries></bml:intervalSeries>
+    </bml:Borehole>
+  </wfs:member>"""
+
+
+def _lgrb_answer(holes) -> bytes:
+    return ("""<?xml version="1.0" encoding="UTF-8"?>
+<wfs:FeatureCollection xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wfs="http://www.opengis.net/wfs/2.0"
+    xmlns:gml="http://www.opengis.net/gml/3.2" numberMatched="unknown" numberReturned="0">"""
+            + "".join(_lgrb_hole(i, x, y) for i, (x, y) in enumerate(holes, 1)) + "</wfs:FeatureCollection>"
+            ).encode()
+
+
+def test_parse_lgrb_bml():
+    [h] = sources.parse_bml(_lgrb_answer([(458293.956, 5427984.725)]), "LGRB BW")
+    assert (h.x, h.y) == (458293.956, 5427984.725) and h.name == "6916-01" and h.depth == pytest.approx(15.6)
+    assert [l.rock for l in h.layers] == ["Sand", "Sand", "Gravel"]
+    assert h.layers[0].text.startswith("gS(fs,ms,fg,mg,u2): Grobsand")
+
+
+def test_lgrb_search_widens_until_enough(monkeypatch):
+    x, y = 458000.0, 5427000.0
+    field = [(x + 100 * i, y) for i in range(1, 16)]  # 15 logged boreholes, 100 m apart, east of the site
+    asked = []
+
+    def answer(url, params):
+        assert url == sources.LGRB_BML and params["TYPENAMES"] == "bml:Borehole"
+        x0, y0, x1, y1 = (float(v) for v in params["BBOX"].split(",")[:4])
+        asked.append(x1 - x)
+        inside = [(a, b) for a, b in field if x0 <= a <= x1 and y0 <= b <= y1][:params["COUNT"]]
+        return type("Answer", (), {"content": _lgrb_answer(inside)})()
+
+    monkeypatch.setattr(sources.lookup, "_get", answer)
+    holes = sources.boreholes_online("BW", x, y, 3000)
+    assert asked == [300, 800, 2000] and len(holes) == 15 and holes[0].x == x + 100
+    asked.clear()
+    assert len(sources.lgrb_boreholes(x, y, 3000, per_request=3)) == 3  # first square full: stop there
+    assert asked == [300]
+
+    def wider_fails(url, params):
+        if asked:
+            raise sources.LookupError_("timeout")
+        return answer(url, params)
+
+    asked.clear()
+    monkeypatch.setattr(sources.lookup, "_get", wider_fails)
+    assert len(sources.lgrb_boreholes(x, y, 3000)) == 3  # keeps what the first answer gave

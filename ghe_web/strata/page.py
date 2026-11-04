@@ -354,11 +354,19 @@ def _nearest(click: dict | None, items) -> object | None:
 def _show_boreholes(key: str, site, points: list[sources.BoreholePoint], used, state_key: str | None) -> None:
     """Map of the boreholes near the site; clicking one shows its data and link."""
     holes = [b for b, _, _ in used]
+    # A state point that is also a logged borehole in the prediction is shown once, as the logged one
+    points = [p for p in points if not any(abs(p.x - h.x) < 3 and abs(p.y - h.y) < 3 for h in holes)]
     st.markdown(t("**Boreholes near the site** ({n})", n=len(points) + len(holes)))
     svc = sources.POINT_SERVICES.get(state_key or "")
-    st.caption(t("Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: boreholes "
-                 "of the state survey (darker = deeper, grey = under 30 m); their logs are pictures or web pages "
-                 "and are not in the prediction until you enter them.") + (" " + t(svc.link_note) + "." if svc else ""))
+    if state_key in sources.LOG_SERVICES:
+        explain = t("Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: further "
+                    "boreholes of the state survey (darker = deeper, grey = under 30 m) without layers in the "
+                    "service, or beyond the number of boreholes used.")
+    else:
+        explain = t("Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: boreholes "
+                    "of the state survey (darker = deeper, grey = under 30 m); their logs are pictures or web pages "
+                    "and are not in the prediction until you enter them.")
+    st.caption(explain + (" " + t(svc.link_note) + "." if svc else ""))
     chosen = _nearest(_borehole_map(key, site, points, holes), list(points) + holes)
     if isinstance(chosen, predict.Borehole):
         st.markdown(t("**{name}** ({source}), {d:.0f} m deep", name=chosen.name, source=chosen.source,
