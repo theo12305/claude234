@@ -379,18 +379,9 @@ calc_slot = st.container(key="calcbar", horizontal=True, vertical_alignment="cen
 
 # ---------------------------------------------------------------- inputs
 
-def simple_label(section_key: str, prop: Property) -> str:
-    return t(guidance.SIMPLE_LABELS.get((section_key, prop.key), prop.label))
-
-
 def widget(prop: Property, value, key: str):
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
     help_text = t(prop.help) or None
-    plain = guidance.SIMPLE_LABELS.get((key.split(".")[1], prop.key)) if SIMPLE else None
-    if plain:  # Simple: everyday words; the technical name (and an unusual unit) behind the question mark
-        unit = f" [{t(prop.unit)}]" if prop.unit else ""
-        label = t(plain) + (unit if prop.unit in guidance.PLAIN_UNITS else "")
-        help_text = f"**{t(prop.label)}{unit}**" + (f"  \n{t(prop.help)}" if prop.help else "")
     # A preset may already have put a value in the session state; then the widget must not get one too.
     initial = {} if key in st.session_state else None
     if prop.kind == "float":
@@ -699,7 +690,7 @@ def typical_summary(sections) -> str:
                 if prop.kind == "choice":
                     parts.append(t(str(value)))
                 else:
-                    parts.append(f"{simple_label(section.key, prop)} {value:g}" + (f" {t(prop.unit)}" if prop.unit
+                    parts.append(f"{t(prop.label)} {value:g}" + (f" {t(prop.unit)}" if prop.unit
                                                                                    else ""))
         lines.append(f"**{t(section.label)}:** " + " · ".join(parts))
     return "  \n".join(lines)
@@ -772,11 +763,7 @@ for target, section_key, variant_key in pending_drawings:
     if section_key in errors or "borefield" in errors:
         continue
     with target:
-        if ui_mode == "expert":
-            show_drawing(cached_drawing(section_key, variant_key, current_json, lang))
-        else:  # Simple: folded, so the steps stay short on a phone
-            with st.expander(t("Show drawing"), icon=":material/image:"):
-                show_drawing(cached_drawing(section_key, variant_key, current_json, lang))
+        show_drawing(cached_drawing(section_key, variant_key, current_json, lang))
 
 
 def use_site_plan(points) -> None:

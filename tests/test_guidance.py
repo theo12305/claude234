@@ -41,11 +41,6 @@ def test_mode_is_saved_with_the_project():
     assert model.from_json(text)[0] == "x"
 
 
-def test_simple_labels_name_real_fields():
-    keys = {(s.key, p.key) for s in properties.sections() for v in s.variants for p in v.properties}
-    assert set(guidance.SIMPLE_LABELS) <= keys
-
-
 def test_defaults_match_a_drop_down_choice():
     """The drop-downs start on a typical choice, so the default values are one of their options."""
     for section in properties.sections():
