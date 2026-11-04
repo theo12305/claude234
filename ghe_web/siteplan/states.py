@@ -17,6 +17,7 @@ class Wfs:
     epsg: int = 25832
     ref_property: str | None = None  # attribute holding the Flurstückskennzeichen, for the search by number
     extra_params: dict = field(default_factory=dict)
+    namespace: str | None = None  # namespace of the ref_property prefix, where it differs from lookup.NAMESPACES
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,8 @@ CP = "cp:CadastralParcel"
 BU = "bu-core2d:Building"
 CP_REF = "cp:nationalCadastralReference"
 AVE_REF = "ave:flstkennz"
+# Thüringen answers within a second with the URN form and does not answer at all with "EPSG:25832" (2026-11)
+TH_SRS = {"SRSNAME": "urn:ogc:def:crs:EPSG::25832"}
 VDI = "VDI 4640 Blatt 2 is commonly cited with 3 m to the border; LAWA recommends 5 m."
 
 STATES: list[State] = [
@@ -57,7 +60,7 @@ STATES: list[State] = [
                "a revised Leitfaden is in preparation."),
     State("HH", "02", "Hamburg",
           Wfs("https://geodienste.hamburg.de/HH_WFS_INSPIRE_Flurstuecke", CP, ref_property=CP_REF),
-          Wfs("https://geodienste.hamburg.de/HH_WFS_INSPIRE_Gebaeude_2D_ALKIS", BU),
+          Wfs("https://geodienste.hamburg.de/WFS_HH_ALKIS_vereinfacht", "ave:GebaeudeBauwerk"),  # INSPIRE building WFS fails on a BBOX
           Wms("https://geodienste.hamburg.de/wms_dop_zeitreihe_belaubt", "dop_zeitreihe_belaubt",
               "© Freie und Hansestadt Hamburg, LGV, dl-de/by-2.0"),
           5.0, "Leitfaden Erdwärmenutzung Hamburg 2021, section 5.7: 5 m to the border."),
@@ -80,8 +83,8 @@ STATES: list[State] = [
           Wfs("https://inspire-hessen.de/ows/services/org.2.07247d95-adc7-4c7d-9c7a-ed17af855317_wfs", CP,
               ref_property=CP_REF),
           Wfs("https://inspire-hessen.de/ows/services/org.2.1f07430b-f7b0-4c4e-a698-fb6c60384f59_wfs", BU),
-          Wms("https://www.gds-srv.hessen.de/cgi-bin/lika-services/ogc-freeimages.ows", "he_dop_rgb",
-              "© HVBG, dl-de/zero-2.0", checked=False),
+          Wms("https://www.gds-srv.hessen.de/cgi-bin/lika-services/ogc-free-images.ows", "he_dop20_rgb",
+              "© HVBG, dl-de/zero-2.0"),
           5.0, "HLNUG Leitfaden Erdwärmenutzung, 6th edition 2019: 5 m to the border (up to 30 kW)."),
     State("RP", "07", "Rheinland-Pfalz",
           Wfs("https://geo5.service24.rlp.de/wfs/alkis_rp.fcgi", "ave:Flurstueck", ref_property=AVE_REF),
@@ -107,9 +110,9 @@ STATES: list[State] = [
           Wms("https://geoportal.saarland.de/freewms/dop2023", "sl_dop20_rgb", "© LVGL Saarland, dl-de/by-2.0"),
           5.0, "No published value found for the Saarland; 5 m is the conservative LAWA value. " + VDI),
     State("BE", "11", "Berlin",
-          Wfs("https://gdi.berlin.de/services/wfs/alkis_flurstuecke", "alkis_flurstuecke:flurstuecke",
-              ref_property="fsko"),
-          Wfs("https://gdi.berlin.de/services/wfs/alkis_gebaeude", "alkis_gebaeude:gebaeude"),
+          Wfs("https://gdi.berlin.de/services/wfs/alkis_flurstuecke", "alkis_flurstuecke:flurstuecke", epsg=25833,
+              ref_property="fsko"),  # Berlin lies outside the valid area of UTM 32N, the server refuses 25832
+          Wfs("https://gdi.berlin.de/services/wfs/alkis_gebaeude", "alkis_gebaeude:gebaeude", epsg=25833),
           Wms("https://isk.geobasis-bb.de/mapproxy/dop20c/service/wms", "bebb_dop20c", "© GeoBasis-DE/LGB, dl-de/by-2.0"),
           5.0, "The Berlin Merkblatt (2025) names no border value (10 m to neighbouring systems, 2 m to buildings); "
                "the earlier Leitfaden asked for 5 m."),
@@ -131,13 +134,15 @@ STATES: list[State] = [
     State("ST", "15", "Sachsen-Anhalt",
           Wfs("https://geodatenportal.sachsen-anhalt.de/ows_INSPIRE_LVermGeo_ALKIS_CP_WFS", CP, ref_property=CP_REF),
           Wfs("https://geodatenportal.sachsen-anhalt.de/ows_INSPIRE_LVermGeo_ALKIS_BU_WFS", BU),
-          Wms("https://www.geodatenportal.sachsen-anhalt.de/gateway/gateto/LVermGeo_Inspire-ST_LVermGeo_GDI_DOP20_Monitoring",
-              "lsa_lvermgeo_dop20", "© GeoBasis-DE/LVermGeo ST, dl-de/by-2.0", checked=False),
+          Wms("https://www.geodatenportal.sachsen-anhalt.de/wss/service/ST_LVermGeo_DOP_WMS_OpenData/guest",
+              "lsa_lvermgeo_dop20_2", "© GeoBasis-DE/LVermGeo ST, dl-de/by-2.0"),
           5.0, "LQS Bohrungen/Erdwärmesonden Sachsen-Anhalt 2016, section 2.1.3: 5 m to the border."),
     State("TH", "16", "Thüringen",
           Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:Flurstueck",
-              ref_property=AVE_REF),
-          Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:GebaeudeBauwerk"),
+              ref_property=AVE_REF, extra_params=TH_SRS,
+              namespace="http://repository.gdi-de.org/schemas/adv/produkt/alkis-vereinfacht/1.0"),
+          Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:GebaeudeBauwerk",
+              extra_params=TH_SRS),
           Wms("https://www.geoproxy.geoportal-th.de/geoproxy/services/DOP", "th_dop", "© GDI-Th, CC BY 4.0"),
           5.0, "Leitfaden Thüringen (2007): 5 m to the border."),
 ]
