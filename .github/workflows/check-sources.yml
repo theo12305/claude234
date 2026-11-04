@@ -20,10 +20,12 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pip install -r requirements-dev.txt && python -m pytest -q -m 'not slow' tests/test_siteplan.py tests/test_strata.py tests/test_i18n.py
         if: github.event_name == 'push'
+      - run: python tools/probe.py tools/probe_list.py
+        if: hashFiles('tools/probe_list.py') != ''
       - run: python tools/check_sources.py
-        if: always()
+        if: hashFiles('tools/probe_list.py') == ''
       - run: cat source_status.md >> "$GITHUB_STEP_SUMMARY"
-        if: always()
+        if: hashFiles('source_status.md') != ''
       - uses: actions/upload-artifact@v4
         if: always()
         with:
