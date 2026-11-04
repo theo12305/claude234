@@ -128,6 +128,15 @@ def excel_workbook(result: model.SizingResult, inputs: dict[str, SectionInput], 
         if table is not None and len(table):
             sheets[title[:31]] = (table, False)
 
+    return _workbook(sheets)
+
+
+def tables_workbook(tables: dict[str, pd.DataFrame]) -> bytes:
+    """A workbook with one sheet per table, e.g. the material list on its own."""
+    return _workbook({title[:31]: (table, False) for title, table in tables.items()})
+
+
+def _workbook(sheets: dict[str, tuple[pd.DataFrame, bool]]) -> bytes:
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
         for title, (table, index) in sheets.items():

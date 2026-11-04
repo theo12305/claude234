@@ -66,6 +66,14 @@ def geocode(query: str) -> list[dict] | None:
         return None
 
 
+def background() -> list[tuple[str, object]]:
+    """The parcel and buildings loaded on the site plan in this session (EPSG:25832), for other plans."""
+    parcel = _ss("parcel")
+    if parcel is None:
+        return []
+    return [("Parcel", parcel)] + [("Building", b.geometry) for b in (_ss("buildings") or [])]
+
+
 def address() -> str:
     """The address typed in the site plan (or on the start page), saved with the project."""
     return (_ss("address") or "").strip()

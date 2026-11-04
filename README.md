@@ -7,7 +7,8 @@ A browser interface for sizing borehole heat exchangers with [GHEtool](https://g
 ```bash
 pip install -r requirements-dev.txt
 streamlit run app.py      # opens http://localhost:8501
-pytest                    # runs the tests
+pytest                    # runs all tests (about 2.5 minutes)
+pytest -m "not slow"      # the quick ones (under a minute)
 ```
 
 ## Put it online (Streamlit Community Cloud, free)
@@ -183,6 +184,19 @@ performance factor per year, electricity per year and the COP curve with the tem
 reaches. This only applies to building demand (yearly or hourly); with hourly sizing it takes one to two
 minutes.
 
+## Material list and horizontal piping
+
+**📊 Results > View > Material list** lists the quantities of the sized field (no prices): drilled metres,
+borehole volume, BHEs in delivery lengths, PE pipe, spacers, Y-pieces, tremie pipe, grout with a loss factor,
+trench, excavation, sand bedding, warning tape, connection and header pipes (PE100 SDR 11, sized from the flow
+velocity), electrofusion fittings, manifold and shaft, wall penetrations, system volume and antifreeze, tests and
+the layer documentation. Each row shows how its quantity was found.
+
+On the plan (figure 9.1) click the **building entrance** and, if you like, the **manifold**; the trenches are
+routed automatically (shortest network). With **Draw trench** you click the corners of your own trenches; lines
+that touch or cross are joined and each circuit follows the shortest way along them. When the borefield came from
+the site plan, the parcel and buildings are drawn as background. The plan settings are saved in the project file.
+
 ## Features taken from EED
 
 Rock type, grout, pipe and drilling diameter databases (drop-downs that fill in typical values),
@@ -193,7 +207,15 @@ checking a given length instead of sizing. Typical values are in `ghe_web/catalo
 ## Structure
 
 ```
-app.py                     web page (Streamlit); draws every registered section automatically
+app.py                     web page (Streamlit): app bar, input steps, calculate bar; draws every registered
+                           section and result view automatically
+ghe_web/results/           📊 Results of borehole heat exchangers, one file per view (see its __init__.py)
+  registry.py              ResultView, Ctx, register(), plugin_data() for view settings saved with the project
+  cache.py, common.py      cached calculations; figure() with number and downloads
+  summary.py               answer card, key tiles, Simple one-page results
+  views/*.py               overview, design check, temperatures, energy, ... export
+ghe_web/materials/         feature package: material list and horizontal piping plan (registers its own view and
+                           German texts)
 ghe_web/model.py           builds a GHEtool Borefield from the inputs, runs sizing, saves/loads projects (no web code)
 ghe_web/hourly.py          reads hourly demand files (CSV/Excel) and makes the example profile
 ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip or .shp/.shx/.dbf/.prj)
@@ -239,7 +261,9 @@ tests/
 | A drawing for an input                   | Add an entry to `DRAWINGS` in `plots.py` for that section and variant. |
 | Typical values for a drop-down           | Add them to `catalog.py`; they appear in the matching preset. |
 | A new topic                              | New module with a `Section`, `register(...)` it, import it in `properties/__init__.py`, then use it in `model.py`. |
-| Any text on the page or in a report      | Write it in English inside `t("...")` and add the German text to `ghe_web/i18n_de.py`. |
+| A new result view                        | New module with `render(ctx)` and `register(ResultView(...))` (see `ghe_web/results/registry.py`), import it in `results/__init__.py`. |
+| A bigger feature                         | Its own package like `ghe_web/materials/`: logic without Streamlit, a `page.py` that registers a view, its own `de.py` added with `i18n.add_table`. Only one import line elsewhere. |
+| Any text on the page or in a report      | Write it in English inside `t("...")` and add the German text to `ghe_web/i18n_de.py` (or the feature's `de.py`). |
 
 Saved projects are JSON files. Values that no longer exist are ignored and new ones get their
 defaults, so old project files keep working after you extend the interface.
