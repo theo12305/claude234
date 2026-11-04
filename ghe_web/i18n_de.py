@@ -2357,4 +2357,9 @@ DE: dict[str, str] = {
         "{name}: {value} ({when})",
     "Calculated with the finite line source (uniform heat flow per metre, with the mirror image at the surface), which is also the basis of the g-function.":
         "Berechnet mit der finiten Linienquelle (gleichmäßiger Wärmestrom je Meter, mit Spiegelquelle an der Oberfläche), die auch der g-Funktion zugrunde liegt.",
+    "Calculate and show the results": "Berechnen und Ergebnisse zeigen",
+    "More results": "Weitere Ergebnisse",
+    "Next: {step}": "Weiter: {step}",
+    "Show drawing": "Zeichnung zeigen",
+    "more": "mehr",
 }

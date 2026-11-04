@@ -66,6 +66,12 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
             st.session_state.goto_results = True
         st.rerun()
 
+    if st.session_state.pop("calc_requested", False):  # the button at the end of the last input step
+        if errors:
+            goto(next(iter(errors)))
+            st.rerun()
+        calculate()
+
     d_last = None
     if "result_json" in st.session_state:
         try:
@@ -119,8 +125,7 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
                        icon=":material/update:")
         _verdict(d, sized_inputs, found if sized_json == current_json else None)
         sources_button("results")
-        view = st.segmented_control(t("View"), list(VIEWS), format_func=lambda k: t(VIEWS[k]), default="overview",
-                                    required=True, key="well_view_id")
+        view = st.selectbox(t("View"), list(VIEWS), format_func=lambda k: t(VIEWS[k]), key="well_view_id", width=320)
         aquifer = design._build(sized_inputs, "aquifer")
         limits = sized_inputs["well_limits"].values
         if view == "overview":

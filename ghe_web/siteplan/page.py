@@ -121,8 +121,7 @@ def _find_parcel(chosen_state):
         _set("hit", pending["hit"]["label"])
         if _load_parcel_at(pending["hit"]["lon"], pending["hit"]["lat"], chosen_state):
             st.rerun()
-    how = st.radio(t("Find the parcel by"), list(HOW), format_func=lambda k: t(HOW[k]), horizontal=True,
-                   key=K + "find_by")
+    how = st.selectbox(t("Find the parcel by"), list(HOW), format_func=lambda k: t(HOW[k]), key=K + "find_by")
 
     def fetch_at(lon, lat):
         if _load_parcel_at(lon, lat, chosen_state):

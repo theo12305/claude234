@@ -146,6 +146,12 @@ div[class*="st-key-fighead"] {{align-items: flex-start; flex-wrap: nowrap;}}
 div[class*="st-key-fighead"] > div:first-child {{flex: 1 1 0; min-width: 0;}}
 div[class*="st-key-fighead"] [data-testid="stMarkdownContainer"] p {{margin: 0;}}
 div[class*="st-key-fighead"] button {{min-height: 1.9rem; padding: 0 .6rem;}}
+details.more {{font-size: .875rem; color: var(--muted); line-height: 1.45; margin: -4px 0 8px;}}
+details.more summary {{cursor: pointer; list-style: none;}}
+details.more summary::-webkit-details-marker {{display: none;}}
+details.more summary span {{color: var(--accent); font-weight: 600; white-space: nowrap;}}
+details.more summary span::after {{content: " ▾";}}
+details.more[open] summary span {{display: none;}}
 .rangebar {{margin: -6px 0 10px;}}
 .rangebar .track {{position: relative; height: 6px; border-radius: 3px; background: var(--track);}}
 .rangebar .band {{position: absolute; top: 0; height: 6px; border-radius: 3px; background: var(--band);}}
@@ -221,6 +227,18 @@ def range_bar(value: float, rng: guidance.Typical, low_limit, high_limit, rock: 
             f"width:{(band_hi - band_lo) * 100:.1f}%'></div><div class='dot' style='left:{dot * 100:.1f}%'></div>"
             f"</div><div class='txt{' warn' if unusual else ''}'>{html.escape(guidance.verdict_text(value, rng, rock))}"
             f"</div></div>")
+
+
+def caption(text: str) -> None:
+    """A caption that shows its first sentence; the rest opens with "more", so long explanations don't fill the
+    page."""
+    import re
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ(])", text.strip(), maxsplit=1)
+    if len(parts) == 1:
+        st.caption(text)
+        return
+    st.html(f"<details class='more'><summary>{html.escape(parts[0])} <span>{html.escape(t('more'))}</span>"
+            f"</summary>{html.escape(parts[1])}</details>")
 
 
 def side_note(text: str) -> None:

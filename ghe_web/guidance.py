@@ -27,6 +27,13 @@ ADVANCED = {
     ("load", "peak_extraction_hours"), ("load", "peak_injection_hours"), ("load", "scop_dhw"),
     ("aquifer", "alpha_l"), ("aquifer", "alpha_t"), ("aquifer", "direction"),
     ("wells", "well_loss"), ("wells", "reserve"), ("wells", "losses_m"), ("wells", "pump_efficiency"),
+    # fewer fields up front in Simple: the ones that change the length least or come with the drop-downs
+    ("ground", "volumetric_heat_capacity"),
+    ("pipe", "r_in_mm"), ("pipe", "r_out_mm"), ("pipe", "r_in_in_mm"), ("pipe", "r_in_out_mm"),
+    ("pipe", "r_out_in_mm"), ("pipe", "r_out_out_mm"),
+    ("load", "simulation_period"), ("load", "dhw_mwh"),
+    ("aquifer", "porosity"), ("wells", "d_bore_mm"),
+    ("well_limits", "drift"), ("well_limits", "plume_limit"), ("well_limits", "freeboard"),
 }
 
 
