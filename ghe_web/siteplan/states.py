@@ -46,6 +46,8 @@ CP = "cp:CadastralParcel"
 BU = "bu-core2d:Building"
 CP_REF = "cp:nationalCadastralReference"
 AVE_REF = "ave:flstkennz"
+# Thüringen answers within a second with the URN form and does not answer at all with "EPSG:25832" (2026-11)
+TH_SRS = {"SRSNAME": "urn:ogc:def:crs:EPSG::25832"}
 VDI = "VDI 4640 Blatt 2 is commonly cited with 3 m to the border; LAWA recommends 5 m."
 
 STATES: list[State] = [
@@ -136,8 +138,9 @@ STATES: list[State] = [
           5.0, "LQS Bohrungen/Erdwärmesonden Sachsen-Anhalt 2016, section 2.1.3: 5 m to the border."),
     State("TH", "16", "Thüringen",
           Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:Flurstueck",
-              ref_property=AVE_REF),
-          Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:GebaeudeBauwerk"),
+              ref_property=AVE_REF, extra_params=TH_SRS),
+          Wfs("https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs", "ave:GebaeudeBauwerk",
+              extra_params=TH_SRS),
           Wms("https://www.geoproxy.geoportal-th.de/geoproxy/services/DOP", "th_dop", "© GDI-Th, CC BY 4.0"),
           5.0, "Leitfaden Thüringen (2007): 5 m to the border."),
 ]

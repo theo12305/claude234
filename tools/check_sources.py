@@ -77,12 +77,29 @@ def _geology(x, y):
     return ", ".join(u["material"] for u in units)[:80]
 
 
+def _by_number(state, lon, lat):
+    """The search by Flurstückskennzeichen, with the first 14 characters of the parcel found at the point."""
+    feat = lookup.parcel_at(lon, lat, state)[0]
+    ref = next((v for v in feat.attrs.values() if v.startswith(state.code) and len(v) >= 14), None) or \
+        next((v for v in feat.attrs.values() if "DE" in v[:4] and len(v) >= 18), None)
+    if ref is None:
+        raise RuntimeError(f"no Flurstückskennzeichen among {list(feat.attrs)[:12]}")
+    key = ref[ref.find(state.code):][:14] if not ref.startswith(state.code) else ref[:14]
+    hits = lookup.wfs_by_attribute(state.parcels, state.parcels.ref_property, key + "*") or \
+        lookup.wfs_by_attribute(state.parcels, state.parcels.ref_property, "*" + key + "*")
+    if not hits:
+        raise RuntimeError(f"nothing found for {key}*")
+    return f"{len(hits)} parcels for {key}*"
+
+
 def check_state(state):
     lon, lat = POINTS[state.key]
     x, y = lookup.to_utm(lon, lat)
     out = {"name": state.name}
     if state.parcels:
         out["parcels"] = timed(lambda: lookup.parcel_at(lon, lat, state)[0].attrs["_label"])
+    if state.parcels and state.parcels.ref_property:
+        out["parcel by number"] = timed(lambda: _by_number(state, lon, lat))
     if state.buildings:
         out["buildings"] = timed(lambda: f"{len(lookup.buildings_official(state, box(x - 60, y - 60, x + 60, y + 60)))} buildings")
     if state.imagery:
