@@ -1,6 +1,8 @@
 """Temporary: probe candidate service addresses (status, layer names, links)."""
 import re
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import requests
 
 UA = {"User-Agent": "GHEtool-Web site plan (https://github.com/theo12305/claude234)"}
