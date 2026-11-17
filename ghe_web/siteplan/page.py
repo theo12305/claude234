@@ -39,6 +39,7 @@ def _set_parcel(feature: lookup.Feature, state_key: str | None, label: str | Non
     _set("parcel", feature.geometry)
     _set("parcel_label", label or feature.attrs.get("_label", t("Parcel")))
     _set("state", state_key)
+    _set("traced", bool(feature.attrs.get(lookup.TRACED)))
     for name in ("buildings", "building_note", "points", "drawn", "ignored", "result_key"):
         st.session_state.pop(K + name, None)
     _set("map_gen", _ss("map_gen", 0) + 1)
@@ -448,6 +449,10 @@ def page(handoff, wells: dict | None = None) -> None:
     st.success(fmt("**{label}**, {state}: {area:,.0f} m²", label=_ss("parcel_label"),
                    state=state.name if state else t("state unknown"), area=parcel.area),
                icon=":material/check_circle:")
+    if _ss("traced"):
+        st.warning(t("No parcel outline could be loaded from the cadastre service of this state, so the outline "
+                     "was traced from the parcel lines of the cadastre map (accurate to a few decimetres). Check it on the "
+                     "map; if it is wrong, draw the parcel instead."), icon=":material/warning:")
 
     # ------------------------------------------------ buildings
     if _ss("buildings") is None:

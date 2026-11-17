@@ -106,6 +106,12 @@ def _parcel_info(state, x, y):
     return f"{len(feats)} parcels, {feats[0].geometry.area:,.0f} m², {lookup._parcel_label(feats[0].attrs)}"
 
 
+def _traced(state, x, y):
+    poly = lookup.parcel_from_map(state.overlay, x, y).geometry
+    b = poly.bounds
+    return f"{poly.area:,.0f} m², {b[2] - b[0]:.1f} x {b[3] - b[1]:.1f} m, {len(poly.exterior.coords)} corners"
+
+
 def check_state(state):
     lon, lat = POINTS[state.key]
     x, y = lookup.to_utm(lon, lat)
@@ -122,6 +128,7 @@ def check_state(state):
         out["imagery"] = timed(lambda: wms_tile(state.imagery, lon, lat))
     if state.overlay:
         out["overlay"] = timed(lambda: wms_tile(state.overlay, lon, lat))
+        out["parcel traced from the map"] = timed(lambda: _traced(state, x, y))
     if state.key in sources.POINT_SERVICES:
         out["borehole points"] = timed(lambda: f"{len(sources.borehole_points(state.key, x, y, 2000))} points in 2 km")
     if state.key in sources.LOG_SERVICES:

@@ -283,24 +283,38 @@ def _parcel_label(attrs: dict) -> str:
 
 
 def parcel_at(lon: float, lat: float, state: State | None = None) -> tuple[Feature, State]:
-    """The parcel containing the point, from the state's open cadastre service."""
+    """The parcel containing the point, from the state's open cadastre service. When that service fails (or the
+    state has none), the parcel is asked from its parcel map service, and last traced from its parcel map image."""
     state = state or state_at(lon, lat)
     if state is None:
         raise LookupError_(t("This point is not in Germany."))
-    if state.parcels is None:
+    x, y = to_utm(lon, lat)
+    if state.parcels is None and state.overlay is None:
         raise LookupError_(t("{state} does not publish its parcels as open data. Upload the parcel outline or "
                              "draw it on the map instead.", state=state.name))
-    x, y = to_utm(lon, lat)
-    try:
-        feats = wfs_features(state.parcels, (x - 30, y - 30, x + 30, y + 30), 100)
-    except LookupError_ as exc:
-        if state.parcel_info is None:
-            raise
+    error = None
+    feats: list[Feature] = []
+    if state.parcels is not None:
+        try:
+            feats = wfs_features(state.parcels, (x - 30, y - 30, x + 30, y + 30), 100)
+        except LookupError_ as exc:
+            error = exc
+    if error is not None and state.parcel_info is not None:
         try:  # second route: the state's parcel map service tells the parcel at the point
-            feats = parcel_info_at(state.parcel_info, x, y)
+            feats, error = parcel_info_at(state.parcel_info, x, y), None
         except LookupError_:
+            pass
+    if (error is not None or state.parcels is None) and state.overlay is not None:
+        try:  # last route: the outline traced from the parcel lines of the cadastre map image
+            feat = parcel_from_map(state.overlay, x, y)
+        except LookupError_ as exc:
+            if error is None:
+                raise
             raise LookupError_(t("{error} The parcel lines of the cadastre map are shown on the map: click the "
-                                 "parcel again later, or draw it along the lines.", error=str(exc))) from exc
+                                 "parcel again later, or draw it along the lines.", error=str(error))) from exc
+        return feat, state
+    if error is not None:
+        raise error
     pt = Point(x, y)
     hits = [f for f in feats if f.geometry.buffer(0.01).contains(pt)]
     if not hits:
@@ -310,6 +324,77 @@ def parcel_at(lon: float, lat: float, state: State | None = None) -> tuple[Featu
     feat = min(hits, key=lambda f: f.geometry.area)
     feat.attrs["_label"] = _parcel_label(feat.attrs)
     return feat, state
+
+
+TRACED = "_traced"  # attribute set on a parcel traced from the map image
+
+
+def parcel_from_map(wms, x: float, y: float) -> Feature:
+    """The parcel around a point (EPSG:25832), traced from a transparent parcel-line map (WMS GetMap): the closed
+    area around the point between the drawn lines. Accurate to a few decimetres; the user should check it."""
+    from PIL import Image
+    import io
+    for half, px in ((60.0, 600), (160.0, 1000)):  # 0.2 m and 0.32 m per pixel
+        bbox = (x - half, y - half, x + half, y + half)
+        crs_key = "CRS" if wms.version.startswith("1.3") else "SRS"
+        r = _get(wms.url, {"SERVICE": "WMS", "VERSION": wms.version, "REQUEST": "GetMap", "LAYERS": wms.layer,
+                           "STYLES": "", crs_key: f"EPSG:{EPSG}", "BBOX": ",".join(f"{v:.2f}" for v in bbox),
+                           "WIDTH": px, "HEIGHT": px, "FORMAT": "image/png", "TRANSPARENT": "TRUE"})
+        if not r.headers.get("Content-Type", "").startswith("image"):
+            text = " ".join(r.text.split())[:200]
+            raise LookupError_(t("The service reported an error: {error}", error=text))
+        try:
+            img = Image.open(io.BytesIO(r.content)).convert("RGBA")
+        except Exception as exc:  # noqa: BLE001 (any broken image)
+            raise LookupError_(t("The service sent an answer that could not be read.")) from exc
+        poly = trace_parcel(img, bbox)
+        if poly is not None:
+            return Feature(poly, {"_label": t("Parcel traced from the cadastre map"), TRACED: "1"})
+    raise LookupError_(t("No closed parcel was found around this point on the cadastre map."))
+
+
+def trace_parcel(img, bbox):
+    """The polygon (EPSG:25832) of the area around the image centre that the drawn lines enclose, or None when the
+    area reaches the image edge (parcel larger than the image, or no lines)."""
+    import numpy as np
+    from contourpy import contour_generator
+    from scipy import ndimage
+    rgba = np.asarray(img)
+    if rgba[..., 3].min() < 250:  # transparent background: every visible pixel is a line
+        lines = rgba[..., 3] > 60
+    else:  # opaque: everything that differs from the background colour
+        flat = rgba[..., :3].reshape(-1, 3)
+        colours, counts = np.unique(flat, axis=0, return_counts=True)
+        lines = np.abs(rgba[..., :3].astype(int) - colours[counts.argmax()]).sum(axis=2) > 60
+    walls = ndimage.binary_dilation(lines, iterations=1)  # closes gaps of antialiased lines
+    labels, _ = ndimage.label(~walls)
+    h, w = labels.shape
+    cy, cx = h // 2, w // 2
+    # the parcel is the largest open area that, with its holes (numbers, labels) filled, covers the centre
+    near = np.unique(labels[max(cy - 40, 0):cy + 41, max(cx - 40, 0):cx + 41])
+    region = None
+    for lab in near[near > 0]:
+        part = labels == lab
+        if part[0].any() or part[-1].any() or part[:, 0].any() or part[:, -1].any():
+            continue  # reaches the image edge: not closed within the image
+        filled = ndimage.binary_fill_holes(part)
+        if filled[cy, cx] and (region is None or filled.sum() > region.sum()):
+            region = filled
+    if region is None:
+        return None
+    region = ndimage.binary_dilation(region, iterations=2)  # out to the middle of the line
+    gen = contour_generator(z=region.astype(float))
+    rings = [c for c in gen.lines(0.5) if len(c) >= 4]
+    if not rings:
+        return None
+    ring = max(rings, key=len)
+    minx, miny, maxx, maxy = bbox
+    rx, ry = (maxx - minx) / w, (maxy - miny) / h
+    pts = [(minx + (col + 0.5) * rx, maxy - (row + 0.5) * ry) for col, row in ring]
+    poly = shapely.make_valid(Polygon(pts).simplify(rx * 0.8))
+    if poly.geom_type != "Polygon":
+        poly = max(getattr(poly, "geoms", [poly]), key=lambda g: g.area)
+    return poly if poly.area > 4 else None
 
 
 def parcel_info_at(wms, x: float, y: float) -> list[Feature]:

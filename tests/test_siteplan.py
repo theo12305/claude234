@@ -177,9 +177,6 @@ def test_parcel_at_asks_the_state_service(monkeypatch):
     assert state is nw and feat.geometry.area == pytest.approx(2400)
     assert seen["url"] == nw.parcels.url and seen["params"]["TYPENAMES"] == "cp:CadastralParcel"
     assert seen["params"]["BBOX"].endswith("urn:ogc:def:crs:EPSG::25832")
-    by = next(s for s in STATES if s.key == "BY")
-    with pytest.raises(lookup.LookupError_, match="Bayern"):
-        lookup.parcel_at(lon, lat, by)
 
 
 def test_the_first_mirror_that_answers_wins():
@@ -250,6 +247,7 @@ def test_parcel_falls_back_to_the_map_service_when_the_wfs_fails(monkeypatch):
         raise lookup.LookupError_("no")
 
     monkeypatch.setattr(lookup, "parcel_info_at", also_broken)
+    monkeypatch.setattr(lookup, "parcel_from_map", also_broken)
     with pytest.raises(lookup.LookupError_, match="error 503.*parcel lines"):
         lookup.parcel_at(lon, lat, bw)
 
@@ -267,3 +265,49 @@ def test_firewall_page_is_reported(monkeypatch):
     monkeypatch.setattr(lookup, "_session", lambda: Session())
     with pytest.raises(lookup.LookupError_, match="refused the request"):
         lookup._get("https://owsproxy.lgl-bw.de/owsproxy/wfs/x", {})
+
+
+def _parcel_map(size=600):
+    """A transparent parcel-line map: a 30 m x 20 m parcel at the centre (0.2 m per pixel), a number inside it, and
+    a neighbour to the east."""
+    from PIL import Image, ImageDraw
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    c = size // 2
+    d.rectangle([c - 75, c - 50, c + 75, c + 50], outline=(200, 30, 30, 255), width=2)  # 30 m x 20 m
+    d.rectangle([c + 75, c - 50, c + 175, c + 50], outline=(200, 30, 30, 255), width=2)
+    d.text((c - 10, c - 5), "366/2", fill=(0, 0, 0, 255))
+    return img
+
+
+def test_parcel_is_traced_from_the_parcel_lines():
+    bbox = (513430 - 60, 5402530 - 60, 513430 + 60, 5402530 + 60)
+    poly = lookup.trace_parcel(_parcel_map(), bbox)
+    assert poly is not None and poly.area == pytest.approx(600, rel=0.05)
+    assert poly.contains(lookup.Point(513430, 5402530))
+    minx, miny, maxx, maxy = poly.bounds
+    assert maxx - minx == pytest.approx(30, abs=0.6) and maxy - miny == pytest.approx(20, abs=0.6)
+    # no closed line around the point: nothing
+    from PIL import Image
+    assert lookup.trace_parcel(Image.new("RGBA", (600, 600), (0, 0, 0, 0)), bbox) is None
+
+
+def test_bayern_parcel_comes_from_the_parcel_map(monkeypatch):
+    import io
+    by = next(s for s in STATES if s.key == "BY")
+    buf = io.BytesIO()
+    _parcel_map().save(buf, "PNG")
+
+    class Answer:
+        status_code, content, headers = 200, buf.getvalue(), {"Content-Type": "image/png"}
+
+    class Session:
+        def get(self, url, params=None, **kw):
+            assert params["REQUEST"] == "GetMap" and params["LAYERS"] == by.overlay.layer
+            return Answer()
+
+    monkeypatch.setattr(lookup, "_session", lambda: Session())
+    lon, lat = lookup.to_wgs84(600000, 5400000)
+    feat, state = lookup.parcel_at(lon, lat, by)
+    assert state.key == "BY" and feat.attrs[lookup.TRACED] == "1"
+    assert feat.geometry.area == pytest.approx(600, rel=0.05)

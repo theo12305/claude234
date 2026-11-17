@@ -1101,6 +1101,15 @@ DE: dict[str, str] = {
         "{error} Die Flurstücksgrenzen der Flurkarte sind in der Karte eingeblendet: Klicken Sie das Flurstück später "
         "erneut an oder zeichnen Sie es entlang der Grenzen.",
     "The parcel map service sent no parcel outline.": "Der Kartendienst der Flurstücke lieferte keinen Umriss.",
+    "Parcel traced from the cadastre map": "Flurstück aus der Flurkarte nachgezeichnet",
+    "No closed parcel was found around this point on the cadastre map.":
+        "In der Flurkarte wurde um diesen Punkt kein geschlossenes Flurstück gefunden.",
+    "No parcel outline could be loaded from the cadastre service of this state, so the outline was traced from the "
+    "parcel lines of the cadastre map (accurate to a few decimetres). Check it on the map; if it is wrong, draw the "
+    "parcel instead.":
+        "Vom Katasterdienst dieses Landes ließ sich kein Flurstücksumriss laden. Der Umriss wurde deshalb aus den "
+        "Flurstücksgrenzen der Flurkarte nachgezeichnet (auf wenige Dezimeter genau). Prüfen Sie ihn in der Karte; "
+        "wenn er nicht stimmt, zeichnen Sie das Flurstück.",
     "The shapefile contains no points.": "Das Shapefile enthält keine Punkte.",
     "The shapefile contains {kind} features. Each borehole must be a point.":
         "Das Shapefile enthält Objekte vom Typ {kind}. Jede Sonde muss ein Punkt sein.",
