@@ -24,6 +24,21 @@ from .properties.load import MONTHS  # noqa: E402
 
 alt.data_transformers.disable_max_rows()  # hourly charts have more than Altair's default 5000 rows
 
+# One look for all Matplotlib drawings (inputs, layers, wells, site plan, PDF): the text and line colours of the page
+# (ui.PALETTE, light), titles at the left like the figure titles of the results, no box around the plots.
+INK, INK_MUTED, INK_LIGHT, RULE = "#1e293b", "#475569", "#64748b", "#cbd5e1"
+plt.rcParams.update({
+    "font.size": 9, "text.color": INK, "axes.labelcolor": INK_MUTED, "axes.labelsize": 9,
+    "axes.titlesize": 10.5, "axes.titleweight": "bold", "axes.titlelocation": "left", "axes.titlepad": 8,
+    "axes.titlecolor": INK, "axes.edgecolor": RULE, "axes.linewidth": 0.8,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "xtick.color": INK_LIGHT, "ytick.color": INK_LIGHT, "xtick.labelsize": 8, "ytick.labelsize": 8,
+    "xtick.major.size": 3, "ytick.major.size": 3, "xtick.major.width": 0.8, "ytick.major.width": 0.8,
+    "grid.color": "#e2e8f0", "grid.linewidth": 0.8, "grid.alpha": 1.0,
+    "legend.frameon": False, "legend.fontsize": 8.5,
+    "figure.facecolor": "white", "savefig.facecolor": "white",
+})
+
 GROUT = "#c9c4b8"
 GROUND = "#e8e2d0"
 PIPE_DOWN = "#d1495b"  # supply
@@ -77,12 +92,12 @@ def borefield_layout(xs: list, ys: list, title: str, numbered: bool = False) -> 
     ax.scatter(xs, ys, s=40, color=PIPE_UP, zorder=3)
     if numbered:
         for n, (x, y) in enumerate(zip(xs, ys), start=1):
-            ax.annotate(str(n), (x, y), textcoords="offset points", xytext=(4, 4), fontsize=6, color="#555")
+            ax.annotate(str(n), (x, y), textcoords="offset points", xytext=(4, 4), fontsize=6, color=INK_LIGHT)
     ax.set_aspect("equal")
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
-    ax.set_title(title, fontsize=10)
-    ax.grid(alpha=0.3)
+    ax.set_title(title)
+    ax.grid(True)
     ax.margins(0.08)
     fig.tight_layout()
     return fig
@@ -91,7 +106,7 @@ def borefield_layout(xs: list, ys: list, title: str, numbered: bool = False) -> 
 def _coaxial_cross_section(values: dict, r_b_mm: float) -> plt.Figure:
     fig, ax = plt.subplots(figsize=(4, 4))
     ax.add_patch(Circle((0, 0), r_b_mm * 1.6, color=GROUND))
-    ax.add_patch(Circle((0, 0), r_b_mm, facecolor=GROUT, edgecolor="#555"))
+    ax.add_patch(Circle((0, 0), r_b_mm, facecolor=GROUT, edgecolor=INK_LIGHT))
     ax.add_patch(Circle((0, 0), values["r_out_out_mm"], color="#888"))
     ax.add_patch(Circle((0, 0), values["r_out_in_mm"], color=PIPE_UP))
     ax.add_patch(Circle((0, 0), values["r_in_out_mm"], color="#888"))
@@ -101,8 +116,7 @@ def _coaxial_cross_section(values: dict, r_b_mm: float) -> plt.Figure:
     ax.set_ylim(-lim, lim)
     ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title(t("Borehole Ø {d:.0f} mm, outer pipe Ø {p:.0f} mm", d=2 * r_b_mm, p=2 * values["r_out_out_mm"]),
-                 fontsize=10)
+    ax.set_title(t("Borehole Ø {d:.0f} mm, outer pipe Ø {p:.0f} mm", d=2 * r_b_mm, p=2 * values["r_out_out_mm"]))
     ax.legend(handles=[Circle((0, 0), 1, color=PIPE_DOWN, label=t("Fluid going down (inner pipe)")),
                        Circle((0, 0), 1, color=PIPE_UP, label=t("Fluid going up (annulus)"))],
               loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=2, frameon=False, fontsize=8)
@@ -116,7 +130,7 @@ def _u_tube_cross_section(values: dict, r_b_mm: float, legs: int) -> plt.Figure:
     positions = [(-d, 0), (d, 0)] if legs == 2 else [(-d, 0), (0, -d), (d, 0), (0, d)]
     fig, ax = plt.subplots(figsize=(4, 4))
     ax.add_patch(Circle((0, 0), r_b_mm * 1.6, color=GROUND))
-    ax.add_patch(Circle((0, 0), r_b_mm, facecolor=GROUT, edgecolor="#555"))
+    ax.add_patch(Circle((0, 0), r_b_mm, facecolor=GROUT, edgecolor=INK_LIGHT))
     for i, (x, y) in enumerate(positions):
         color = PIPE_DOWN if i < legs // 2 else PIPE_UP
         ax.add_patch(Circle((x, y), values["r_out_mm"], color=color))
@@ -125,7 +139,7 @@ def _u_tube_cross_section(values: dict, r_b_mm: float, legs: int) -> plt.Figure:
     ax.set_ylim(-r_b_mm * 1.6, r_b_mm * 1.6)
     ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title(t("Borehole Ø {d:.0f} mm, pipe Ø {p:.0f} mm", d=2 * r_b_mm, p=2 * values["r_out_mm"]), fontsize=10)
+    ax.set_title(t("Borehole Ø {d:.0f} mm, pipe Ø {p:.0f} mm", d=2 * r_b_mm, p=2 * values["r_out_mm"]))
     ax.legend(handles=[Circle((0, 0), 1, color=PIPE_DOWN, label=t("Fluid going down")),
                        Circle((0, 0), 1, color=PIPE_UP, label=t("Fluid going up"))],
               loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=2, frameon=False, fontsize=8)
@@ -194,8 +208,8 @@ def borehole_log(rows: list[dict], length: float, buried: float = 0.0, title: st
     ks = [float(r["k_s"]) for r in rows]
     axk.set_xlim(0, max(ks + [k_avg]) * 1.25)
     axk.set_xlabel(t("Thermal conductivity [W/(m·K)]"))
-    axk.grid(alpha=0.3)
-    ax.set_title(title or t("Ground layers"), fontsize=10, loc="left")
+    axk.grid(True)
+    ax.set_title(title or t("Ground layers"))
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.75)
     return fig
@@ -214,7 +228,7 @@ def ground_log_drawing(inputs: dict[str, SectionInput]) -> plt.Figure:
     rows, used = ground_rows(inputs)
     title = t("Ground layers") if used else (t("Ground layers (not used: switch on the layered calculation)")
                                              if rows[0].get("rock") != "Uniform ground" else t("Uniform ground"))
-    return borehole_log(rows, *_drawn_depth(inputs), title, size=(6.4, 3.6))  # compact next to the ground fields
+    return borehole_log(rows, *_drawn_depth(inputs), title, size=(5.4, 3.4))  # compact next to the ground fields
 
 
 def conductivity_with_length(rows: list[dict], buried: float, lengths, sized: float | None = None) -> alt.Chart:
@@ -341,7 +355,7 @@ def efficiency_curves(values: dict, operating: tuple[float, float] | None = None
         title = name
         if operating is not None:
             band = alt.Chart(pd.DataFrame({"lo": [operating[0]], "hi": [operating[1]]})).mark_rect(
-                opacity=0.15, color="#555").encode(x="lo:Q", x2="hi:Q")
+                opacity=0.15, color=INK_LIGHT).encode(x="lo:Q", x2="hi:Q")
             line = band + line
             title = t("{name} (grey: fluid temperatures of this design, {lo:.1f} to {hi:.1f} °C)", name=name,
                       lo=operating[0], hi=operating[1])

@@ -1,7 +1,6 @@
 """Streamlit page. Start with:  streamlit run app.py"""
 import hashlib
 import html
-import io
 import math
 import pathlib
 import sys
@@ -39,7 +38,7 @@ from ghe_web.results import common as results_common, registry as results_regist
     summary as results_summary
 from ghe_web.results.cache import cached_size
 
-st.set_page_config(page_title="GHEtool & Co.", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="GHEtool & Co.", page_icon=ui.favicon(), layout="wide")
 ui.inject_css()
 st.html("""<style>
 table.keys {width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0;}
@@ -91,7 +90,7 @@ if ui_mode == "expert":  # Expert: denser inputs, so the two modes look differen
 .stTabs [data-testid="stNumberInput"] input {height: 2.1rem; font-size: .9rem;}
 .stTabs [data-baseweb="select"] > div {min-height: 2.1rem; font-size: .9rem;}
 .stTabs [data-testid="stWidgetLabel"] p {font-size: .82rem;}
-.stTabs h5 {font-size: 1rem; padding-bottom: .3rem;}
+.stTabs h5 {font-size: 1rem; line-height: 1.4; padding: .1rem 0 .45rem;}
 .stTabs div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {padding: 10px 14px;}
 .rangebar {margin: -4px 0 6px;} .rangebar .txt {font-size: .7rem;}
 </style>""")
@@ -108,11 +107,11 @@ def chart(c, width="stretch") -> None:
 # sections show up without changes here. The tab labels follow the language; the ids stay the same.
 STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & borefield", "Borehole": "② Borehole & fluid",
                "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
-               "check": "⑤ Design check", "results": "📊 Results", "analysis": "🔬 Further analysis"}
+               "check": "⑤ Design check", "results": ":material/bar_chart: Results", "analysis": ":material/science: Further analysis"}
 # The same steps for groundwater wells (open loop)
 WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer", "Borehole": "② Wells",
                     "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
-                    "results": "📊 Results"}
+                    "results": ":material/bar_chart: Results"}
 
 # Simple mode: the borehole, fluid and limits are part of the Loads step, which becomes step 2
 SIMPLE_STEP_LABELS = {"Loads": "② Loads", "check": "③ Design check"}
@@ -211,7 +210,7 @@ with menu:
                 "3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n"
                 "4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n"
                 "5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n"
-                "6. Press **Size the wells** in the bar at the bottom. The **📊 Results** tab shows the flow, wells, water levels, "
+                "6. Press **Size the wells** in the bar at the bottom. The **:material/bar_chart: Results** tab shows the flow, wells, water levels, "
                 "temperatures, the site map, the well construction and the downloads.\n\n"
                 "The well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected "
                 "water and a planar plume) are written for this tool; GHEtool has no open-loop model."))
@@ -224,11 +223,11 @@ with menu:
                 "heat pump efficiency.\n"
                 "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a "
                 "given one.\n"
-                "6. Press **Size borefield** in the bar at the bottom. The **📊 Results** tab shows key figures, charts, further "
+                "6. Press **Size borefield** in the bar at the bottom. The **:material/bar_chart: Results** tab shows key figures, charts, further "
                 "analysis and the PDF report and Excel export.\n\n"
                 "Save the project in the menu ☰ to continue later. Calculations use the open-source "
                 "[GHEtool](https://github.com/wouterpeere/GHEtool)."))
-    st.caption(t("🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
+    st.caption(t(":material/dark_mode: Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
     st.caption(t("Simple / Expert: the switch next to the language. Simple shows the main fields and puts the others "
                  "under \"More options\"; nothing is left out of the calculation."))
     if system == "open":
@@ -266,7 +265,7 @@ def choose_heat_source(choice: str, hit: dict | None = None) -> None:
 def welcome_address() -> dict | None:
     """The optional address on the start page; the place picked from the matches, or None."""
     with st.container(border=True):
-        st.markdown("#### 📍 " + t("Where is the site? (optional)"))
+        st.markdown("#### :material/location_on: " + t("Where is the site? (optional)"))
         st.caption(t("With an address the site plan opens with the parcel, the buildings and the distances of the "
                      "state, places the boreholes or wells, and the ground layers can be predicted for this place. "
                      "Leave it empty to enter the values yourself."))
@@ -297,7 +296,7 @@ if not st.session_state.get("welcomed", gen > 0):
                     unsafe_allow_html=True)
         for col, (key_, (icon, label, text_)) in zip(st.columns(2, gap="medium"), guidance.HEAT_SOURCES.items()):
             with col, st.container(border=True):
-                st.html(f"<div class='choice'>{icon}</div>")
+                st.html(f"<div class='choice'>{ui.icon(icon)}</div>")
                 st.markdown(f"#### {t(label)}")
                 st.caption(t(text_))
                 st.button(t("Start with {what} at this address", what=t(label)) if hit else
@@ -331,6 +330,19 @@ calc_slot = st.container(key="calcbar", horizontal=True, vertical_alignment="cen
 
 # ---------------------------------------------------------------- inputs
 
+def _decimals(x) -> int:
+    """Decimal places of a number as written (0.05 -> 2, 100.0 -> 0), at most 4."""
+    text = f"{float(x):.4f}".rstrip("0")
+    return len(text.split(".")[1]) if "." in text else 0
+
+
+def number_format(step, value) -> str:
+    """The same number of decimals for a field as its step has (210 kW, 0.60 kg/s, 2.8 W/(m·K)), more only when
+    the value itself has more, so nothing entered is hidden."""
+    places = max(_decimals(step) if step else 2, _decimals(value) if isinstance(value, (int, float)) else 0)
+    return f"%.{places}f"
+
+
 def widget(prop: Property, value, key: str):
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
     help_text = t(prop.help) or None
@@ -339,8 +351,10 @@ def widget(prop: Property, value, key: str):
     if prop.kind == "float":
         kw = initial if initial is not None else {"value": float(value)}
         as_float = lambda x: float(x) if x is not None else None  # noqa: E731 (Streamlit refuses mixed int/float)
+        shown = st.session_state.get(key, value)
         return st.number_input(label, min_value=as_float(prop.min), max_value=as_float(prop.max),
-                               step=as_float(prop.step), format=prop.format, help=help_text, key=key, **kw)
+                               step=as_float(prop.step), format=prop.format or number_format(prop.step, shown),
+                               help=help_text, key=key, **kw)
     if prop.kind == "int":
         kw = initial if initial is not None else {"value": int(value)}
         return int(st.number_input(label, min_value=int(prop.min) if prop.min is not None else None,
@@ -403,7 +417,7 @@ def preset_pickers(variant: Variant, key_prefix: str, values: dict) -> None:
                 st.session_state[f"{key_prefix}.{field}"] = float(val) if kinds.get(field) == "float" else val
         with col:
             options = [""] + list(group.options)
-            st.selectbox(f"🗂 {t(group.label)}", options, index=options.index(matching_preset(group, now)),
+            st.selectbox(f":material/library_books: {t(group.label)}", options, index=options.index(matching_preset(group, now)),
                          format_func=lambda o: t(o) if o else t("Own values"),
                          key=f"{key_prefix}.preset.{group.label}", on_change=apply,
                          help=t(group.help) if group.help else t("Fills in the fields below with typical values."))
@@ -477,17 +491,14 @@ def hourly_input(prop: Property, value, key: str) -> dict:
 
 @st.cache_resource(max_entries=64, show_spinner=False)
 def cached_drawing(section_key: str, variant_key: str, project_json: str, language: str) -> tuple:
-    """Input drawings, cached on the inputs and the language. Matplotlib figures are stored as PNG, charts as they
-    are."""
+    """Input drawings, cached on the inputs and the language. Matplotlib figures are stored as SVG text (sharp on
+    every screen), charts as they are."""
     with i18n.using(language):
         drawing = plots.DRAWINGS[(section_key, variant_key)][1](model.from_json(project_json)[1])
     parts = []
     for part in drawing if isinstance(drawing, tuple) else (drawing,):
         if isinstance(part, plt.Figure):
-            buf = io.BytesIO()
-            part.savefig(buf, format="png", dpi=110, bbox_inches="tight")
-            plt.close(part)
-            parts.append(buf.getvalue())
+            parts.append(ui.figure_svg(part))
         else:
             parts.append(part)
     return tuple(parts)
@@ -495,8 +506,8 @@ def cached_drawing(section_key: str, variant_key: str, project_json: str, langua
 
 def show_drawing(parts: tuple) -> None:
     for part in parts:
-        if isinstance(part, bytes):
-            st.image(part, width="stretch")
+        if isinstance(part, str):
+            ui.show_figure(part)
         else:
             chart(part)
 
@@ -949,7 +960,7 @@ with calc_slot:
             ui.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
                            "; ".join(f"{section_step.get(k, '')}: {t(properties.get(k).label)}" for k in errors))
         elif "calc_error" in st.session_state:
-            ui.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
+            ui.calc_status("bad", t("The calculation failed"), t("Details in Results."))
         elif "result_json" in st.session_state:
             res = cached_size(st.session_state.result_json)
             last = t("{n} × {length:.1f} m, {total:,.0f} m in total", n=res.number_of_boreholes,
@@ -1027,5 +1038,5 @@ with step_tabs[ANALYSIS]:
     if ctx is None:
         st.info(t("The further analysis starts from a result. Calculate first."), icon=":material/info:")
     else:
-        st.caption(t("Sensitivity, variants and a layout search, starting from the result in 📊 Results."))
+        st.caption(t("Sensitivity, variants and a layout search, starting from the result in :material/bar_chart: Results."))
         results_registry.render(results_registry.get("analysis"), ctx, 1)

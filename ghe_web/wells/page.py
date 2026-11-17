@@ -85,7 +85,7 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
                 ui.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
                                "; ".join(f"{step_of(k)}: {t(model.properties.get(k).label)}" for k in errors))
             elif "calc_error" in st.session_state:
-                ui.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
+                ui.calc_status("bad", t("The calculation failed"), t("Details in Results."))
             elif d_last is not None:
                 last = t("{p} + {i} wells, {d:g} m apart", p=d_last.n_production, i=d_last.n_injection,
                          d=d_last.distance) + ", " + t("{q:.1f} m³/h at peak", q=d_last.q_peak * 3600)
@@ -138,7 +138,7 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
                          "that goes back. A rising or falling production temperature over the years means injected "
                          "water flows back to the production wells."))
         elif view == "map":
-            st.pyplot(plots.site_map(d, aquifer), width="stretch")
+            ui.show_figure(plots.site_map(d, aquifer))
             st.caption(t("Seen from above, the groundwater flows from left to right. Blue lines: where the injected "
                          "water goes. Shaded: the temperature change of the yearly net heat (planar model without "
                          "heat exchange with the layers above and below, so on the safe side)."))
@@ -148,7 +148,7 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
             rows = list(g["layers"]["rows"]) if layered(g) else None
             left, right = st.columns([3, 2], gap="large")
             with left:
-                st.pyplot(plots.well_section(d, aquifer, rows), width="stretch")
+                ui.show_figure(plots.well_section(d, aquifer, rows))
             with right:
                 _key_table([
                     (t("Well depth"), fmt("{x:.1f} m", x=d.screen.depth), t("to the aquifer bottom")),
@@ -198,12 +198,12 @@ def _verdict(d: design.Design, inputs, found: list | None = None) -> None:
     ui.answer_card(not problems, t("Answer"), t("{p} + {i} wells, {d:g} m apart", p=d.n_production, i=d.n_injection,
                                                 d=d.distance), sub, chip_items)
     ui.tiles([
-        ("💧 " + t("Peak flow"), fmt("{x:.1f} m³/h", x=d.q_peak * 3600), fmt("{x:.1f} l/s", x=d.q_peak * 1000), ""),
-        ("Σ " + t("Water per year"), fmt("{x:,.0f} m³", x=d.volume_year), "", ""),
-        ("⬇️ " + t("Drawdown"), fmt("{x:.1f} m", x=d.peak.drawdown), t("of {x:.1f} m", x=d.drawdown_allowed), ""),
-        ("⬆️ " + t("Rise in the injection well"), fmt("{x:.1f} m", x=d.peak.rise), t("of {x:.1f} m", x=d.rise_allowed),
+        (":material/water_drop: " + t("Peak flow"), fmt("{x:.1f} m³/h", x=d.q_peak * 3600), fmt("{x:.1f} l/s", x=d.q_peak * 1000), ""),
+        (":material/functions: " + t("Water per year"), fmt("{x:,.0f} m³", x=d.volume_year), "", ""),
+        (":material/arrow_downward: " + t("Drawdown"), fmt("{x:.1f} m", x=d.peak.drawdown), t("of {x:.1f} m", x=d.drawdown_allowed), ""),
+        (":material/arrow_upward: " + t("Rise in the injection well"), fmt("{x:.1f} m", x=d.peak.rise), t("of {x:.1f} m", x=d.rise_allowed),
          ""),
-        ("❄️ " + t("Lowest production temperature"), fmt("{x:.1f} °C", x=d.t_production_min),
+        (":material/ac_unit: " + t("Lowest production temperature"), fmt("{x:.1f} °C", x=d.t_production_min),
          t("{x:+.2f} K over the period", x=-d.drift if d.t_production_min < d.t_groundwater else d.drift), "cold"),
     ])
 
