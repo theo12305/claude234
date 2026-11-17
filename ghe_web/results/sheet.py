@@ -42,7 +42,7 @@ PARTS: dict[str, list[tuple[str, str, bool]]] = {
                ("gfunction", "g-function", False)],
 }
 
-# The switches of the temperature charts, in the order of plots.ChartStyle
+# The switches of the temperature charts, in the order of palette.ChartStyle
 STYLE_LABELS = {"base": "Fluid without peaks (grey)", "peak_heat": "Fluid at the heating peaks (blue)",
                 "peak_cool": "Fluid at the cooling peaks (red)", "limits": "Temperature limits (dashed lines)",
                 "shading": "Shading outside the limits", "limit_labels": "Labels of the limits",

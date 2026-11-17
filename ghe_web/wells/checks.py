@@ -1,4 +1,4 @@
-"""Design check for groundwater wells, in the same form as the borehole check (``ghe_web.checks``)."""
+"""Design check for groundwater wells, in the same form as the borehole check (``ghe_web.core.checks``)."""
 from __future__ import annotations
 
 from ghe_web.core import model

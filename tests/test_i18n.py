@@ -17,7 +17,7 @@ from ghe_web.materials import quantities as materials
 from ghe_web.page import guidance
 from ghe_web.results import registry as results_registry
 
-DE = i18n.table("de")  # i18n_de.py and the de.py of the feature packages
+DE = i18n.table("de")  # i18n/de.py and the de.py of the feature packages
 from ghe_web.siteplan import page as siteplan_page  # noqa: E402
 from ghe_web.siteplan import states  # noqa: E402
 from ghe_web.strata import rocks, sources  # noqa: E402
@@ -83,7 +83,7 @@ def _data_texts() -> set[str]:
               "Grout conductivity ±25 %", "Borehole resistance ±15 %"}  # analysis.sensitivity
     texts |= {"L-shape", "U-shape", "Box", "Rectangle", "Staggered", "Layout", "Boreholes", "Grid", "Spacing [m]",
               "Length each [m]", "Total length [m]"}  # analysis.optimise_layout
-    texts |= {"Variant", "Lowest temp. [°C]", "Highest temp. [°C]", "Rb [m·K/W]"}  # kept variants in app.py
+    texts |= {"Variant", "Lowest temp. [°C]", "Highest temp. [°C]", "Rb [m·K/W]"}  # kept variants in results/views/analysis.py
     texts |= {"heating", "cooling", "cadastre", "OpenStreetMap", "Parcel", "State", "quick", "normal", "thorough",
               "outside-in rows", "nothing fits", "hexagonal grid at {angle}", "square grid at {angle}",
               "extrapolated", "geological map", "assumed", "entered", "above groundwater"}

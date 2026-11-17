@@ -1,7 +1,7 @@
 """Languages of the page, the PDF report and the Excel workbook.
 
 The English text is the key: ``t("Borehole length")`` returns it in the current language. Translations live in
-one dictionary per language (``i18n_de.py``); text without an entry stays English, so new text works before it is
+one dictionary per language (``i18n/de.py``); text without an entry stays English, so new text works before it is
 translated. Values are passed as keywords and formatted after the lookup, with the number format of the language
 (German: 1.234,5)::
 
@@ -37,13 +37,13 @@ _MERGED: dict[str, dict[str, str]] = {}
 
 
 def add_table(code: str, table: dict[str, str]) -> None:
-    """Adds the translations of a feature package (its own de.py), so it does not have to touch i18n_de.py."""
+    """Adds the translations of a feature package (its own de.py), so it does not have to touch i18n/de.py."""
     _EXTRA.setdefault(code, {}).update(table)
     _MERGED.clear()
 
 
 def table(code: str) -> dict[str, str]:
-    """All translations of a language: i18n_de.py and the feature packages."""
+    """All translations of a language: i18n/de.py and the feature packages."""
     if code not in _MERGED:
         from ghe_web.i18n.de import DE
         _MERGED[code] = {**(DE if code == "de" else {}), **_EXTRA.get(code, {})}
