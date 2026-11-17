@@ -170,33 +170,25 @@ def _epsg(srs: str) -> int | None:
     return int(found.group(1)) if found else None
 
 
-def nrw_boreholes(x: float, y: float, radius: float, max_features: int = 400) -> list[Borehole]:
-    """Logged boreholes around (x, y) from the NRW borehole database. Only released boreholes carry layers."""
-    r = lookup._get(NRW_BML, {
-        "SERVICE": "WFS", "REQUEST": "GetFeature", "VERSION": "1.1.0", "TYPENAME": "bml:Borehole",
-        "MAXFEATURES": max_features, "SRSNAME": "urn:ogc:def:crs:EPSG::25832",
-        "BBOX": f"{x - radius},{y - radius},{x + radius},{y + radius},urn:ogc:def:crs:EPSG::25832"})
-    return parse_bml(r.content, "GD NRW")
-
-
 _BOREHOLE_TAG = re.compile(rb"<(?:[\w.-]+:)?Borehole[\s>]")
 
 
-def lgrb_boreholes(x: float, y: float, radius: float, enough: int = 12, per_request: int = 40
-                   ) -> list[Borehole]:
-    """Logged boreholes around (x, y) from the LGRB borehole database (Baden-Württemberg).
+def bml_boreholes(url: str, source: str, x: float, y: float, radius: float, enough: int = 12,
+                  per_request: int = 30, timeout: float = 45.0) -> list[Borehole]:
+    """Logged boreholes around (x, y) from a BoreholeML web feature service (WFS 2.0).
 
-    One borehole with its layers is 20 to 50 kB, so the search starts close to the site and widens until enough
-    logged boreholes are found, a search square is full (the nearest are then already inside) or ``radius`` is
-    reached. If a wider search fails, the boreholes found so far are kept."""
+    One borehole with its layers is 10 to 50 kB, and the services answer slowly for large requests (GD NRW timed
+    out at 400 boreholes per request), so the search starts close to the site and widens until enough logged
+    boreholes are found, a search square is full (the nearest are then already inside) or ``radius`` is reached.
+    If a wider search fails, the boreholes found so far are kept."""
     found: dict[str, Borehole] = {}
     for r in sorted({min(radius, s) for s in (300, 800, 2000)} | {radius}):
         try:
-            answer = lookup._get(LGRB_BML, {
+            answer = lookup._get(url, {
                 "SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature", "TYPENAMES": "bml:Borehole",
                 "COUNT": per_request, "SRSNAME": "urn:ogc:def:crs:EPSG::25832",
-                "BBOX": f"{x - r},{y - r},{x + r},{y + r},urn:ogc:def:crs:EPSG::25832"})
-            holes = parse_bml(answer.content, "LGRB BW")
+                "BBOX": f"{x - r},{y - r},{x + r},{y + r},urn:ogc:def:crs:EPSG::25832"}, timeout=timeout)
+            holes = parse_bml(answer.content, source)
         except LookupError_:
             if found:
                 break
@@ -207,6 +199,16 @@ def lgrb_boreholes(x: float, y: float, radius: float, enough: int = 12, per_requ
         if len(found) >= enough or len(_BOREHOLE_TAG.findall(answer.content)) >= per_request:
             break
     return sorted(found.values(), key=lambda h: (h.x - x) ** 2 + (h.y - y) ** 2)
+
+
+def nrw_boreholes(x: float, y: float, radius: float) -> list[Borehole]:
+    """Logged boreholes around (x, y) from the NRW borehole database. Only released boreholes carry layers."""
+    return bml_boreholes(NRW_BML, "GD NRW", x, y, radius)
+
+
+def lgrb_boreholes(x: float, y: float, radius: float, **kw) -> list[Borehole]:
+    """Logged boreholes around (x, y) from the LGRB borehole database (Baden-Württemberg)."""
+    return bml_boreholes(LGRB_BML, "LGRB BW", x, y, radius, **({"per_request": 40} | kw))
 
 
 def boreholes_online(state_key: str | None, x: float, y: float, radius: float) -> list[Borehole]:

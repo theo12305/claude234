@@ -343,7 +343,7 @@ def test_lgrb_search_widens_until_enough(monkeypatch):
     field = [(x + 100 * i, y) for i in range(1, 16)]  # 15 logged boreholes, 100 m apart, east of the site
     asked = []
 
-    def answer(url, params):
+    def answer(url, params, **kw):
         assert url == sources.LGRB_BML and params["TYPENAMES"] == "bml:Borehole"
         x0, y0, x1, y1 = (float(v) for v in params["BBOX"].split(",")[:4])
         asked.append(x1 - x)
@@ -357,7 +357,7 @@ def test_lgrb_search_widens_until_enough(monkeypatch):
     assert len(sources.lgrb_boreholes(x, y, 3000, per_request=3)) == 3  # first square full: stop there
     assert asked == [300]
 
-    def wider_fails(url, params):
+    def wider_fails(url, params, **kw):
         if asked:
             raise sources.LookupError_("timeout")
         return answer(url, params)
