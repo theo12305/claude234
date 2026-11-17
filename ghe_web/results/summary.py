@@ -1,21 +1,23 @@
 """The top of the results: the answer card with the key tiles and quick downloads, and the one-page results of Simple mode."""
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
-from .. import analysis, checks, export, i18n, model, plots, report, ui
-from ..i18n import fmt, t
-from .cache import *  # noqa: F403 (the cached calculations)
-from . import sheet
-from .common import in_language, key_table
-from .registry import Ctx, extra_tables
+from ghe_web import i18n
+from ghe_web.core import checks
+from ghe_web.downloads import excel, pdf_report
+from ghe_web.i18n import fmt, t
+from ghe_web.page import look
+from ghe_web.results import sheet
+from ghe_web.results.cache import *  # noqa: F403 (the cached calculations)
+from ghe_web.results.common import in_language, key_table
+from ghe_web.results.registry import Ctx, extra_tables
 
 
 def answer_section(ctx: Ctx) -> None:
     """The answer first: a card with the design and the design check, the key figures as tiles, the warnings and the
     most used downloads."""
-    result, key, sized_inputs, limits, sized_json = ctx.result, ctx.key, ctx.sized_inputs, ctx.limits, ctx.sized_json
+    result, key, sized_inputs, limits = ctx.result, ctx.key, ctx.sized_inputs, ctx.limits
     name, lang, found_checks = ctx.name, i18n.language(), ctx.found_checks
     ui_mode = "simple" if ctx.simple else "expert"
     project_json = ctx.project_json
@@ -42,13 +44,13 @@ def answer_section(ctx: Ctx) -> None:
             decides = t("cooling decides the length")
         sub = t("{total:,.0f} m drilled · fluid between {lo:.1f} and {hi:.1f} °C over {years} years · {decides} "
                 "({method})", total=result.total_length, lo=t_lo, hi=t_hi, years=years, decides=decides,
-                method=t(report.METHOD[result.sizing_method]))
+                method=t(pdf_report.METHOD[result.sizing_method]))
     n = checks.counts(found_checks)
     chip_items = [("bad", t("{n} problem(s)", n=n[checks.PROBLEM]))] if n[checks.PROBLEM] else []
     if n[checks.WARNING]:
         chip_items.append(("warn", t("{n} warning(s)", n=n[checks.WARNING])))
     chip_items.append(("ok", t("{n} fine", n=n[checks.FINE])))
-    ui.answer_card(ok, lead, big, sub, chip_items)
+    look.answer_card(ok, lead, big, sub, chip_items)
 
     def margin_note(margin: float, limit: float) -> str:
         if abs(margin) < 0.05:  # sizing stops within a few hundredths of a kelvin of the limit
@@ -74,7 +76,7 @@ def answer_section(ctx: Ctx) -> None:
         items.append((":material/water_drop: " + t("Pressure drop per borehole"), fmt("{x:.1f} kPa", x=vals["dp_kpa"]),
                       t("{w:,.0f} W electrical", w=vals["pump_electric_w"]), ""))
     if sheet.on("tiles"):
-        ui.tiles(items if ui_mode == "expert" else items[:4])
+        look.tiles(items if ui_mode == "expert" else items[:4])
     if sheet.on("key_table"):
         key_results_table(key)
     if sheet.on("warnings"):
@@ -85,10 +87,10 @@ def answer_section(ctx: Ctx) -> None:
     with st.popover(t("Download"), icon=":material/download:") if ui_mode != "expert" else \
             st.container(horizontal=True, gap="small", key="quick_downloads"):
         st.download_button(t("PDF summary"), lambda: i18n.call_in(
-            lang, report.make_pdf, result, sized_inputs, name,
-            report.ReportOptions(kind="summary", title=name.strip(), sheet=choice), {}),
+            lang, pdf_report.make_pdf, result, sized_inputs, name,
+            pdf_report.ReportOptions(kind="summary", title=name.strip(), sheet=choice), {}),
             f"{stem}_summary.pdf", "application/pdf", icon=":material/picture_as_pdf:", on_click="ignore")
-        st.download_button(t("Excel"), in_language(export.excel_workbook, result, sized_inputs, name,
+        st.download_button(t("Excel"), in_language(excel.excel_workbook, result, sized_inputs, name,
                                                    extra_tables(ctx)),
                            f"{stem}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                            icon=":material/table_view:", on_click="ignore")

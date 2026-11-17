@@ -14,11 +14,11 @@ from folium.plugins import Draw
 from shapely.geometry import Point, shape
 from streamlit_folium import st_folium
 
-from .. import i18n
-from ..i18n import fmt, t
-from . import export, lookup
-from .layout import Rules, Site, allowed_area, check, flow_vector, place_boreholes, place_wells
-from .states import STATES, by_key
+from ghe_web import i18n
+from ghe_web.i18n import fmt, t
+from ghe_web.siteplan import export, lookup
+from ghe_web.siteplan.layout import Rules, Site, allowed_area, check, flow_vector, place_boreholes, place_wells
+from ghe_web.siteplan.states import STATES, by_key
 
 K = "siteplan."  # session state prefix
 HOW = {"address": "Address", "number": "Flurstück number", "click": "Click on the map", "draw": "Draw the outline",
@@ -39,6 +39,7 @@ def _set_parcel(feature: lookup.Feature, state_key: str | None, label: str | Non
     _set("parcel", feature.geometry)
     _set("parcel_label", label or feature.attrs.get("_label", t("Parcel")))
     _set("state", state_key)
+    _set("traced", bool(feature.attrs.get(lookup.TRACED)))
     for name in ("buildings", "building_note", "points", "drawn", "ignored", "result_key"):
         st.session_state.pop(K + name, None)
     _set("map_gen", _ss("map_gen", 0) + 1)
@@ -116,6 +117,7 @@ def _load_parcel_at(lon, lat, chosen_state) -> bool:
         except lookup.LookupError_ as exc:
             st.error(str(exc), icon=":material/error:")
             _set("view_centre", (lat, lon))  # for clicking or drawing the parcel instead
+            _set("failed_state", state.key)  # the click/draw map then shows this state's parcel lines
             _set("view_zoom", 18)
             return False
     _set_parcel(feat, state.key)
@@ -254,11 +256,12 @@ def _find_parcel(chosen_state):
                 st.warning(t("Address not found."))
         drawing = how == "draw"
         st.caption(t("Draw the parcel with the polygon tool (left of the map), following the parcel lines. In "
-                     "Bayern, choose the Bundesland above to see the parcel lines of the cadastre map.")
+                     "Bayern and Baden-Württemberg, choose the Bundesland above to see the parcel lines of the "
+                     "cadastre map.")
                    if drawing else t("Zoom in on the aerial image and click inside your parcel."))
         centre = _ss("view_centre", (51.16, 10.45))
         m = folium.Map(location=centre, zoom_start=_ss("view_zoom", 6), max_zoom=21, tiles=None)
-        _base_layers(m, chosen_state)
+        _base_layers(m, chosen_state or by_key(_ss("failed_state")))
         if drawing:
             Draw(export=False, position="topleft",
                  draw_options={"polyline": False, "circlemarker": False, "marker": False, "circle": False},
@@ -369,7 +372,7 @@ def _site_map(state, parcel, buildings, ignored, drawn, allowed, points, kinds=N
     fd = folium.FeatureGroup(name=t("Excluded areas you drew"))
     for g in drawn:
         folium.GeoJson(_geojson(g), style_function=lambda _: {"color": "#ff8c1a", "weight": 2,
-                                                             "fillColor": "#ff8c1a", "fillOpacity": 0.35}).add_to(fd)
+                                                              "fillColor": "#ff8c1a", "fillOpacity": 0.35}).add_to(fd)
     fd.add_to(m)
     fp = folium.FeatureGroup(name=t("Wells ({n})", n=len(points)) if kinds else t("Boreholes ({n})", n=len(points)))
     for i, (x, y) in enumerate(points, start=1):
@@ -446,6 +449,10 @@ def page(handoff, wells: dict | None = None) -> None:
     st.success(fmt("**{label}**, {state}: {area:,.0f} m²", label=_ss("parcel_label"),
                    state=state.name if state else t("state unknown"), area=parcel.area),
                icon=":material/check_circle:")
+    if _ss("traced"):
+        st.warning(t("No parcel outline could be loaded from the cadastre service of this state, so the outline "
+                     "was traced from the parcel lines of the cadastre map (accurate to a few decimetres). Check it on the "
+                     "map; if it is wrong, draw the parcel instead."), icon=":material/warning:")
 
     # ------------------------------------------------ buildings
     if _ss("buildings") is None:

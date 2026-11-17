@@ -12,11 +12,12 @@ import pandas as pd
 import streamlit as st
 from streamlit_folium import st_folium
 
-from .. import plots, ui
-from ..i18n import fmt, t
-from ..siteplan import lookup
-from ..siteplan.lookup import LookupError_
-from . import predict, reader, rocks, sources
+from ghe_web.charts import input_drawings
+from ghe_web.i18n import fmt, t
+from ghe_web.page import look
+from ghe_web.siteplan import lookup
+from ghe_web.siteplan.lookup import LookupError_
+from ghe_web.strata import predict, reader, rocks, sources
 
 SITE_PLAN = "siteplan."  # session state prefix of the site plan step
 
@@ -57,7 +58,7 @@ def _location(key: str):
     names = {"plan": t("The parcel from the site plan"), "address": t("An address"), "coordinates": t("Coordinates")}
     options = (["plan"] if plan else []) + ["address", "coordinates"]
     how = st.selectbox(t("Location"), options, format_func=names.get, key=f"{key}.where",
-                   help=t("Where the boreholes will be. Find your parcel in step ⓪ Site plan to use it here."))
+                       help=t("Where the boreholes will be. Find your parcel in step ⓪ Site plan to use it here."))
     if how == "plan":
         st.caption(f":material/location_on: {plan[2]}")
         return plan
@@ -309,8 +310,8 @@ def _show_prediction(key: str, prefix: str, length: float, buried: float) -> Non
                              t("Weight"): st.column_config.ProgressColumn(format="percent", min_value=0,
                                                                           max_value=1)})
     with right:
-        fig = plots.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
-        ui.show_figure(fig)
+        fig = input_drawings.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
+        look.show_figure(fig)
     if site and (points or result.used):
         _show_boreholes(key, site, points, result.used, state_key)
 
@@ -331,7 +332,7 @@ def _borehole_map(key: str, site: tuple[float, float], points, holes) -> dict | 
             (f'<br><a href="{html.escape(p.link)}" target="_blank">{t("Open the log")}</a>' if p.link else "")
         folium.CircleMarker((plat, plon), radius=7, color="white", weight=1, fill=True, fill_opacity=0.9,
                             fill_color=_depth_colour(p.depth), tooltip=fmt("{name} · {d:.0f} m", name=p.name,
-                                                                            d=p.depth or 0),
+                                                                           d=p.depth or 0),
                             popup=folium.Popup(popup, max_width=260)).add_to(m)
     for h in holes:
         hlon, hlat = lookup.to_wgs84(h.x, h.y)
@@ -408,7 +409,7 @@ def _point_details(key: str, p: sources.BoreholePoint) -> None:
                 st.rerun()
     c3.button(t("Enter its layers"), key=f"{key}.enter_point", icon=":material/edit_note:", width="stretch",
               on_click=_enter_for, args=(key, p), help=t("Opens the box above, placed at this borehole: paste or "
-                                                          "type the layers from its log."))
+                                                         "type the layers from its log."))
 
 
 def _enter_for(key: str, p: sources.BoreholePoint) -> None:

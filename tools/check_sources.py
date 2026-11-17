@@ -92,12 +92,34 @@ def _by_number(state, lon, lat):
     return f"{len(hits)} parcels for {key}*"
 
 
+def _parcel_info(state, x, y):
+    try:
+        feats = lookup.parcel_info_at(state.parcel_info, x, y)
+    except lookup.LookupError_ as exc:  # show the start of the raw answer, to see what the server sends
+        w, h = state.parcel_info, 10
+        r = lookup._session().get(w.url, params={
+            "SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetFeatureInfo", "LAYERS": w.layer, "QUERY_LAYERS": w.layer,
+            "STYLES": "", "CRS": "EPSG:25832", "BBOX": f"{x - h},{y - h},{x + h},{y + h}", "WIDTH": 101, "HEIGHT": 101,
+            "I": 50, "J": 50, "INFO_FORMAT": "text/xml", "FORMAT": "image/png"}, timeout=40)
+        raw = " ".join(r.text.split())[:400].replace("|", "/")
+        raise RuntimeError(f"{exc} / raw text/xml answer ({r.status_code}): {raw}") from exc
+    return f"{len(feats)} parcels, {feats[0].geometry.area:,.0f} m², {lookup._parcel_label(feats[0].attrs)}"
+
+
+def _traced(state, x, y):
+    poly = lookup.parcel_from_map(state.overlay, x, y).geometry
+    b = poly.bounds
+    return f"{poly.area:,.0f} m², {b[2] - b[0]:.1f} x {b[3] - b[1]:.1f} m, {len(poly.exterior.coords)} corners"
+
+
 def check_state(state):
     lon, lat = POINTS[state.key]
     x, y = lookup.to_utm(lon, lat)
     out = {"name": state.name}
     if state.parcels:
         out["parcels"] = timed(lambda: lookup.parcel_at(lon, lat, state)[0].attrs["_label"])
+    if state.parcel_info:  # the second route, used when the parcel WFS fails
+        out["parcels (map service)"] = timed(lambda: _parcel_info(state, x, y))
     if state.parcels and state.parcels.ref_property:
         out["parcel by number"] = timed(lambda: _by_number(state, lon, lat))
     if state.buildings:
@@ -106,6 +128,7 @@ def check_state(state):
         out["imagery"] = timed(lambda: wms_tile(state.imagery, lon, lat))
     if state.overlay:
         out["overlay"] = timed(lambda: wms_tile(state.overlay, lon, lat))
+        out["parcel traced from the map"] = timed(lambda: _traced(state, x, y))
     if state.key in sources.POINT_SERVICES:
         out["borehole points"] = timed(lambda: f"{len(sources.borehole_points(state.key, x, y, 2000))} points in 2 km")
     if state.key in sources.LOG_SERVICES:

@@ -1,6 +1,8 @@
 import pytest
 
-from ghe_web import analysis, export, model, plots, report
+from ghe_web.charts import input_drawings
+from ghe_web.core import analysis, model
+from ghe_web.downloads import excel, pdf_report
 from ghe_web.siteplan import states
 from ghe_web.strata import predict, rocks, sources
 from ghe_web.strata.predict import Borehole, LogLayer
@@ -107,9 +109,9 @@ def test_layered_sizing_and_project_file():
     assert k == pytest.approx(predict.effective(poor, result.borehole_length, 0.7)[0])
     assert length == pytest.approx(result.borehole_length, rel=0.1)
     # exports and the report include the layers
-    assert "Input ground layers" in export._table_inputs(inputs)
-    assert report.make_pdf(result, inputs, "x")[:4] == b"%PDF"
-    plots.ground_log_drawing(inputs)
+    assert "Input ground layers" in excel._table_inputs(inputs)
+    assert pdf_report.make_pdf(result, inputs, "x")[:4] == b"%PDF"
+    input_drawings.ground_log_drawing(inputs)
 
 
 def test_layers_switched_on_without_rows_is_an_error():
@@ -276,6 +278,7 @@ def test_read_log_text_html_and_pdf():
         reader.layers_from_text("no depths here")
     # a PDF with a text layer is read without the reading service
     import io
+
     import matplotlib.pyplot as plt
     fig = plt.figure()
     for i, line in enumerate(LOG_TEXT.splitlines()):

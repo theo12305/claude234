@@ -13,7 +13,7 @@ import shapely
 from shapely.geometry import MultiPolygon, Point, Polygon
 from shapely.ops import unary_union
 
-from ..i18n import t
+from ghe_web.i18n import t
 
 TOL = 1e-6  # m; points exactly on the edge of the allowed area count as inside
 

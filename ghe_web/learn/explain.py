@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .. import analysis, i18n, model
+from .. import i18n
+from ..core import analysis, model
 from ..i18n import fmt
 from .text import L
 

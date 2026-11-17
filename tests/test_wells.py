@@ -5,16 +5,19 @@ import numpy as np
 import pytest
 from scipy.special import exp1
 
-from ghe_web import model
-from ghe_web.properties import SectionInput
-from ghe_web.wells import aquifer, checks, design, hydraulics as hy, report, thermal as th
+from ghe_web.core import model
+from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
+from ghe_web.wells import aquifer, checks, design, report
+from ghe_web.wells import hydraulics as hy
+from ghe_web.wells import thermal as th
 
 
 def open_inputs(**wells):
     inputs = model.default_inputs()
     inputs["system"] = SectionInput("open", {})
     if wells:
-        inputs["wells"] = SectionInput("check", {**model.properties.get("wells").variant("check").defaults(),
+        inputs["wells"] = SectionInput("check", {**input_registry.get("wells").variant("check").defaults(),
                                                  **wells})
     return inputs
 
@@ -140,6 +143,7 @@ def test_exports_and_project_round_trip():
 
 def test_site_plan_puts_injection_downstream():
     from shapely.geometry import box
+
     from ghe_web.siteplan.layout import Rules, Site, allowed_area, place_wells
     parcel = box(0, 0, 60, 30)
     area = allowed_area(Site(parcel), Rules(border_distance=3))

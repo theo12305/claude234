@@ -1,7 +1,7 @@
 """What each part of the well calculation is based on, with the literature. Shown on the page and in the report."""
 from __future__ import annotations
 
-from ..i18n import t
+from ghe_web.i18n import t
 
 # (topic, what the tool does, references). Topic and text are translated; references stay as published.
 SOURCES = (

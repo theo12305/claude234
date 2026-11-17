@@ -13,7 +13,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from .. import i18n, model, plots, ui
+from .. import i18n
+from ..charts import result_charts
+from ..core import model
+from ..page import look as ui
 from ..i18n import fmt, t
 from . import exercises, explain, glossary, modules, sources
 from .text import L
@@ -24,6 +27,11 @@ MODE = "learn"
 CSS = """<style>
 .learnhead {font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
   color: var(--primary-color, #0e7490); margin: .2rem 0 .3rem;}
+.rbparts {display: grid; gap: .35rem; margin: .2rem 0 .4rem;}
+.rbrow {display: grid; grid-template-columns: 7.5rem 1fr 11rem; gap: .6rem; align-items: center; font-size: .9rem;}
+.rbrow div {background: #e2e8f0; border-radius: 4px; height: 1.1rem;}
+.rbrow i {display: block; height: 100%; background: #0e7490; border-radius: 4px;}
+.rbrow b {font-weight: 600; font-variant-numeric: tabular-nums;}
 .why {display: flex; gap: .7rem; margin: .45rem 0; align-items: flex-start; line-height: 1.45;}
 .why .n {flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #0e7490; color: #fff;
   font-weight: 700; font-size: .85rem; display: flex; align-items: center; justify-content: center;}
@@ -269,6 +277,18 @@ def literature_tab() -> None:
     literature_table(pick, free)
 
 
+def tabs(page) -> None:
+    """The three Learn tabs at the end of the steps (labels in ghe_web/page/steps.py), only in Learn mode."""
+    if not page.learn:
+        return
+    with page.step_tabs[page.steps["learn_intro"]]:
+        introduction_tab()
+    with page.step_tabs[page.steps["learn_glossary"]]:
+        glossary_tab()
+    with page.step_tabs[page.steps["learn_literature"]]:
+        literature_tab()
+
+
 def menu_button() -> None:
     """In the menu ☰, in every mode: the literature list without switching to Learn."""
     if st.button(t("Literature and sources"), icon=":material/menu_book:", width="stretch", key="menu_literature"):
@@ -380,9 +400,9 @@ def ex_ground_years() -> None:
     with st.container(border=True):
         st.html(f"<div class='learnhead'>{ui.icon('edit')} {html.escape(t('Try it · watch the ground'))}</div>")
         st.markdown(L("The practice field, **same length**, once with summer cooling and once with heating only. "
-                      "Move the slider through the years.",
+                      "Pick a year.",
                       "Das Übungsfeld mit **gleicher Länge**, einmal mit Sommerkühlung und einmal nur mit Heizen. "
-                      "Schieben Sie den Regler durch die Jahre."))
+                      "Wählen Sie ein Jahr."))
         with st.spinner(t("Calculating 50 years for both cases...")):
             data = _cached("ground_years")
         year = st.segmented_control(t("Year"), [5, 25, 50], default=50, required=True, key="learn_year",
@@ -395,7 +415,7 @@ def ex_ground_years() -> None:
         for col, case, title in zip(cols, ("heating", "cooling"), (t("Heating only"), t("Heating and summer cooling"))):
             with col:
                 st.markdown(f"**{title}**")
-                ui.show_chart(plots.ground_map_chart({**maps[case], "scale": scale},
+                ui.show_chart(result_charts.ground_map_chart({**maps[case], "scale": scale},
                                                      size=260 if ui.is_phone() else 400), width="content")
                 st.caption(t("Coldest point {x:.1f} K after {n} years", x=float(maps[case]["table"]["Change"].min()),
                              n=year))
@@ -432,13 +452,13 @@ def ex_inside_borehole() -> None:
         if parts:
             df = pd.DataFrame([{"Part": name, "R": r, "K": r * (data["q_peak"] or 0)} for name, r in parts])
             df["Order"] = range(len(df))
-            bar = alt.Chart(df).mark_bar().encode(
-                x=alt.X("R:Q", stack="zero", title=t("Borehole resistance R_b [m·K/W]"),
-                        axis=alt.Axis(tickCount=6, format=".2f")),
-                color=alt.Color("Part:N", sort=list(df["Part"]), scale=alt.Scale(range=["#7dd3fc", "#38bdf8", ACCENT]),
-                                legend=alt.Legend(orient="top", title=None)),
-                order="Order:Q", tooltip=["Part:N", alt.Tooltip("R:Q", format=".3f"), alt.Tooltip("K:Q", format=".2f")])
-            ui.show_chart(bar.properties(height=34))
+            # one bar per part of R_b, with its share in K at the heating peak (plain HTML: three rows)
+            top = float(df["R"].max()) or 1.0
+            rows = "".join(
+                f"<div class='rbrow'><span>{html.escape(name)}</span><div><i style='width:{r / top * 100:.1f}%'></i>"
+                f"</div><b>{html.escape(fmt('{r:.3f} m·K/W · {k:.1f} K', r=r, k=k))}</b></div>"
+                for name, r, k in zip(df["Part"], df["R"], df["K"]))
+            st.html(f"<div class='rbparts'>{rows}</div>")
             st.caption(t("R_b = {rb:.3f} m·K/W, split approximately. At the heating peak ({q:.0f} W/m) the fluid is "
                          "{k:.1f} K colder than the borehole wall.", rb=data["Rb"], q=data["q_peak"] or 0,
                          k=data["Rb"] * (data["q_peak"] or 0)))

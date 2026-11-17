@@ -24,11 +24,11 @@ from dataclasses import dataclass
 import pandas as pd
 from pyproj import Transformer
 
-from ..i18n import t
-from ..siteplan import lookup
-from ..siteplan.lookup import LookupError_
-from . import rocks
-from .predict import Borehole, LogLayer
+from ghe_web.i18n import t
+from ghe_web.siteplan import lookup
+from ghe_web.siteplan.lookup import LookupError_
+from ghe_web.strata import rocks
+from ghe_web.strata.predict import Borehole, LogLayer
 
 GUEK250 = "https://services.bgr.de/arcgis/rest/services/inspire_ge/guek250/MapServer/{layer}/query"
 NRW_BML = "https://www.bml3.nrw.de/service/bml"
@@ -64,14 +64,6 @@ def surface_geology(x: float, y: float) -> list[dict]:
     order = {"only part": 0, "major part": 1, "dominant constituent": 1, "minor part": 2}
     out.sort(key=lambda u: (not u["cover"], order.get(u["role"], 1)))
     return out
-
-
-def bedrock_from_map(units: list[dict]) -> str | None:
-    """The main rock of the base layer of the map (not the cover), if it could be classified."""
-    for u in units:
-        if not u["cover"] and u["rock"] != rocks.UNKNOWN:
-            return u["rock"]
-    return None
 
 
 # ---------------------------------------------------------------- BoreholeML

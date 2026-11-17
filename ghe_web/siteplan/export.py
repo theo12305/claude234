@@ -14,10 +14,10 @@ from matplotlib.path import Path
 from pyproj import CRS
 from pyproj.enums import WktVersion
 
-from .. import plots as _look  # noqa: F401 (the common Matplotlib look)
-from ..i18n import t
-from .layout import Rules, Site, allowed_area
-from .lookup import EPSG, to_wgs84
+from ghe_web.charts import palette as _look  # noqa: F401 (the common Matplotlib look)
+from ghe_web.i18n import t
+from ghe_web.siteplan.layout import Rules, Site, allowed_area
+from ghe_web.siteplan.lookup import EPSG, to_wgs84
 
 matplotlib.use("Agg")
 

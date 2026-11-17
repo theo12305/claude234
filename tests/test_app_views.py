@@ -47,3 +47,14 @@ def test_hidden_views_stay_registered_but_are_not_shown():
     for key in ("overview", "checks", "heat_pump", "hydraulics", "materials"):
         assert key in keys and registry.get(key).available(None) is False
     assert not registry.get("analysis").on_sheet and not registry.get("export").on_sheet
+
+
+@pytest.mark.parametrize("mode", ["simple", "expert"])
+def test_groundwater_wells_open_in_both_modes(mode):
+    """Simple mode used to add the design-check step to the wells too, whose tab label was then missing (crash)."""
+    at = AppTest.from_file(APP, default_timeout=600)
+    at.session_state["ui_mode"] = mode
+    at.run()
+    next(b for b in at.button if "Groundwater" in b.label).click()
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]

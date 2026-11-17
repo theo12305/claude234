@@ -8,8 +8,9 @@ import textwrap
 import pandas as pd
 import streamlit as st
 
-from .. import i18n, ui
-from ..i18n import t
+from ghe_web import i18n
+from ghe_web.i18n import t
+from ghe_web.page import look
 
 
 def in_language(fn, *args):
@@ -30,7 +31,8 @@ def start_figures(view_number: int) -> None:
 
 def _picture(spec: dict, kind: str) -> bytes:
     import vl_convert as vlc
-    from ..report import _register_chart_fonts
+
+    from ghe_web.downloads.pdf_report import _register_chart_fonts
     _register_chart_fonts()  # DejaVu from matplotlib: the text is there even on a server without fonts
     spec["config"] = {**spec.get("config", {}), "font": "DejaVu Sans"}
     return vlc.vegalite_to_png(spec, scale=3) if kind == "png" else vlc.vegalite_to_svg(spec).encode()
@@ -70,9 +72,9 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
             st.download_button(t("The numbers (CSV)"), in_language(lambda: data.to_csv(index=False).encode()),
                                f"{stem}.csv", "text/csv", icon=":material/table:", width="stretch",
                                key=f"fig.{number}.csv", on_click="ignore")
-    ui.show_chart(c, width, title=not title)
+    look.show_chart(c, width, title=not title)
     if caption:
-        ui.caption(caption)
+        look.caption(caption)
 
 
 def key_table(rows: list[tuple[str, str, str]]) -> None:

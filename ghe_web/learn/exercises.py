@@ -10,7 +10,8 @@ import copy
 import numpy as np
 import pandas as pd
 
-from .. import analysis, model, properties
+from ..core import analysis, model
+from ..inputs import registry as input_registry
 
 LOAD_FACTOR = 0.13  # the example office load of the defaults, scaled down to a 6-borehole field
 
@@ -20,7 +21,7 @@ def practice_inputs() -> dict:
     inputs = model.default_inputs()
     inputs["borefield"].values.update(N_1=3, N_2=2, B_1=6.0, B_2=6.0)
     inputs["ground"].values["k_s"] = 2.0
-    variant = properties.get("load").variant(inputs["load"].variant)
+    variant = input_registry.get("load").variant(inputs["load"].variant)
     inputs["load"].values = analysis._scaled_load(inputs["load"].values, LOAD_FACTOR, variant)
     return inputs
 

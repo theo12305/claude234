@@ -8,7 +8,6 @@ DE: dict[str, str] = {
     "Learn": "Lernen",
     "Access": "Zugang",
     "All modules": "Alle Module",
-    "Borehole resistance R_b [m·K/W]": "Bohrlochwiderstand R_b [m·K/W]",
     "Borehole spacing": "Sondenabstand",
     "Borehole spacing [m]": "Sondenabstand [m]",
     "Building load (factor)": "Gebäudelast (Faktor)",

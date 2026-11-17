@@ -6,17 +6,25 @@ import string
 
 import pytest
 
-from ghe_web import analysis, catalog, guidance, i18n, model, plots, properties, report
+from ghe_web import i18n
+from ghe_web.charts import input_drawings, palette
+from ghe_web.core import analysis, catalog, model
+from ghe_web.downloads import pdf_report
 from ghe_web.i18n import fmt, t
-from ghe_web import results
+from ghe_web.inputs import registry as input_registry
 from ghe_web import learn  # noqa: F401 (registers the German of Learn mode)
-from ghe_web.materials import page as materials_page, quantities as materials
+from ghe_web.materials import page as materials_page
+from ghe_web.materials import quantities as materials
+from ghe_web.page import guidance
 from ghe_web.results import registry as results_registry
 
-DE = i18n.table("de")  # i18n_de.py and the de.py of the feature packages
-from ghe_web.siteplan import page as siteplan_page, states
-from ghe_web.strata import rocks, sources
-from ghe_web.wells import page as wells_page, plots as wells_plots, sources as wells_sources
+DE = i18n.table("de")  # i18n/de.py and the de.py of the feature packages
+from ghe_web.siteplan import page as siteplan_page  # noqa: E402
+from ghe_web.siteplan import states  # noqa: E402
+from ghe_web.strata import rocks, sources  # noqa: E402
+from ghe_web.wells import page as wells_page  # noqa: E402
+from ghe_web.wells import plots as wells_plots  # noqa: E402
+from ghe_web.wells import sources as wells_sources  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -36,9 +44,9 @@ def _literal_calls() -> set[str]:
 
 
 def _app_tables() -> set[str]:
-    """Dictionaries of labels in app.py and the result views (tabs, chart choices, ...) translated with t()."""
+    """Dictionaries of labels in the page parts and the result views (tabs, chart choices, ...) translated with t()."""
     texts = set()
-    files = [ROOT / "app.py", *(ROOT / "ghe_web" / "results").rglob("*.py")]
+    files = [ROOT / "app.py", *(ROOT / "ghe_web" / "page").rglob("*.py"), *(ROOT / "ghe_web" / "results").rglob("*.py")]
     for path in files:
         for node in ast.parse(path.read_text(encoding="utf-8")).body:
             if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict) and node.targets[0].id.isupper():
@@ -51,7 +59,7 @@ def _app_tables() -> set[str]:
 
 def _registry_texts() -> set[str]:
     texts = set()
-    for section in properties.sections():
+    for section in input_registry.sections():
         texts |= {section.label, section.help}
         for variant in section.variants:
             texts |= {variant.label, variant.help}
@@ -70,13 +78,13 @@ def _data_texts() -> set[str]:
     texts |= {s.label for s in sources.POINT_SERVICES.values()} | {s.link_note for s in sources.POINT_SERVICES.values()}
     texts |= {note for _, _, note in sources.PORTALS.values()}
     texts |= set(siteplan_page.HOW.values())
-    texts |= set(analysis.OBJECTIVES.values()) | set(report.METHOD.values())
-    texts |= {title for title, _ in plots.DRAWINGS.values()} | set(plots.SERIES_COLORS)
+    texts |= set(analysis.OBJECTIVES.values()) | set(pdf_report.METHOD.values())
+    texts |= {title for title, _ in input_drawings.DRAWINGS.values()} | set(palette.SERIES_COLORS)
     texts |= {"Ground conductivity ±15 %", "Ground temperature ±1 K", "Building load ±10 %",
               "Grout conductivity ±25 %", "Borehole resistance ±15 %"}  # analysis.sensitivity
     texts |= {"L-shape", "U-shape", "Box", "Rectangle", "Staggered", "Layout", "Boreholes", "Grid", "Spacing [m]",
               "Length each [m]", "Total length [m]"}  # analysis.optimise_layout
-    texts |= {"Variant", "Lowest temp. [°C]", "Highest temp. [°C]", "Rb [m·K/W]"}  # kept variants in app.py
+    texts |= {"Variant", "Lowest temp. [°C]", "Highest temp. [°C]", "Rb [m·K/W]"}  # kept variants in results/views/analysis.py
     texts |= {"heating", "cooling", "cadastre", "OpenStreetMap", "Parcel", "State", "quick", "normal", "thorough",
               "outside-in rows", "nothing fits", "hexagonal grid at {angle}", "square grid at {angle}",
               "extrapolated", "geological map", "assumed", "entered", "above groundwater"}

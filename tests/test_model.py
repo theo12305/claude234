@@ -1,4 +1,5 @@
-from ghe_web import model, properties
+from ghe_web.core import model
+from ghe_web.inputs import registry as input_registry
 
 
 def test_every_section_has_valid_defaults():
@@ -18,7 +19,7 @@ def test_cross_property_check():
 
 
 def test_every_variant_builds():
-    for section in properties.sections():
+    for section in input_registry.sections():
         for variant in section.variants:
             variant.build(variant.defaults())
 

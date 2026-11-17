@@ -6,7 +6,9 @@ import numpy as np
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from ghe_web import analysis, i18n, model, properties
+from ghe_web import i18n
+from ghe_web.core import analysis, model
+from ghe_web.inputs import registry as input_registry
 from ghe_web.learn import exercises, explain, glossary, modules, sources
 
 APP = str(pathlib.Path(__file__).resolve().parents[1] / "app.py")
@@ -29,7 +31,7 @@ def test_modules_and_glossary_link_up():
     assert {term.module for term in glossary.TERMS} <= {m.number for m in modules.MODULES}
     from ghe_web.learn.page import EXERCISES
     assert {e for m in modules.MODULES for e in m.exercises} <= set(EXERCISES)
-    fields = {p.key for s in properties.sections() for v in s.variants for p in v.properties}
+    fields = {p.key for s in input_registry.sections() for v in s.variants for p in v.properties}
     assert set(glossary.FIELDS) <= fields
     for m in modules.MODULES:  # both languages filled in
         assert m.body_en.strip() and m.body_de.strip() and m.title_en and m.title_de

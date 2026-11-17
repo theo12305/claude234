@@ -8,9 +8,9 @@ knows about it except the import in ``ghe_web/results/__init__.py``.
   page.py        the result view: plan with clicks and drawing, settings, table, downloads
   de.py          German texts of this package
 """
-from .. import i18n
-from . import de
+from ghe_web import i18n
+from ghe_web.materials import de
 
 i18n.add_table("de", de.DE)
 
-from . import page  # noqa: E402,F401 (registers the view)
+from ghe_web.materials import page  # noqa: E402,F401 (registers the view)

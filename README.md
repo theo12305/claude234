@@ -126,8 +126,8 @@ results show hourly fluid temperatures. Try it with `examples/hourly_demand_exam
 The page, the PDF report and the Excel workbook are available in English (default) and German. The switch is at
 the top of the sidebar, and the choice is saved in the project file. German numbers use the decimal comma.
 
-Texts are written in English in the code and wrapped in `t("...")` (`ghe_web/i18n.py`); the German texts are in
-`ghe_web/i18n_de.py`, keyed by the English text. `tests/test_i18n.py` fails when a text has no German entry, when
+Texts are written in English in the code and wrapped in `t("...")` (`ghe_web/i18n/`); the German texts are in
+`ghe_web/i18n/de.py`, keyed by the English text. `tests/test_i18n.py` fails when a text has no German entry, when
 the placeholders differ, or when an entry is no longer used. German terms follow VDI 4640.
 
 ## Using the page
@@ -138,11 +138,11 @@ inputs that still need attention; after the calculation the page jumps to **Resu
 
 - **Share link** (sidebar): the project file, compressed into the link (`?p=...`), so a colleague opens the
   same inputs from one link. Nothing is stored on the server. Hourly demand files are left out (too long for a
-  link) and have to be uploaded again (`ghe_web/share.py`).
+  link) and have to be uploaded again (`ghe_web/downloads/share_link.py`).
 - **Design check** (sidebar and Results): every check in one list, marked problem, warning or fine, each with
   a button to the input step: input errors and warnings, conductivity, VDI 4640 spacing, and after a
   calculation the limits, laminar flow, antifreeze, ground balance, W/m and drilling deeper than 100 m
-  (`ghe_web/checks.py`).
+  (`ghe_web/core/checks.py`).
 
 Results start with a one-line verdict and five numbers (length, total length, lowest and highest
 temperature with their margin to the limits, borehole resistance). The default simulation period is
@@ -202,47 +202,37 @@ the site plan, the parcel and buildings are drawn as background. The plan settin
 Rock type, grout, pipe and drilling diameter databases (drop-downs that fill in typical values),
 yearly building demand split over months with a profile and DHW, peak durations, coaxial pipes,
 a measured (constant) borehole resistance, ground temperature from a geothermal gradient, and
-checking a given length instead of sizing. Typical values are in `ghe_web/catalog.py`.
+checking a given length instead of sizing. Typical values are in `ghe_web/core/catalog.py`.
 
 ## Structure
 
+Every folder has a short README.md that lists its files. Start with `ghe_web/README.md` for the whole map.
+
 ```
-app.py                     web page (Streamlit): app bar, input steps, calculate bar; draws every registered
-                           section and result view automatically
-ghe_web/results/           📊 Results of borehole heat exchangers, one file per view (see its __init__.py)
-  registry.py              ResultView, Ctx, register(), plugin_data() for view settings saved with the project
-  cache.py, common.py      cached calculations; figure() with number and downloads
-  summary.py               answer card, key tiles, Simple one-page results
-  views/*.py               overview, design check, temperatures, energy, ... export
-ghe_web/materials/         feature package: material list and horizontal piping plan (registers its own view and
-                           German texts)
-ghe_web/model.py           builds a GHEtool Borefield from the inputs, runs sizing, saves/loads projects (no web code)
-ghe_web/hourly.py          reads hourly demand files (CSV/Excel) and makes the example profile
-ghe_web/geometry.py        reads borehole positions from a point shapefile (.zip or .shp/.shx/.dbf/.prj)
-ghe_web/plots.py           drawings of the inputs (layout, borehole, loads) and result charts
-ghe_web/analysis.py        key results, hydraulics, sensitivity, layout and load optimisation, ground map
-ghe_web/checks.py          design check: input and result checks as problem / warning / fine
-ghe_web/share.py           project packed into a share link
-ghe_web/report.py          PDF report
-ghe_web/export.py          Excel workbook and zip export
-ghe_web/catalog.py         typical values for rock, grout, pipes, drilling diameters, fluids, load profiles
-ghe_web/wells/             groundwater wells: aquifer values, hydraulics, thermal model, sizing, checks, charts,
-                           report and the results page
-ghe_web/properties/
-  base.py                  Property, Variant, Section: the building blocks
-  registry.py              list of all sections
-  ground.py                ground: constant temperature, geothermal heat flux, or gradient
-  borefield.py             borefield layout: rectangular, or irregular from a shapefile
-  pipe.py                  borehole heat exchanger: single U, double U, coaxial, measured Rb
-  fluid.py                 water / antifreeze mixture
-  flow.py                  constant flow per borehole
-  load.py                  monthly ground load, yearly building demand (EED style), or hourly demand
-  heat_pump.py             heat pump efficiency: fixed SCOP/SEER or COP/EER curves over fluid temperature
-  calculation.py           size or check a given length
-  limits.py                min/max average fluid temperature
-  wells.py                 heat source switch, aquifer, groundwater quality, wells, groundwater limits
-tests/
+app.py                  the page frame, top to bottom: app bar, start page, input steps, calculate bar, results.
+                        About 90 lines; each line calls one part in ghe_web/page/.
+ghe_web/
+  core/                 the engineering, no web code: inputs to GHEtool, sizing, post-processing, design check,
+                        typical values, hourly files, shapefiles
+  inputs/               the input sections (Property / Variant / Section), one file per topic
+  page/                 the Streamlit page around everything: look, app bar, menu, start page, input fields,
+                        steps, site plan step, calculate bar, design check, results tab
+  charts/               drawings of the inputs and charts of the results (Altair, matplotlib), shared colours
+  results/              📊 Results of borehole heat exchangers, one file per view in views/
+  downloads/            files the user takes away: PDF report, Excel workbook, share link
+  i18n/                 languages: t("..."), number format, German texts (de.py)
+  siteplan/             ⓪ Site plan: parcel and buildings from the state services, borehole positions, GIS export
+  strata/               ground layers from borehole logs and geological maps
+  wells/                groundwater wells (open loop): own model, own results page
+  materials/            feature package: material list and horizontal piping plan (hidden for now)
+tests/                  pytest; test_app_views.py opens every result view in Streamlit's test runner
 ```
+
+Rule of thumb: code without Streamlit lives in `core/`, `inputs/`, `charts/`, `downloads/` and the logic files of
+the feature packages, so it can be tested on its own. Streamlit code lives in `app.py`, `page/`, `results/` and the
+`page.py` of each feature package.
+
+The input sections (`ghe_web/inputs/`) are built from three blocks:
 
 - **Property**: one input field with label, unit, default, limits and help text.
 - **Variant**: one way to describe a topic (e.g. "Single U-tube") plus a `build` function
@@ -257,16 +247,16 @@ tests/
 | You want to add...                       | Do this |
 |------------------------------------------|---------|
 | A field to an existing input             | Add a `Property` to the variant and use it in `build`. |
-| A new option, e.g. coaxial pipe          | Add a `Variant` to the section in `pipe.py`. |
-| A drawing for an input                   | Add an entry to `DRAWINGS` in `plots.py` for that section and variant. |
-| Typical values for a drop-down           | Add them to `catalog.py`; they appear in the matching preset. |
-| A new topic                              | New module with a `Section`, `register(...)` it, import it in `properties/__init__.py`, then use it in `model.py`. |
+| A new option, e.g. coaxial pipe          | Add a `Variant` to the section in `inputs/pipe.py`. |
+| A drawing for an input                   | Add an entry to `DRAWINGS` in `charts/input_drawings.py` for that section and variant. |
+| Typical values for a drop-down           | Add them to `core/catalog.py`; they appear in the matching preset. |
+| A new topic                              | New module with a `Section`, `register(...)` it, import it in `inputs/__init__.py`, then use it in `core/model.py`. |
 | A new result view                        | New module with `render(ctx)` and `register(ResultView(...))` (see `ghe_web/results/registry.py`), import it in `results/__init__.py`. |
 | A bigger feature                         | Its own package like `ghe_web/materials/`: logic without Streamlit, a `page.py` that registers a view, its own `de.py` added with `i18n.add_table`. Only one import line elsewhere. |
-| Any text on the page or in a report      | Write it in English inside `t("...")` and add the German text to `ghe_web/i18n_de.py` (or the feature's `de.py`). |
+| Any text on the page or in a report      | Write it in English inside `t("...")` and add the German text to `ghe_web/i18n/de.py` (or the feature's `de.py`). |
 
 Saved projects are JSON files. Values that no longer exist are ignored and new ones get their
 defaults, so old project files keep working after you extend the interface.
 
-The page picks up new properties, variants and sections without changes to `app.py`.
+The page picks up new properties, variants and sections without changes to `app.py` or `ghe_web/page/`.
 Units shown to the user (mm, MJ/m³K) are converted to GHEtool's SI units inside `build`.
