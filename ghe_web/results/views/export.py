@@ -54,8 +54,6 @@ def render(ctx: Ctx) -> None:
     stem = name.strip() or "ghetool-project"
     extra = extra_tables(ctx)
     included = ", ".join(extra) if extra else t("none yet; run them under Further analysis to include them")
-    st.markdown(t("The files are made when you click, so the page stays fast. The PDF report and the Excel workbook "
-                  "are in the language chosen at the top."))
     c1, c2 = st.columns(2)
     with c1, st.container(border=True):
         st.markdown(t("**Excel workbook**"))

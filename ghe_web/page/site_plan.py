@@ -1,4 +1,4 @@
-"""The ⓪ Site plan step (ghe_web/siteplan) and what it hands to the inputs: borehole positions for an irregular
+"""The Site plan step (ghe_web/siteplan) and what it hands to the inputs: borehole positions for an irregular
 borefield, or the numbers, distance and flow direction of groundwater wells."""
 from __future__ import annotations
 

@@ -27,7 +27,7 @@ def render(ctx: Ctx) -> None:
             figure(c)
     else:
         st.info(t("The heat pump efficiency is fixed (SCOP/SEER). Choose **Depends on the fluid temperature** under "
-                  "Heat pump efficiency in step ③ to see how the COP changes as the ground cools."),
+                  "Heat pump efficiency in the Loads step to see how the COP changes as the ground cools."),
                 icon=":material/info:")
     charts = input_drawings.heat_pump_yearly_chart(result.heat_pump, show_spf=curve)
     for c in charts if isinstance(charts, tuple) else (charts,):

@@ -96,7 +96,6 @@ def answer_section(ctx: Ctx) -> None:
                            icon=":material/table_view:", on_click="ignore")
         st.download_button(t("Save project"), lambda: project_json().encode(),
                            f"{stem}.json", "application/json", icon=":material/save:", key="quick_save", on_click="ignore")
-        st.caption(t("Full report and more downloads at the end of the page."))
 
 
 def key_results_table(key) -> None:

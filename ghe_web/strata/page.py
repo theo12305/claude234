@@ -1,4 +1,4 @@
-"""The ground layers panel in step ①: predict the layers at the site, edit them, use them.
+"""The ground layers panel in the Ground step: predict the layers at the site, edit them, use them.
 
 Streamlit code only; the method is in predict.py, the data in sources.py and rocks.py.
 """
@@ -58,7 +58,7 @@ def _location(key: str):
     names = {"plan": t("The parcel from the site plan"), "address": t("An address"), "coordinates": t("Coordinates")}
     options = (["plan"] if plan else []) + ["address", "coordinates"]
     how = st.selectbox(t("Location"), options, format_func=names.get, key=f"{key}.where",
-                       help=t("Where the boreholes will be. Find your parcel in step ⓪ Site plan to use it here."))
+                       help=t("Where the boreholes will be. Find your parcel in the Site plan step to use it here."))
     if how == "plan":
         st.caption(f":material/location_on: {plan[2]}")
         return plan

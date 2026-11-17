@@ -36,10 +36,10 @@ def choose_heat_source(page: Page, choice: str, hit: dict | None = None) -> None
 def welcome_address() -> dict | None:
     """The optional address on the start page; the place picked from the matches, or None."""
     with st.container(border=True):
-        st.markdown("#### :material/location_on: " + t("Where is the site? (optional)"))
-        st.caption(t("With an address the site plan opens with the parcel, the buildings and the distances of the "
-                     "state, places the boreholes or wells, and the ground layers can be predicted for this place. "
-                     "Leave it empty to enter the values yourself."))
+        st.markdown("#### :material/location_on: " + t("Where is the site? (optional)"),
+                    help=t("With an address the site plan opens with the parcel, the buildings and the distances of "
+                           "the state, places the boreholes or wells, and the ground layers can be predicted for this "
+                           "place. Leave it empty to enter the values yourself."))
         c1, c2 = st.columns([4, 1], vertical_alignment="bottom")
         query = c1.text_input(t("Address"), placeholder=t("e.g. Hauptstraße 5, 52062 Aachen"), key="welcome.address")
         if c2.button(t("Find"), key="welcome.find", width="stretch", icon=":material/search:") and query.strip():
@@ -48,7 +48,7 @@ def welcome_address() -> dict | None:
         hits = st.session_state.get("welcome.hits")
         if hits == []:
             st.warning(t("No address found. Try without the house number, or start without an address and find the "
-                         "parcel in step ⓪ Site plan."), icon=":material/warning:")
+                         "parcel in the Site plan step."), icon=":material/warning:")
         if not hits or not query.strip():
             return None
         labels = [h["label"] for h in hits]
@@ -65,7 +65,7 @@ def welcome(page: Page) -> None:
                     f"<p class='lead'>{html.escape(t('Free and without login. Your project stays on your device.'))}"
                     f"</p></div>")
             hit = welcome_address()
-            st.markdown(f"<div style='text-align:center' class='lbl'>{html.escape(t('Which heat source?'))}</div>",
+            st.markdown(f"<div class='lbl'>{html.escape(t('Which heat source?'))}</div>",
                         unsafe_allow_html=True)
             for col, (key_, (icon, label, text_)) in zip(st.columns(2, gap="medium"), guidance.HEAT_SOURCES.items()):
                 with col, st.container(border=True):
@@ -76,21 +76,11 @@ def welcome(page: Page) -> None:
                               t("Start with {what}", what=t(label)), key=f"welcome.{key_}", width="stretch",
                               type="primary" if key_ == model.system(page.start) else "secondary",
                               on_click=choose_heat_source, args=(page, key_, hit), icon=":material/arrow_forward:")
-            st.caption(t("You can switch later in the menu ☰ or under ① in the heat source section. To continue a "
-                         "saved project, open it in the menu ☰."))
         st.stop()
 
 
 def intro(page: Page) -> None:
-    """One line above the first steps, and the notes after opening a share link."""
-    if st.session_state.get("step") not in (None, page.steps["site_plan"], page.steps["Site"]):
-        pass  # the intro only on the first steps
-    elif page.system == "open":
-        st.caption(t("Fill in the input steps, then press **Size the wells** in the bar at the bottom. Every field "
-                     "has a question mark with an explanation; the drop-downs fill in typical values."))
-    else:
-        st.caption(t("Fill in the input steps, then press **Size borefield** in the bar at the bottom. Every field "
-                     "has a question mark with an explanation; the drop-downs fill in typical values."))
+    """The notes after opening a share link."""
     if st.session_state.pop("opened_link", False):
         st.success(t("Opened the project from the link. Hourly demand files are not part of links: upload it again if "
                      "the project uses one."), icon=":material/link:")

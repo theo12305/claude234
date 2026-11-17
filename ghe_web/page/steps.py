@@ -10,17 +10,18 @@ from ghe_web.page.state import Page
 
 # Input steps, in page order. A section with an unknown group lands in "More inputs", so new
 # sections show up without changes here. The tab labels follow the language; the ids stay the same.
-STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & borefield", "Borehole": "② Borehole & fluid",
-               "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
-               "check": "⑤ Design check", "results": ":material/bar_chart: Results",
+STEP_LABELS = {"site_plan": ":material/map: Site plan", "Site": ":material/layers: Ground & borefield", "Borehole": ":material/adjust: Borehole & fluid",
+               "Loads": ":material/thermostat: Loads", "Design": ":material/tune: Limits & calculation", "more": "More inputs",
+               "check": ":material/fact_check: Design check", "results": ":material/bar_chart: Results",
                "analysis": ":material/science: Further analysis"}
 # The same steps for groundwater wells (open loop)
-WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer", "Borehole": "② Wells",
-                    "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
+WELL_STEP_LABELS = {"site_plan": ":material/map: Site plan", "Site": ":material/layers: Ground & aquifer", "Borehole": ":material/water_pump: Wells",
+                    "Loads": ":material/thermostat: Loads", "Design": ":material/tune: Limits & calculation", "more": "More inputs",
                     "results": ":material/bar_chart: Results"}
 
-# Simple mode: the borehole, fluid and limits are part of the Loads step, which becomes step 2
-SIMPLE_STEP_LABELS = {"Loads": "② Loads", "check": "③ Design check"}
+# Simple mode: the borehole, fluid and limits are part of the Loads step (same labels: the steps carry icons, not
+# numbers, so nothing is renumbered)
+SIMPLE_STEP_LABELS: dict[str, str] = {}
 # Learn mode: three more tabs at the end (drawn by ghe_web/learn/page.py)
 LEARN_LABELS = {"learn_intro": ":material/school: Introduction", "learn_glossary": ":material/dictionary: Glossary",
                 "learn_literature": ":material/menu_book: Literature"}

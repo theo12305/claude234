@@ -19,7 +19,7 @@ def render(ctx: Ctx) -> None:
     k, c = predict.effective(rows, length, buried)
     parts = predict.contributions(rows, length, buried)
     if not used:
-        st.info(t("These layers were not used: the calculation took the single conductivity from step ①. Switch on "
+        st.info(t("These layers were not used: the calculation took the single conductivity from the Ground & borefield step. Switch on "
                   "**Calculate with the layers** under Ground to size with them."), icon=":material/info:")
     c1, c2, c3 = st.columns(3)
     c1.metric(t("Average conductivity along the borehole"), fmt("{x:.2f} W/(m·K)", x=k),
