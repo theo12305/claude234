@@ -13,7 +13,7 @@ import pandas as pd  # noqa: E402
 
 from .. import i18n  # noqa: E402
 from ..i18n import fmt, t  # noqa: E402
-from ..plots import COOLING, HEATING, NEUTRAL  # noqa: E402
+from ..plots import COOLING, HEATING, INK_LIGHT, NEUTRAL  # noqa: E402
 from .design import Design  # noqa: E402
 from .hydraulics import cone  # noqa: E402
 from .thermal import plume  # noqa: E402
@@ -85,7 +85,7 @@ def site_map(d: Design, aquifer: dict, years: int | None = None) -> plt.Figure:
     ax.set_xlabel(t("Along the flow [m]"))
     ax.set_ylabel(t("Across the flow [m]"))
     ax.legend(loc="lower right", fontsize=7.5, framealpha=0.9)
-    ax.set_title(t("Wells, flow paths and temperature plume after {y} years", y=years), fontsize=10, loc="left")
+    ax.set_title(t("Wells, flow paths and temperature plume after {y} years", y=years))
     fig.tight_layout()
     return fig
 
@@ -115,9 +115,9 @@ def well_section(d: Design, aquifer: dict, rows: list[dict] | None = None) -> pl
     wd = aquifer["water_depth"]
     for x, name, level, color in ((2.5, t("Production well"), wd + d.peak.drawdown, PRODUCTION),
                                   (7.5, t("Injection well"), wd - d.peak.rise, INJECTION)):
-        ax.add_patch(plt.Rectangle((x - 0.9, 0), 1.8, depth, facecolor="#d9cfb8", edgecolor="#555", linewidth=0.6))
+        ax.add_patch(plt.Rectangle((x - 0.9, 0), 1.8, depth, facecolor="#d9cfb8", edgecolor=INK_LIGHT, linewidth=0.6))
         ax.add_patch(plt.Rectangle((x - 0.9, d.screen.top), 1.8, d.screen.length, facecolor="#e6c79c",
-                                   hatch="oo", edgecolor="#555", linewidth=0.6))
+                                   hatch="oo", edgecolor=INK_LIGHT, linewidth=0.6))
         ax.add_patch(plt.Rectangle((x - 0.9, 0), 1.8, min(3.0, d.screen.top), facecolor="#8d8d8d", alpha=0.8))
         ax.add_patch(plt.Rectangle((x - 0.45, 0), 0.9, d.screen.top, facecolor="white", edgecolor="black", lw=1))
         ax.add_patch(plt.Rectangle((x - 0.45, d.screen.top), 0.9, d.screen.length, facecolor="white",
@@ -140,7 +140,7 @@ def well_section(d: Design, aquifer: dict, rows: list[dict] | None = None) -> pl
     ax.set_ylabel(t("Depth below ground [m]"))
     for side in ("top", "right", "bottom"):
         ax.spines[side].set_visible(False)
-    ax.set_title(t("Well construction (not to scale across)"), fontsize=10, loc="left")
+    ax.set_title(t("Well construction (not to scale across)"))
     fig.tight_layout()
     return fig
 

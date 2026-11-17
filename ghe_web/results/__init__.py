@@ -1,4 +1,4 @@
-"""The 📊 Results tab of borehole heat exchangers. Importing this package registers every built-in view.
+"""The Results tab of borehole heat exchangers. Importing this package registers every built-in view.
 
 Map (to change one thing, open only its file):
   registry.py   ResultView, Ctx, register(), plugin_data() for settings saved with the project

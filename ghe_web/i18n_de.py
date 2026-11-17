@@ -46,7 +46,7 @@ DE: dict[str, str] = {
     "③ Loads": "③ Lasten",
     "④ Limits & calculation": "④ Grenzwerte & Berechnung",
     "More inputs": "Weitere Eingaben",
-    "📊 Results": "📊 Ergebnisse",
+    ":material/bar_chart: Results": ":material/bar_chart: Ergebnisse",
     "Project": "Projekt",
     "Project name": "Projektname",
     "Open a saved project": "Gespeichertes Projekt öffnen",
@@ -64,7 +64,7 @@ DE: dict[str, str] = {
     "pump efficiency.\n"
     "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a given "
     "one.\n"
-    "6. Press **Size borefield** in the bar at the bottom. The **📊 Results** tab shows key figures, charts, further analysis "
+    "6. Press **Size borefield** in the bar at the bottom. The **:material/bar_chart: Results** tab shows key figures, charts, further analysis "
     "and the PDF report and Excel export.\n\n"
     "Save the project in the menu ☰ to continue later. Calculations use the open-source "
     "[GHEtool](https://github.com/wouterpeere/GHEtool).":
@@ -76,7 +76,7 @@ DE: dict[str, str] = {
         "Effizienz der Wärmepumpe.\n"
         "5. **④ Grenzwerte & Berechnung**: die zulässigen Fluidtemperaturen und ob die Länge ausgelegt oder eine "
         "vorgegebene Länge geprüft wird.\n"
-        "6. In der Leiste unten auf **Sondenfeld auslegen** klicken. Der Reiter **📊 Ergebnisse** zeigt Kennwerte, "
+        "6. In der Leiste unten auf **Sondenfeld auslegen** klicken. Der Reiter **:material/bar_chart: Ergebnisse** zeigt Kennwerte, "
         "Diagramme, weitere Analysen sowie PDF-Bericht und Excel-Export.\n\n"
         "Speichern Sie das Projekt im Menü ☰, um später weiterzuarbeiten. Die Berechnungen nutzen das "
         "Open-Source-Programm [GHEtool](https://github.com/wouterpeere/GHEtool).",
@@ -416,8 +416,8 @@ DE: dict[str, str] = {
     "Marble": "Marmor",
     "Unknown": "Unbekannt",
     "Uniform ground": "Homogener Untergrund",
-    "🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**.":
-        "🌙 Dunkelmodus: Menü **⋮** oben rechts > **Settings** > Theme **Dark**.",
+    ":material/dark_mode: Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**.":
+        ":material/dark_mode: Dunkelmodus: Menü **⋮** oben rechts > **Settings** > Theme **Dark**.",
     # ------------------------------------------------------------ results, charts, reports, site plan, ground layers
     " (moist)": " (feucht)",
     " average {k:.2f}": " Mittelwert {k:.2f}",
@@ -1299,8 +1299,8 @@ DE: dict[str, str] = {
     "{x:,.0f} MWh/yr": "{x:,.0f} MWh/a",
     "{x:,.1f} MWh per year": "{x:,.1f} MWh pro Jahr",
     "{x:.1f} K beyond the limit": "{x:.1f} K über dem Grenzwert",
-    "🔮 Predict the layers from nearby borehole logs and the geological map":
-        "🔮 Schichten aus nahen Bohrungen und der geologischen Karte prognostizieren",
+    ":material/online_prediction: Predict the layers from nearby borehole logs and the geological map":
+        ":material/online_prediction: Schichten aus nahen Bohrungen und der geologischen Karte prognostizieren",
 
     # ------------------------------------------------------------ share link, design check, borefield map
     '**Design check: {summary}**':
@@ -1572,8 +1572,8 @@ DE: dict[str, str] = {
     # groundwater wells (open loop)
     '**Downloads**':
         '**Downloads**',
-    '1. **⓪ Site plan** (optional): find the parcel.\n2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted layers), the aquifer and the water analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n6. Press **Size the wells** in the bar at the bottom. The **📊 Results** tab shows the flow, wells, water levels, temperatures, the site map, the well construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected water and a planar plume) are written for this tool; GHEtool has no open-loop model.':
-        '1. **⓪ Lageplan** (optional): das Flurstück finden.\n2. **① Untergrund & Grundwasserleiter**: Brunnen als Wärmequelle wählen, die Untergrundtemperatur (oder vorhergesagte Schichten), den Grundwasserleiter und die Wasseranalyse.\n3. **② Brunnen**: Bohrdurchmesser, Brunnenverluste, und ob die Brunnen ausgelegt oder vorgegebene Brunnen geprüft werden.\n4. **③ Lasten**: die dem Grundwasser entzogene und zugeführte Wärme oder der Gebäudebedarf.\n5. **④ Grenzwerte & Berechnung**: Temperaturspreizung und die Grenzwerte der Wasserbehörde.\n6. **Brunnen auslegen** in der Leiste unten drücken. Der Reiter **📊 Ergebnisse** zeigt Förderstrom, Brunnen, Wasserstände, Temperaturen, den Lageplan, den Brunnenausbau und die Downloads.\n\nDie Brunnenhydraulik (Thiem, Dupuit-Jacob, Sichardt) und das thermische Modell (Fließwege des eingeleiteten Wassers und eine ebene Temperaturfahne) sind für dieses Werkzeug geschrieben; GHEtool hat kein Modell für offene Systeme.',
+    '1. **⓪ Site plan** (optional): find the parcel.\n2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted layers), the aquifer and the water analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n6. Press **Size the wells** in the bar at the bottom. The **:material/bar_chart: Results** tab shows the flow, wells, water levels, temperatures, the site map, the well construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected water and a planar plume) are written for this tool; GHEtool has no open-loop model.':
+        '1. **⓪ Lageplan** (optional): das Flurstück finden.\n2. **① Untergrund & Grundwasserleiter**: Brunnen als Wärmequelle wählen, die Untergrundtemperatur (oder vorhergesagte Schichten), den Grundwasserleiter und die Wasseranalyse.\n3. **② Brunnen**: Bohrdurchmesser, Brunnenverluste, und ob die Brunnen ausgelegt oder vorgegebene Brunnen geprüft werden.\n4. **③ Lasten**: die dem Grundwasser entzogene und zugeführte Wärme oder der Gebäudebedarf.\n5. **④ Grenzwerte & Berechnung**: Temperaturspreizung und die Grenzwerte der Wasserbehörde.\n6. **Brunnen auslegen** in der Leiste unten drücken. Der Reiter **:material/bar_chart: Ergebnisse** zeigt Förderstrom, Brunnen, Wasserstände, Temperaturen, den Lageplan, den Brunnenausbau und die Downloads.\n\nDie Brunnenhydraulik (Thiem, Dupuit-Jacob, Sichardt) und das thermische Modell (Fließwege des eingeleiteten Wassers und eine ebene Temperaturfahne) sind für dieses Werkzeug geschrieben; GHEtool hat kein Modell für offene Systeme.',
     '2 m below the lowest water level':
         '2 m unter dem tiefsten Wasserstand',
     'A change of {k:g} K reaches {x:.0f} m downstream, beyond the parcel border at {b:g} m. The water authority may ask for a plume model; the estimate leaves out the heat exchange with the layers above and below, so the real plume is shorter.':
@@ -2169,8 +2169,8 @@ DE: dict[str, str] = {
         'Nachweis der vorgegebenen Länge',
     'Deeper than 100 m: the drilling must be reported to the mining authority (§ 127 BBergG).':
         'Tiefer als 100 m: Die Bohrung ist der Bergbehörde anzuzeigen (§ 127 BBergG).',
-    'Details in 📊 Results.':
-        'Details unter 📊 Ergebnisse.',
+    'Details in Results.':
+        'Details unter Ergebnisse.',
     'Excel':
         'Excel',
     'Expert':
@@ -2381,7 +2381,7 @@ DE: dict[str, str] = {
     'Peak cooling load': 'Kühllast (Spitze)',
     'Peak heating load': 'Heizlast (Spitze)',
     'Peak heating and cooling power of the building and their full-load hours; the yearly energy is peak × full-load hours. It is split over the months with a profile, and the month with the largest share gets the full peak.': 'Heiz- und Kühllast (Spitze) des Gebäudes und ihre Volllaststunden; die Jahresenergie ist Spitzenlast × Volllaststunden. Sie wird mit einem Profil auf die Monate verteilt, und der Monat mit dem größten Anteil erhält die volle Spitze.',
-    'Sensitivity, variants and a layout search, starting from the result in 📊 Results.': 'Sensitivität, Varianten und eine Feldsuche, ausgehend vom Ergebnis unter 📊 Ergebnisse.',
+    'Sensitivity, variants and a layout search, starting from the result in :material/bar_chart: Results.': 'Sensitivität, Varianten und eine Feldsuche, ausgehend vom Ergebnis unter :material/bar_chart: Ergebnisse.',
     'Shading outside the limits': 'Schattierung außerhalb der Grenzwerte',
     'Table of the key results': 'Tabelle der wichtigsten Ergebnisse',
     'Table of the monthly temperatures': 'Tabelle der Monatstemperaturen',
@@ -2395,7 +2395,7 @@ DE: dict[str, str] = {
     'h/yr': 'h/a',
     '③ Design check': '③ Planungsprüfung',
     '⑤ Design check': '⑤ Planungsprüfung',
-    '🔬 Further analysis': '🔬 Weitere Auswertungen',
+    ':material/science: Further analysis': ':material/science: Weitere Auswertungen',
     'Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without peaks. Dashed: the temperature limits.': 'Blau: das Fluid bei den Heizspitzen, am kältesten. Rot: bei den Kühlspitzen, am wärmsten. Grau: ohne Spitzen. Gestrichelt: die Temperaturgrenzen.',
     'Drawings of the inputs': 'Zeichnungen der Eingaben',
     'Full report: cover page, key results, the charts of this page, inputs and drawings. One-page summary: the design, key results and the temperature chart. Fill in the report settings below first.': 'Vollständiger Bericht: Deckblatt, wichtigste Ergebnisse, die Diagramme dieser Seite, Eingaben und Zeichnungen. Einseitige Zusammenfassung: die Auslegung, die wichtigsten Ergebnisse und das Temperaturdiagramm. Füllen Sie zuerst die Berichtseinstellungen unten aus.',
