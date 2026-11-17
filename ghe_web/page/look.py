@@ -255,3 +255,31 @@ def side_note(text: str) -> None:
 def calc_status(kind: str, text: str, extra: str = "") -> None:
     """The text at the left of the calculate bar. ``kind`` colours the chip: ok, warn, bad, info or grey."""
     st.html(f"<div class='calcstatus'>{chips([(kind, text)])}<span class='x'>{html.escape(extra)}</span></div>")
+
+
+def key_table_css() -> None:
+    """The compact key tables of the results (``table.keys``)."""
+    st.html("""<style>
+table.keys {width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0;}
+table.keys td {border: none; border-bottom: 1px solid rgba(128,128,128,0.18); padding: 6px 4px; vertical-align: top;}
+table.keys tr:last-child td {border-bottom: none;}
+table.keys td.val {text-align: right; font-weight: 600; white-space: nowrap; padding-left: 12px;}
+table.keys .note {font-size: 0.78rem; opacity: 0.65; line-height: 1.25;}
+@media (max-width: 640px) {
+  table.keys td:first-child {width: 55%;}
+  table.keys td.val {white-space: normal; padding-left: 8px;}
+}
+</style>""")
+
+
+def expert_css() -> None:
+    """Expert: denser inputs, so the two modes look different and more fits on the screen."""
+    st.html("""<style>
+.stTabs [data-testid="stVerticalBlock"] {gap: .55rem;}
+.stTabs [data-testid="stNumberInput"] input {height: 2.1rem; font-size: .9rem;}
+.stTabs [data-baseweb="select"] > div {min-height: 2.1rem; font-size: .9rem;}
+.stTabs [data-testid="stWidgetLabel"] p {font-size: .82rem;}
+.stTabs h5 {font-size: 1rem; padding-bottom: .3rem;}
+.stTabs div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {padding: 10px 14px;}
+.rangebar {margin: -4px 0 6px;} .rangebar .txt {font-size: .7rem;}
+</style>""")
