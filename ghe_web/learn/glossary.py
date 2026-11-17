@@ -120,17 +120,17 @@ TERMS: tuple[Term, ...] = (
          "often require 5–6 m and distances to the property boundary.",
          "VDI 4640-2 empfiehlt bei größeren Feldern mindestens 6 m für Sonden bis 100 m. Die Landesleitfäden "
          "fordern oft 5–6 m und Abstände zur Grundstücksgrenze.", (4, 3)),
-    Term("borehole_radius", "Borehole diameter", "Bohrdurchmesser", "2r_b [mm]",
+    Term("borehole_radius", "Borehole radius", "Bohrlochradius", "r_b [mm]",
          "A larger r_b lowers the ground resistance slightly, because the wall is further out, but it adds grout "
          "volume. The net effect on R_b depends on the pipe positions and on λ_g. For good grouts a larger "
          "diameter changes the length only by a few per cent.",
          "Ein größeres r_b senkt den Untergrundwiderstand leicht, weil die Wand weiter außen liegt, vergrößert "
          "aber das Verfüllvolumen. Die Nettowirkung auf R_b hängt von der Rohrlage und λ_g ab. Bei guten "
-         "Verfüllungen ändert ein größerer Durchmesser die Länge nur um wenige Prozent.",
+         "Verfüllungen ändert ein größerer Radius die Länge nur um wenige Prozent.",
          "",
-         "Typically 140–180 mm for a double U 32 mm. The minimum annulus for grouting is set by the state "
+         "Typically r_b = 70–90 mm, a drilled diameter of 140–180 mm, for a double U 32 mm. The minimum annulus for grouting is set by the state "
          "guidelines.",
-         "Typischerweise 140–180 mm für Doppel-U 32 mm. Der Mindestringraum für die Verpressung ist in den "
+         "Typischerweise r_b = 70–90 mm, also 140–180 mm Bohrdurchmesser, für Doppel-U 32 mm. Der Mindestringraum für die Verpressung ist in den "
          "Landesleitfäden festgelegt.", (5, 4)),
     Term("Rb", "Effective borehole thermal resistance", "Effektiver thermischer Bohrlochwiderstand", "R_b* [m·K/W]",
          "The resistance between the mean fluid temperature and the borehole wall per metre. It is the sum of "
@@ -246,6 +246,16 @@ TERMS: tuple[Term, ...] = (
          "Sonden; deshalb begrenzt bei großen Feldern meist das letzte Simulationsjahr.",
          r"q_y = \frac{Q_{\mathrm{ext}}-Q_{\mathrm{inj}}}{8760\,\mathrm{h}\cdot N H}",
          "", "", (1, 3)),
+    Term("peak_cooling", "Peak cooling load", "Kühllast (Spitze)", "Q̇_C [kW]",
+         "The building's design cooling load. On the ground side it becomes the peak injection "
+         "Q̇_C(1 + 1/EER), or Q̇_C alone for passive cooling. Its annual energy offsets the extraction and lowers "
+         "q_y; its peak sets the summer maximum through q_h·(R_h + R_b). In a heating-dominated field more "
+         "cooling therefore shortens the field until the upper limit T_f,max starts to govern.",
+         "Die Auslegungskühllast des Gebäudes. Im Untergrund wird sie zur Spitzeneinspeisung "
+         "Q̇_C(1 + 1/EER), bei passiver Kühlung zu Q̇_C selbst. Ihre Jahresenergie gleicht den Entzug aus und "
+         "senkt q_y; ihre Spitze bestimmt über q_h·(R_h + R_b) das Sommermaximum. In einem heizdominierten Feld "
+         "verkürzt mehr Kühlung das Feld daher, bis die obere Grenze T_f,max maßgebend wird.",
+         "", "", "", (3, 4)),
     Term("regeneration", "Thermal regeneration", "Thermische Regeneration", "Q_inj/Q_ext [–]",
          "Heat deliberately returned to the ground, for example from passive cooling, solar collectors or "
          "dry-coolers. It reduces q_y and with it the long-term drift. For a large heating-only field it is often "
@@ -304,7 +314,7 @@ BY_KEY = {term.key: term for term in TERMS}
 # Input field (property key) -> glossary term, for the "Read more" line in the field's "?" help
 FIELDS = {"k_s": "k_s", "T_g": "T_g", "volumetric_heat_capacity": "volumetric_heat_capacity", "B_1": "spacing",
           "B_2": "spacing", "r_b_mm": "borehole_radius", "Rb": "Rb", "k_g": "k_g", "mfr": "mfr", "scop": "scop",
-          "seer": "seer", "peak_heating_kw": "peak_load", "full_load_hours_heating": "full_load_hours",
+          "seer": "seer", "peak_heating_kw": "peak_load", "peak_cooling_kw": "peak_cooling", "full_load_hours_heating": "full_load_hours",
           "full_load_hours_cooling": "full_load_hours", "T_min": "limits", "T_max": "limits",
           "percentage": "antifreeze", "simulation_period": "simulation_period"}
 

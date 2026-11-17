@@ -20,6 +20,7 @@ import numpy as np
 from ..core import analysis, model
 from ..inputs import SectionInput
 from ..inputs import registry as input_registry
+from ..i18n import t
 from .text import L
 
 DATA = pathlib.Path(__file__).with_name("examples.json")
@@ -134,6 +135,12 @@ class Parameter:
     step: float = 0.1  # +-10 % (rel) or +-1 K (abs) for the sensitivity
     lo: float | None = None  # range of the parameter study (factor for rel, offset for abs)
     hi: float | None = None
+    label: tuple[str, str] | None = None  # (en, de) when the input's own label is too specific for this list
+    symbol: str | None = None  # when the glossary term covers more than this parameter
+
+    @property
+    def name(self) -> str:
+        return L(*self.label) if self.label else t(prop(self).label)
 
 
 GROUPS = {"ground": ("Ground", "Untergrund"), "field": ("Borefield", "Sondenfeld"),
@@ -144,15 +151,16 @@ PARAMETERS: tuple[Parameter, ...] = (
     Parameter("ground", "k_s", "k_s", "ground", lo=0.5, hi=1.75),
     Parameter("ground", "T_g", "T_g", "ground", "abs", 1.0, -3.0, 3.0),
     Parameter("ground", "volumetric_heat_capacity", "volumetric_heat_capacity", "ground", lo=0.6, hi=1.4),
-    Parameter("borefield", "B_1", "spacing", "field", lo=0.5, hi=2.5),
+    Parameter("borefield", "B_1", "spacing", "field", lo=0.5, hi=2.5,
+              label=("Borehole spacing", "Sondenabstand")),
     Parameter("borefield", "r_b_mm", "borehole_radius", "field", lo=0.8, hi=1.3),
     Parameter("pipe", "k_g", "k_g", "borehole", lo=0.4, hi=1.6),
     Parameter("flow", "mfr", "mfr", "borehole", lo=0.3, hi=2.0),
     Parameter("load", "peak_heating_kw", "peak_load", "load", lo=0.5, hi=1.5),
     Parameter("load", "full_load_hours_heating", "full_load_hours", "load", lo=0.6, hi=1.4),
-    Parameter("load", "peak_cooling_kw", "regeneration", "load", lo=0.0, hi=2.0),
+    Parameter("load", "peak_cooling_kw", "peak_cooling", "load", lo=0.0, hi=2.0),
     Parameter("load", "scop", "scop", "load", lo=0.75, hi=1.3),
-    Parameter("limits", "T_min", "limits", "design", "abs", 1.0, -3.0, 3.0),
+    Parameter("limits", "T_min", "limits", "design", "abs", 1.0, -3.0, 3.0, symbol="T_f,min"),
     Parameter("load", "simulation_period", "simulation_period", "design", lo=0.2, hi=2.0),
 )
 BY_PARAM = {(p.section, p.key): p for p in PARAMETERS}

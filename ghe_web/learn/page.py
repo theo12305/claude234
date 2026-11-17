@@ -41,7 +41,7 @@ CSS = """<style>
 .lkeys {display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .5rem; margin-top: .6rem;}
 .lkeys div {background: rgba(255,255,255,.55); border: 1px solid rgba(128,128,128,.18); border-radius: .55rem;
   padding: .4rem .6rem;}
-.lkeys span {display: block; font-size: .7rem; opacity: .7; text-transform: uppercase; letter-spacing: .04em;}
+.lkeys span {display: block; font-size: .74rem; opacity: .7;}
 .lkeys b {font-size: 1.05rem; font-variant-numeric: tabular-nums;}
 .pgroup {font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .65;
   margin: .9rem 0 .1rem; border-bottom: 1px solid rgba(128,128,128,.2); padding-bottom: .2rem;}
@@ -170,7 +170,7 @@ def page(state) -> None:
                  "Mechanismen verschieben."))
     key = st.segmented_control(t("Example project"), [p.key for p in projects.PROJECTS], default="house",
                                required=True, key="learn_project", label_visibility="collapsed",
-                               format_func=lambda k: projects.BY_KEY[k].title)
+                               format_func=_in_language(lambda k: projects.BY_KEY[k].title))
     project = projects.BY_KEY[key]
     with st.spinner(t("Sizing the example project...")):
         inputs, result, key_results = _sized(key)
@@ -205,10 +205,21 @@ def _project_card(project: projects.Project, result, key_results) -> None:
             f"</div>{_md(project.text)}<div class='lkeys'>{keys}</div></div>")
 
 
+def _in_language(func):
+    """A widget's format_func in the language of this run: Streamlit may call it outside the run (test runner)."""
+    language = i18n.language()
+
+    def call(value):
+        with i18n.using(language):
+            return func(value)
+    return call
+
+
 # ---------------------------------------------------------------- tab: parameters
 
-def _fmt_value(x: float, unit: str) -> str:
-    digits = 0 if abs(x) >= 100 else 1 if abs(x) >= 10 else 2
+def _fmt_value(x: float, unit: str, step: float | None = None) -> str:
+    digits = 0 if abs(x) >= 100 or (step is not None and float(step).is_integer() and float(x).is_integer()) \
+        else 1 if abs(x) >= 10 else 2
     return (fmt("{x:,.%df}" % digits, x=x) + " " + unit).strip()
 
 
@@ -247,10 +258,11 @@ def _parameters(project: projects.Project, inputs) -> None:
         q = projects.prop(p)
         term = glossary.BY_KEY[p.term]
         s = sens.get(f"{p.section}.{p.key}")
-        name, value, bar, number, more = st.columns([3.2, 1.6, 2.2, 1.0, 0.5], vertical_alignment="center", gap="small")
-        name.html(f"<span class='pname'>{html.escape(t(q.label))}</span> "
-                  f"<span class='psym'>{html.escape(term.symbol.split(' [')[0])}</span>")
-        value.html(f"<div class='pval'>{html.escape(_fmt_value(projects.value(inputs, p), t(q.unit or '')))}</div>")
+        name, value, bar, number, more = st.columns([3.0, 1.4, 2.0, 1.1, 0.4], vertical_alignment="center", gap="small")
+        symbol = _symbol(p)
+        name.html(f"<span class='pname'>{html.escape(p.name)}</span> "
+                  f"<span class='psym'>{html.escape(symbol)}</span>")
+        value.html(f"<div class='pval'>{html.escape(_fmt_value(projects.value(inputs, p), t(q.unit or ''), q.step))}</div>")
         bar.html(_sens_bar(p, s, length))
         number.html(f"<span class='sensval'>{html.escape(_sens_text(p, s))}</span>")
         with more.popover("", icon=":material/help:", help=t("Explanation, equation and sources")):
@@ -398,7 +410,7 @@ def _line(df: pd.DataFrame, x: str, x_title: str, now: float | None = None, y_ti
 
 
 def _explore(project, inputs, result) -> None:
-    pick = st.segmented_control(t("Study"), list(STUDIES), format_func=lambda k: t(STUDIES[k]), default="parameter",
+    pick = st.segmented_control(t("Study"), list(STUDIES), format_func=_in_language(lambda k: t(STUDIES[k])), default="parameter",
                                 required=True, key="learn_study", label_visibility="collapsed")
     if pick == "parameter":
         _study_parameter(project, inputs)
@@ -412,15 +424,19 @@ def _explore(project, inputs, result) -> None:
         _study_borehole(project, result)
 
 
+def _symbol(p: projects.Parameter) -> str:
+    return p.symbol or glossary.BY_KEY[p.term].symbol.split(" [")[0]
+
+
 def _param_label(param: str) -> str:
     p = projects.BY_PARAM[tuple(param.split("."))]
     q = projects.prop(p)
-    return f"{t(q.label)} [{t(q.unit)}]" if q.unit else t(q.label)
+    return f"{p.name} [{t(q.unit)}]" if q.unit else p.name
 
 
 def _study_parameter(project, inputs) -> None:
     options = [f"{p.section}.{p.key}" for p in projects.PARAMETERS]
-    param = st.selectbox(t("Parameter"), options, format_func=_param_label, key="learn_param")
+    param = st.selectbox(t("Parameter"), options, format_func=_in_language(_param_label), key="learn_param")
     p = projects.BY_PARAM[tuple(param.split("."))]
     term = glossary.BY_KEY[p.term]
     with st.spinner(t("Sizing the project for every value...")):
@@ -432,9 +448,9 @@ def _study_parameter(project, inputs) -> None:
     if len(valid) >= 2:
         span = float(valid["Length"].max() - valid["Length"].min())
         st.caption(fmt(L("Seven sizings with all other inputs fixed (dashed: this project). Range of the required "
-                         "length: {a:,.1f}–{b:,.1f} m ({p:.0f} % of the base). Local sensitivity: {s}.",
+                         "length: {a:,.1f}–{b:,.1f} m, a span of {p:.0f} % of this project's length. Local sensitivity: {s}.",
                          "Sieben Auslegungen bei sonst festen Eingaben (gestrichelt: dieses Projekt). Spanne der "
-                         "erforderlichen Länge: {a:,.1f}–{b:,.1f} m ({p:.0f} % des Ausgangswerts). Lokale "
+                         "erforderlichen Länge: {a:,.1f}–{b:,.1f} m, eine Spanne von {p:.0f} % der Länge dieses Projekts. Lokale "
                          "Sensitivität: {s}."),
                        a=float(valid["Length"].min()), b=float(valid["Length"].max()),
                        p=span / _sized(project.key)[1].borehole_length * 100, s=_sens_text(p, s)))
@@ -448,7 +464,7 @@ def _study_projects() -> None:
                  "Dieselbe relative Änderung in allen drei Projekten. Normiert: L/L₀ über x/x₀. Die Steigungen bei 1 "
                  "sind die Elastizitäten; Unterschiede zeigen, welcher Mechanismus den jeweiligen Fall bestimmt."))
     options = [f"{p.section}.{p.key}" for p in projects.PARAMETERS if p.kind == "rel" and p.key != "peak_cooling_kw"]
-    param = st.selectbox(t("Parameter"), options, format_func=_param_label, key="learn_param_cmp",
+    param = st.selectbox(t("Parameter"), options, format_func=_in_language(_param_label), key="learn_param_cmp",
                          index=options.index("borefield.B_1"))
     p = projects.BY_PARAM[tuple(param.split("."))]
     frames = []
@@ -462,10 +478,11 @@ def _study_projects() -> None:
             df["Length"] = df["Length"] / base
             df["Project"] = project.title
             frames.append(df)
-    ui.show_chart(_line(pd.concat(frames), "Value", fmt("{x} / {x}₀", x=_param_label(param).split(" [")[0]), 1.0,
+    ui.show_chart(_line(pd.concat(frames), "Value", fmt("{x} / {x}₀", x=_symbol(p)), 1.0,
                         t("Required length L / L₀"), color="Project"))
-    rows = [{t("Project"): pr.title, "ε": _sens_text(p, _sensitivities(pr.key).get(param))} for pr in projects.PROJECTS]
-    st.dataframe(pd.DataFrame(rows), hide_index=True)
+    rows = [{t("Project"): pr.title, "ε": _sensitivities(pr.key).get(param)} for pr in projects.PROJECTS]
+    st.dataframe(pd.DataFrame(rows), hide_index=True,
+                 column_config={"ε": st.column_config.NumberColumn("ε = (ΔL/L)/(Δx/x)", format="%+.2f")})
 
 
 def _study_regeneration(project, inputs) -> None:
@@ -491,7 +508,7 @@ def _study_regeneration(project, inputs) -> None:
 
 def _study_ground(project, result) -> None:
     years = st.segmented_control(t("Year"), [1, 5, 25, 50], default=50, required=True, key="learn_year",
-                                 format_func=lambda n: t("after {n} years", n=n))
+                                 format_func=_in_language(lambda n: t("year {n}", n=n)))
     with st.spinner(t("Calculating the ground temperature around the field...")):
         end = _ground(project.key, 50)
         m = _ground(project.key, years)
