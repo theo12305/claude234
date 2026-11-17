@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 import io
+import os
 import re
 
 from ghe_web.i18n import t
@@ -186,8 +187,9 @@ def ocr_text(content: bytes) -> str:
     with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
         image.save(tmp.name)
         try:
+            # one thread per page: Tesseract's own parallelism makes it many times slower on small servers
             done = subprocess.run(["tesseract", tmp.name, "-", "-l", "deu", "--psm", "4"], capture_output=True,
-                                  text=True, timeout=90)
+                                  text=True, timeout=90, env={**os.environ, "OMP_THREAD_LIMIT": "1"})
         except subprocess.TimeoutExpired as exc:
             raise ReadError(t("Reading the picture took too long.")) from exc
     return done.stdout

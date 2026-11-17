@@ -1520,8 +1520,6 @@ DE: dict[str, str] = {
         'Klicken Sie die Bohrung in der Karte unten an, um dies auszufüllen; nähere Bohrungen zählen mehr.',
     'Connected: logs with layers (BoreholeML), used for the prediction directly; all other boreholes with depth and BO number.':
         'Angebunden: Schichtenverzeichnisse (BoreholeML), direkt in der Vorhersage genutzt; alle übrigen Bohrungen mit Endteufe und BO-Nummer.',
-    'Enter a log from text or a PDF (e.g. copied from LGRBbohrungen)':
-        'Schichtenverzeichnis aus Text oder PDF eingeben (z. B. aus LGRBbohrungen kopiert)',
     'Enter its layers':
         'Schichten eingeben',
     'LGRB Baden-Württemberg, borehole database (WFS)':

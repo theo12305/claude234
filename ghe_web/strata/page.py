@@ -66,7 +66,7 @@ def _read_nearest(points: list[sources.BoreholePoint], state_key: str, count: in
     holes = [a for a in answers if isinstance(a, predict.Borehole)]
     failed = [f"{p.name}: {a}" for p, a in zip(chosen, answers) if isinstance(a, str)]
     notes = [t("Read {n} of {m} logs of the nearest boreholes automatically ({how}). Check them under "
-               "'Logs to check' below.", n=len(holes), m=len(chosen), how={"BE": t("text recognition of the log sheets"),
+               "'Logs to check' below the map.", n=len(holes), m=len(chosen), how={"BE": t("text recognition of the log sheets"),
                                    "SH": t("text layer of the log column PDFs")}.get(state_key, ""))]
     if failed:
         notes.append(t("Not read: {which}", which="; ".join(failed[:4]) + (" ..." if len(failed) > 4 else "")))
@@ -171,8 +171,7 @@ def _position(text: str) -> tuple[float, float] | None:
 
 def _read_panel(key: str, site) -> None:
     """Enter a log from text or a PDF with text, so the layers need not be typed row by row."""
-    if not st.toggle(t("Enter a log from text or a PDF (e.g. copied from LGRBbohrungen)"), key=f"{key}.read_on"):
-        _review_read_logs(key)
+    if not st.toggle(t("Enter a log: paste the layer list, read a PDF or a screenshot, or type it into a table"), key=f"{key}.read_on"):
         return
     c1, c2 = st.columns(2)
     text = c1.text_area(t("Paste the layer list"), key=f"{key}.read_text", height=130,
@@ -214,7 +213,6 @@ def _read_panel(key: str, site) -> None:
                 found.append(reader.layers_from_text(text, name, *xy, t("pasted text")))
             except reader.ReadError as exc:
                 st.error(str(exc), icon=":material/error:")
-    _review_read_logs(key)
 
 
 def _new_typed_log(key: str, site) -> None:
@@ -238,7 +236,8 @@ def _review_read_logs(key: str) -> None:
     with st.expander(t("Logs to check ({n})", n=len(found)), icon=":material/fact_check:",
                      expanded=st.session_state.get(f"{key}.review_open", False)):
         st.caption(t("Read automatically, from files or typed in. Check the depths and rocks against the log; an "
-                     "empty rock is recognised from the description. The logs are used in the prediction."))
+                     "empty rock is recognised from the description. The logs are used in the prediction; press "
+                     "Predict the layers again after changes."))
         _review_tables(key, found)
 
 
@@ -254,11 +253,11 @@ def _review_tables(key: str, found: list) -> None:
         if not hasattr(hole, "read_as"):  # the editor keeps the edits, so it always starts from what was read
             hole.read_as = list(hole.layers)
         rows = [{"From [m]": l.top, "To [m]": l.bottom, "Description": l.text, "Rock": l.rock}
-                for l in hole.read_as] or [{"From [m]": None, "To [m]": None, "Description": "", "Rock": None}] * 4
+                for l in hole.read_as]
         df = pd.DataFrame(rows, columns=["From [m]", "To [m]", "Description", "Rock"]).astype(
             {"From [m]": float, "To [m]": float, "Description": object, "Rock": object})
         edited = st.data_editor(df, hide_index=True, width="stretch", key=f"{key}.read_ed.{id(hole)}",
-                                num_rows="dynamic", column_config={
+                                num_rows="dynamic", height=min(36 * (len(df) + 2), 290), column_config={
             "From [m]": st.column_config.NumberColumn(t("From [m]"), min_value=0.0, step=0.1),
             "To [m]": st.column_config.NumberColumn(t("To [m]"), min_value=0.0, step=0.1),
             "Description": st.column_config.TextColumn(t("Description")),
@@ -294,11 +293,8 @@ def _predict_panel(key: str, depth_default: float) -> None:
                          placeholder=t("from the logs"),
                          help=t("Loose sediments above the groundwater table conduct heat worse (VDI 4640). Empty: "
                                 "from the logs, if they have it, else all layers count as water saturated."))
-    c5, c7, c6 = st.columns([2, 1, 1], vertical_alignment="bottom")
-    online = c5.toggle(t("Ask the open data services (BGR geological map of Germany; borehole data of the state "
-                         "surveys)"),
-                       value=True, key=f"{key}.online")
-    n_read = int(c7.number_input(
+    c5, c6, _ = st.columns([1, 1, 2])
+    n_read = int(c5.number_input(
         t("Logs read automatically"), 0, 12, 6, 1, key=f"{key}.n_read",
         help=t("Berlin and Schleswig-Holstein publish their logs as sheets, not as data. The app reads the logs of "
                "this many nearest boreholes itself (Berlin: text recognition of the log sheet; Schleswig-Holstein: "
@@ -307,6 +303,9 @@ def _predict_panel(key: str, depth_default: float) -> None:
     bedrock = c6.selectbox(t("Rock below the logs"), [""] + rocks.NAMES[:-1],
                            format_func=lambda r: t(r) if r else t("Continue the deepest layer"),
                            key=f"{key}.bedrock_rock")
+    online = st.toggle(t("Ask the open data services (BGR geological map of Germany; borehole data of the state "
+                         "surveys)"),
+                       value=True, key=f"{key}.online")
     pressed = st.button(t("Predict the layers"), type="primary", icon=":material/layers:", key=f"{key}.go",
                         disabled=site is None and not uploaded)
     if not pressed and not st.session_state.pop(f"{key}.auto", False):
@@ -455,7 +454,11 @@ def _show_boreholes(key: str, site, points: list[sources.BoreholePoint], used, s
     points = [p for p in points if not any(abs(p.x - h.x) < 3 and abs(p.y - h.y) < 3 for h in holes)]
     st.markdown(t("**Boreholes near the site** ({n})", n=len(points) + len(holes)))
     svc = sources.POINT_SERVICES.get(state_key or "")
-    if state_key in sources.LOG_SERVICES:
+    if state_key in sources.READ_SERVICES:
+        explain = t("Click a borehole for its data. Green: logs used in the prediction (read by the app). Blue: "
+                    "further boreholes of the state survey (darker = deeper, grey = under 30 m); 'Read its layers' "
+                    "adds one to the prediction.")
+    elif state_key in sources.LOG_SERVICES:
         explain = t("Click a borehole for its data. Green: logs with layers, used in the prediction. Blue: further "
                     "boreholes of the state survey (darker = deeper, grey = under 30 m) without layers in the "
                     "service, or beyond the number of boreholes used.")
@@ -603,6 +606,7 @@ def layers_input(prop, value: dict, key: str, prefix: str, length: float, buried
                      "estimate for planning; a thermal response test measures the real value."))
         _predict_panel(key, max(100.0, round((length + buried) * 1.5 / 10) * 10))
         _show_prediction(key, prefix, length, buried)
+        _review_read_logs(key)
         with st.popover(t("Borehole data of the 16 state surveys"), icon=":material/public:", width="stretch"):
             portals_overview()
     if rows or use:

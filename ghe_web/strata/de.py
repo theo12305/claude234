@@ -14,9 +14,10 @@ DE: dict[str, str] = {
         "0: keine. Andere Länder: Profile mit Schichten kommen als Daten (NRW, Baden-Württemberg) oder werden von "
         "Hand eingegeben.",
     "{service}, read by the app": "{service}, von der App gelesen",
-    "Read {n} of {m} logs of the nearest boreholes automatically ({how}). Check them under 'Logs to check' below.":
-        "{n} von {m} Bohrprofilen der nächstgelegenen Bohrungen automatisch gelesen ({how}). Prüfen Sie sie unten "
-        "unter „Zu prüfende Bohrprofile“.",
+    "Read {n} of {m} logs of the nearest boreholes automatically ({how}). Check them under 'Logs to check' below "
+    "the map.":
+        "{n} von {m} Bohrprofilen der nächstgelegenen Bohrungen automatisch gelesen ({how}). Prüfen Sie sie unter "
+        "„Zu prüfende Bohrprofile“ unterhalb der Karte.",
     "Not read: {which}": "Nicht gelesen: {which}",
     "text recognition of the log sheets": "Texterkennung der Profilblätter",
     "text layer of the log column PDFs": "Textebene der Säulenprofile (PDF)",
@@ -52,6 +53,9 @@ DE: dict[str, str] = {
         "Liest das Schichtenverzeichnis hinter dem Link (Webseite oder PDF-Text, ein Bild per Texterkennung) und "
         "übernimmt es in „Zu prüfende Bohrprofile“ und in die Prognose.",
     # entering logs by hand
+    "Enter a log: paste the layer list, read a PDF or a screenshot, or type it into a table":
+        "Bohrprofil eingeben: Schichtenverzeichnis einfügen, PDF oder Bildschirmfoto lesen oder in eine Tabelle "
+        "eingeben",
     "One layer per line with the depth first, as Schichtenverzeichnisse are written: '0,40 - 6,50 m Sand, kiesig' "
     "or 'bis 6,50 m Sand'. Descriptions in words or SEP 3 codes.":
         "Eine Schicht je Zeile, die Tiefe zuerst, wie in Schichtenverzeichnissen: „0,40 - 6,50 m Sand, kiesig“ oder "
@@ -71,12 +75,19 @@ DE: dict[str, str] = {
     "typed in": "eingegeben",
     "Logs to check ({n})": "Zu prüfende Bohrprofile ({n})",
     "Read automatically, from files or typed in. Check the depths and rocks against the log; an empty rock is "
-    "recognised from the description. The logs are used in the prediction.":
+    "recognised from the description. The logs are used in the prediction; press Predict the layers again after "
+    "changes.":
         "Automatisch gelesen, aus Dateien oder eingegeben. Prüfen Sie Tiefen und Gesteine am Original; ein leeres "
-        "Gestein wird aus der Beschreibung erkannt. Die Profile gehen in die Prognose ein.",
+        "Gestein wird aus der Beschreibung erkannt. Die Profile gehen in die Prognose ein; nach Änderungen erneut "
+        "„Schichten prognostizieren“ drücken.",
     "Opens the log entry above, placed at this borehole: paste, upload a screenshot, or type the layers.":
         "Öffnet die Profileingabe oben, an dieser Bohrung verortet: Text einfügen, Bildschirmfoto hochladen oder "
         "Schichten eingeben.",
+    "Click a borehole for its data. Green: logs used in the prediction (read by the app). Blue: further boreholes of "
+    "the state survey (darker = deeper, grey = under 30 m); 'Read its layers' adds one to the prediction.":
+        "Klicken Sie eine Bohrung für ihre Daten an. Grün: Profile in der Prognose (von der App gelesen). Blau: "
+        "weitere Bohrungen des Landesdienstes (dunkler = tiefer, grau = unter 30 m); „Schichten lesen“ nimmt eine "
+        "davon in die Prognose auf.",
     # state overview
     "Connected: boreholes with a picture of the log sheet; the app reads the nearest sheets by text recognition.":
         "Angebunden: Bohrungen mit Bild des Profilblatts; die App liest die nächstgelegenen Blätter per "
