@@ -65,10 +65,11 @@ of borehole keep the fluid temperature within its limits for the whole simulatio
 
 1. **⓪ Site plan** (optional): parcel, buildings, distances, how many boreholes fit.
 2. **① Ground & borefield**: ground properties and the layout of the field.
-3. **② Borehole & fluid**: probe type, grout, heat transfer fluid, flow rate.
-4. **③ Loads**: what the building needs, or what the ground has to deliver.
-5. **④ Limits & calculation**: the allowed fluid temperatures.
-6. **Design check**, then **📊 Results** and **🔬 Further analysis**.
+3. **② Loads**: what the building needs, or what the ground has to deliver. Below it, with typical values: the
+   borehole (probe type, grout), the heat transfer fluid and the allowed fluid temperatures.
+4. **③ Design check**, then **Results** and **Further analysis**.
+
+In *Expert* the borehole and fluid and the limits get steps of their own (② to ④), so the numbers shift by one.
 
 **Three modes.** *Simple* shows the main fields and puts the others under "More options". *Expert* shows all fields.
 *Learn* is Simple plus explanations, this introduction, the glossary and the literature list. The calculation is the
@@ -81,10 +82,12 @@ GHEtool aus und Grundwasserbrunnen (offenes System) mit einem eigenen Modell. Be
 
 1. **⓪ Lageplan** (optional): Flurstück, Gebäude, Abstände, wie viele Sonden passen.
 2. **① Untergrund & Sondenfeld**: Untergrundeigenschaften und Anordnung des Feldes.
-3. **② Sonde & Fluid**: Sondentyp, Verfüllung, Wärmeträgerfluid, Durchfluss.
-4. **③ Lasten**: was das Gebäude braucht oder was der Untergrund liefern muss.
-5. **④ Grenzen & Berechnung**: die zulässigen Fluidtemperaturen.
-6. **Planungsprüfung**, dann **📊 Ergebnisse** und **🔬 Weitere Auswertungen**.
+3. **② Lasten**: was das Gebäude braucht oder was der Untergrund liefern muss. Darunter, mit typischen Werten: die
+   Sonde (Sondentyp, Verfüllung), das Wärmeträgerfluid und die zulässigen Fluidtemperaturen.
+4. **③ Planungsprüfung**, dann **Ergebnisse** und **Weitere Auswertungen**.
+
+Im Modus *Experte* bekommen Sonde und Fluid sowie die Grenzen eigene Schritte (② bis ④), die Nummern verschieben
+sich darum um eins.
 
 **Drei Modi.** *Einfach* zeigt die wichtigsten Felder und legt die anderen unter „Weitere Optionen“. *Experte* zeigt
 alle Felder. *Lernen* ist Einfach plus Erklärungen, diese Einführung, das Glossar und die Literaturliste. Die

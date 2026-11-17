@@ -64,8 +64,8 @@ SOURCES: tuple[Source, ...] = (
            "VDI guideline", 2019, "DE", False,
            "https://www.vdi.de/richtlinien/details/vdi-4640-blatt-2-thermische-nutzung-des-untergrunds-"
            "erdgekoppelte-waermepumpenanlagen",
-           "The German design guideline for borehole heat exchanger systems (paid; ask the library).",
-           "Die deutsche Planungsrichtlinie für Erdwärmesondenanlagen (kostenpflichtig; in der Bibliothek fragen).",
+           "The German design guideline for borehole heat exchanger systems.",
+           "Die deutsche Planungsrichtlinie für Erdwärmesondenanlagen.",
            (2, 3, 4), "vdi4640-2"),
     Source(5, "Umweltministerium Baden-Württemberg", "Leitlinien Qualitätssicherung Erdwärmesonden (LQS EWS)",
            "State guideline", 2018, "DE", True,
@@ -89,9 +89,8 @@ SOURCES: tuple[Source, ...] = (
            "Umweltaspekte", "VDI guideline", 2010, "DE", False,
            "https://www.vdi.de/richtlinien/details/vdi-4640-blatt-1-thermische-nutzung-des-untergrunds-"
            "grundlagen-genehmigungen-umweltaspekte",
-           "Ground properties by rock type (table of thermal conductivities), permits (paid; ask the library).",
-           "Kennwerte nach Gesteinsart (Tabelle der Wärmeleitfähigkeiten), Genehmigungen (kostenpflichtig; in der "
-           "Bibliothek fragen).",
+           "Ground properties by rock type (table of thermal conductivities), permits.",
+           "Kennwerte nach Gesteinsart (Tabelle der Wärmeleitfähigkeiten), Genehmigungen.",
            (1, 6), "vdi4640-1"),
     Source(9, "HLNUG", "Erdwärmenutzung in Hessen – Leitfaden für Erdwärmesondenanlagen zum Heizen und Kühlen",
            "State guideline, 5th edition", 2017, "DE", True,

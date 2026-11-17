@@ -34,6 +34,9 @@ def render(ctx: Ctx) -> None:
                              "result above: {length:.1f} m). Read the changes in percent.", base=base,
                              length=result.borehole_length))
 
+    with st.expander(t("Vary one input: required length over a range"), icon=":material/show_chart:"):
+        _vary_one_input(ctx)
+
     with st.expander(t("Compare variants"), icon=":material/compare_arrows:"):
         ui.caption(t("Keep this result, change the inputs, size again and keep that one too. The comparison stays "
                      "until you close the page and is part of the Excel export."))
@@ -98,4 +101,42 @@ def analysis_tables(ctx: Ctx) -> dict[str, pd.DataFrame]:
 
 
 # Drawn in its own step after the results (app.py), not on the results sheet
+
+def _vary_one_input(ctx: Ctx) -> None:
+    """Sizes the field for 5 to 15 values of one input (monthly sizing) and shows the length as a curve: where an
+    input matters and where more of it stops helping."""
+    import altair as alt
+    import numpy as np
+    ui.caption(t("Sizes the field again for a range of one input, the others fixed (monthly sizing for speed). The "
+                 "curve shows where an input matters and where more of it stops helping."))
+    inputs = ctx.sized_inputs
+    options = [k for k in analysis.SWEEP_INPUTS if k[0] in inputs and (k[1] is None or k[1] in inputs[k[0]].values)]
+    pick = st.selectbox(t("Input"), options, format_func=lambda k: t(analysis.SWEEP_INPUTS[k][0]),
+                        key="vary.input")
+    section, key = pick
+    unit = analysis.SWEEP_INPUTS[pick][1]
+    now = 1.0 if key is None else float(inputs[section].values[key])
+    c1, c2, c3 = st.columns(3)
+    lo = c1.number_input(t("From [{unit}]", unit=unit), value=round(now * 0.5, 3), key=f"vary.lo.{pick}")
+    hi = c2.number_input(t("To [{unit}]", unit=unit), value=round(now * 1.5, 3), key=f"vary.hi.{pick}")
+    n = c3.number_input(t("Steps"), min_value=3, max_value=15, value=9, key="vary.n")
+    if st.button(t("Size for every value"), icon=":material/play_arrow:", key="vary.run"):
+        st.session_state.vary = (ctx.sized_json, pick, float(lo), float(hi), int(n))
+    ran = st.session_state.get("vary")
+    if not ran or ran[0] != ctx.sized_json or ran[1] != pick:
+        return
+    values = tuple(round(float(v), 4) for v in np.linspace(ran[2], ran[3], ran[4]))
+    with st.spinner(t("Sizing the variations...")):
+        df = cached_sweep(ctx.sized_json, section, key, values)
+    label = f"{t(analysis.SWEEP_INPUTS[pick][0])} [{unit}]"
+    base = alt.Chart(df.dropna()).encode(x=alt.X("Value:Q", title=label),
+                                         y=alt.Y("Length:Q", title=t("Required length [m]"), scale=alt.Scale(zero=False)),
+                                         tooltip=[alt.Tooltip("Value:Q", title=label, format=".3g"),
+                                                  alt.Tooltip("Length:Q", title=t("Length [m]"), format=".1f")])
+    now_rule = alt.Chart(pd.DataFrame({"x": [now]})).mark_rule(strokeDash=[5, 4], color="#64748b").encode(x="x:Q")
+    chart = (base.mark_line(strokeWidth=3) + base.mark_circle(size=50) + now_rule).properties(
+        height=300, title=t("Required length per borehole when {input} changes", input=t(analysis.SWEEP_INPUTS[pick][0])))
+    figure(chart, t("Dashed: the value of this project. Monthly sizing, so the level can differ a little from the "
+                    "result above; read the shape."), data=df.rename(columns={"Value": label, "Length": t("Length [m]")}))
+
 register(ResultView("analysis", "Further analysis", 900, render, tables=analysis_tables, on_sheet=False))

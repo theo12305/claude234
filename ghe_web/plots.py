@@ -831,15 +831,17 @@ def _scale_bar_length(span: float) -> float:
 
 
 def ground_map_chart(m: dict, north: bool = False, size: int = 420) -> alt.Chart:
-    """Ground temperature change at mid-depth around the field at the end of the simulation: colour classes,
-    labelled isolines, the boreholes, a scale bar and (for real coordinates) north."""
+    """Ground temperature change at mid-depth around the field (after ``m["years"]``): colour classes, labelled
+    isolines, the boreholes, a scale bar and (for real coordinates) north."""
     import contourpy
     table, holes, cell = m["table"], m["boreholes"], m["cell"]
     gx, gy = np.sort(table["x"].unique()), np.sort(table["y"].unique())
     grid = table.pivot(index="y", columns="x", values="Change").loc[gy, gx].to_numpy()
-    step, levels = ground_classes(grid)
-    lim = max(abs(float(grid.min())), abs(float(grid.max())), step)
-    bounds = [levels[0] - step] + levels + [levels[-1] + step] if levels else [float(grid.min()), float(grid.max())]
+    # m["scale"] (optional): (lowest, highest) change the colours are made for, so maps of several years compare
+    ref = np.append(grid.ravel(), m.get("scale", ()))
+    step, levels = ground_classes(ref)
+    lim = max(abs(float(ref.min())), abs(float(ref.max())), step)
+    bounds = [levels[0] - step] + levels + [levels[-1] + step] if levels else [float(ref.min()), float(ref.max())]
     colours = [_diverging((a + b) / 2, lim) for a, b in zip(bounds[:-1], bounds[1:])]
     dom_x, dom_y = _square_domain(gx, gy)
     decimals = 0 if step >= 1 else (1 if step >= 0.1 else 2)

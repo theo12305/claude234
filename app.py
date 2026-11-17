@@ -33,6 +33,7 @@ from ghe_web.siteplan import page as siteplan_page
 from ghe_web.strata import page as strata_page
 from ghe_web.properties import Property, SectionInput, Variant
 from ghe_web.wells import page as wells_page
+from ghe_web.learn import page as learn_page
 from ghe_web import results
 from ghe_web.results import common as results_common, registry as results_registry, sheet as results_sheet, \
     summary as results_summary
@@ -78,7 +79,7 @@ if st.session_state.get("shown_language", lang) != lang:
                 all(isinstance(x, (str, int)) for x in v):
             st.session_state[k] = v
 st.session_state.shown_language = lang
-MODES = {"simple": "Simple", "expert": "Expert"}
+MODES = {"simple": "Simple", "expert": "Expert", "learn": "Learn"}
 with mode_slot:
     ui_mode = st.segmented_control(t("Mode"), list(MODES), format_func=lambda k: t(MODES[k]), default="simple",
                                    required=True, key="ui_mode", label_visibility="collapsed")
@@ -115,6 +116,9 @@ WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer"
 
 # Simple mode: the borehole, fluid and limits are part of the Loads step, which becomes step 2
 SIMPLE_STEP_LABELS = {"Loads": "② Loads", "check": "③ Design check"}
+# Learn mode: three more tabs at the end (ghe_web/learn)
+LEARN_LABELS = {"learn_intro": ":material/school: Introduction", "learn_glossary": ":material/dictionary: Glossary",
+                "learn_literature": ":material/menu_book: Literature"}
 # Input methods for specialists: listed in Expert only (and in Simple while a project uses them)
 EXPERT_ONLY = {("load", "monthly"), ("load", "hourly_building"), ("heat_pump", "curve"), ("pipe", "coaxial"),
                ("pipe", "constant_rb")}
@@ -136,7 +140,7 @@ if share.PARAM in st.query_params:  # opened from a share link: load its project
         saved = model.saved_language(text)
         if saved in i18n.LANGUAGES:
             st.session_state.pending_language = saved
-        if model.saved_setting(text, "mode") in ("simple", "expert"):
+        if model.saved_setting(text, "mode") in MODES:
             st.session_state.pending_mode = model.saved_setting(text, "mode")
         siteplan_page.set_address(model.saved_setting(text, "address") or "")
         results_registry.load_plugin_data(model.saved_plugins(text))
@@ -148,9 +152,12 @@ gen = st.session_state.generation
 # The heat source decides the sections and tabs. Its radio is drawn further down, so read its value here.
 system = st.session_state.get(f"{gen}.system.variant_key", model.system(start))
 LABELS = WELL_STEP_LABELS if system == "open" else STEP_LABELS
-SIMPLE = ui_mode != "expert"
+SIMPLE = ui_mode != "expert"  # Learn mode is Simple plus explanations
+LEARN = learn_page.active(ui_mode)
 if SIMPLE:  # three input steps: the borehole, fluid and limits come with typical values under Loads
     LABELS = {**LABELS, **SIMPLE_STEP_LABELS}
+if LEARN:
+    LABELS = {**LABELS, **LEARN_LABELS}
 STEPS = {k: t(v) for k, v in LABELS.items()}
 if SIMPLE:
     STEPS["Borehole"] = STEPS["Design"] = STEPS["Loads"]
@@ -163,7 +170,7 @@ if "goto_step" in st.session_state:
 if st.session_state.get("step") not in (None, *STEPS.values()):  # language or heat source changed: same tab, new label
     for code in i18n.LANGUAGES:
         with i18n.using(code):
-            match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS, SIMPLE_STEP_LABELS) for k, v in labels.items()
+            match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS, SIMPLE_STEP_LABELS, LEARN_LABELS) for k, v in labels.items()
                      if t(v) == st.session_state.step]
         if match:
             st.session_state.step = STEPS[match[0]]
@@ -188,7 +195,7 @@ with menu:
             saved = model.saved_language(text)
             if saved in i18n.LANGUAGES:
                 st.session_state.pending_language = saved
-            if model.saved_setting(text, "mode") in ("simple", "expert"):
+            if model.saved_setting(text, "mode") in MODES:
                 st.session_state.pending_mode = model.saved_setting(text, "mode")
             siteplan_page.set_address(model.saved_setting(text, "address") or "")
             results_registry.load_plugin_data(model.saved_plugins(text))
@@ -228,8 +235,10 @@ with menu:
                 "Save the project in the menu ☰ to continue later. Calculations use the open-source "
                 "[GHEtool](https://github.com/wouterpeere/GHEtool)."))
     st.caption(t(":material/dark_mode: Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
-    st.caption(t("Simple / Expert: the switch next to the language. Simple shows the main fields and puts the others "
-                 "under \"More options\"; nothing is left out of the calculation."))
+    st.caption(t("Simple / Expert / Learn: the switch next to the language. Simple shows the main fields and puts "
+                 "the others under \"More options\"; nothing is left out of the calculation. Learn is Simple plus "
+                 "explanations, an introduction, a glossary and the literature."))
+    learn_page.menu_button()
     if system == "open":
         wells_page.sources_button("menu")
     if st.button(t("Change the heat source"), icon=":material/swap_horiz:", width="stretch",
@@ -346,6 +355,9 @@ def number_format(step, value) -> str:
 def widget(prop: Property, value, key: str):
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
     help_text = t(prop.help) or None
+    more = learn_page.read_more(prop.key)
+    if more:
+        help_text = f"{help_text}\n\n{more}" if help_text else more
     # A preset may already have put a value in the session state; then the widget must not get one too.
     initial = {} if key in st.session_state else None
     if prop.kind == "float":
@@ -632,6 +644,8 @@ step_names = [SITE_PLAN] + list(dict.fromkeys(s for s in [STEPS[k] for k in ("Si
                                               + [MORE] if s in grouped))
 # borehole heat exchangers: confirm the design check, then the results, then the further analysis
 step_names += [CHECK, RESULTS, ANALYSIS] if CHECK else [RESULTS]
+if LEARN:
+    step_names += [STEPS[k] for k in LEARN_LABELS]
 step_tabs = dict(zip(step_names, st.tabs(step_names, default=STEPS["Site"], key="step", on_change="rerun")))
 
 inputs: dict[str, SectionInput] = {}
@@ -1024,6 +1038,8 @@ with step_tabs[RESULTS]:
         with st.container(horizontal=True, horizontal_alignment="right", key="sheetbar"):
             results_sheet.customize(sections)
         results_summary.answer_section(ctx)
+        if LEARN:
+            learn_page.results_cards(ctx)
         number = 0
         for view in sections:  # every section switched on, one below the other
             if not results_sheet.section_on(view.key):
@@ -1040,3 +1056,11 @@ with step_tabs[ANALYSIS]:
     else:
         st.caption(t("Sensitivity, variants and a layout search, starting from the result in :material/bar_chart: Results."))
         results_registry.render(results_registry.get("analysis"), ctx, 1)
+
+if LEARN:  # the three Learn tabs (ghe_web/learn)
+    with step_tabs[STEPS["learn_intro"]]:
+        learn_page.introduction_tab()
+    with step_tabs[STEPS["learn_glossary"]]:
+        learn_page.glossary_tab()
+    with step_tabs[STEPS["learn_literature"]]:
+        learn_page.literature_tab()

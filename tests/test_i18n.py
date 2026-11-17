@@ -9,6 +9,7 @@ import pytest
 from ghe_web import analysis, catalog, guidance, i18n, model, plots, properties, report
 from ghe_web.i18n import fmt, t
 from ghe_web import results
+from ghe_web import learn  # noqa: F401 (registers the German of Learn mode)
 from ghe_web.materials import page as materials_page, quantities as materials
 from ghe_web.results import registry as results_registry
 
@@ -92,6 +93,7 @@ def _data_texts() -> set[str]:
     texts |= set(materials_page.TOOLS.values()) | set(materials.MANIFOLD_MODES.values()) | {"Parcel", "Building"}
     texts |= {"Drilling", "Borehole heat exchangers", "Grouting", "Horizontal piping", "Heat transfer fluid",
               "Tests and documentation", "pcs", "m", "m³", "l", "kg", "LS"}  # groups and units of the material list
+    texts |= {x for label, unit in analysis.SWEEP_INPUTS.values() for x in (label, unit)}  # "Vary one input"
     return texts
 
 
