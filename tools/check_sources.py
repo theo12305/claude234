@@ -93,7 +93,16 @@ def _by_number(state, lon, lat):
 
 
 def _parcel_info(state, x, y):
-    feats = lookup.parcel_info_at(state.parcel_info, x, y)
+    try:
+        feats = lookup.parcel_info_at(state.parcel_info, x, y)
+    except lookup.LookupError_ as exc:  # show the start of the raw answer, to see what the server sends
+        w, h = state.parcel_info, 10
+        r = lookup._session().get(w.url, params={
+            "SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetFeatureInfo", "LAYERS": w.layer, "QUERY_LAYERS": w.layer,
+            "STYLES": "", "CRS": "EPSG:25832", "BBOX": f"{x - h},{y - h},{x + h},{y + h}", "WIDTH": 101, "HEIGHT": 101,
+            "I": 50, "J": 50, "INFO_FORMAT": "text/xml", "FORMAT": "image/png"}, timeout=40)
+        raw = " ".join(r.text.split())[:400].replace("|", "/")
+        raise RuntimeError(f"{exc} / raw text/xml answer ({r.status_code}): {raw}") from exc
     return f"{len(feats)} parcels, {feats[0].geometry.area:,.0f} m², {lookup._parcel_label(feats[0].attrs)}"
 
 

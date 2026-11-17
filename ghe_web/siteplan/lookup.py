@@ -320,7 +320,8 @@ def parcel_info_at(wms, x: float, y: float) -> list[Feature]:
         r = _get(wms.url, {"SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetFeatureInfo", "LAYERS": wms.layer,
                            "QUERY_LAYERS": wms.layer, "STYLES": "", "CRS": f"EPSG:{EPSG}",
                            "BBOX": f"{x - h:.2f},{y - h:.2f},{x + h:.2f},{y + h:.2f}", "WIDTH": 101, "HEIGHT": 101,
-                           "I": 50, "J": 50, "INFO_FORMAT": info_format, "FEATURE_COUNT": 5})
+                           "I": 50, "J": 50, "INFO_FORMAT": info_format, "FEATURE_COUNT": 5,
+                           "FORMAT": "image/png"})  # some servers rebuild the GetMap and need a FORMAT
         try:
             feats = gml_features_anywhere(r.content, EPSG)
         except LookupError_ as exc:
