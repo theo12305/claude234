@@ -6,6 +6,7 @@ import streamlit as st
 
 from ghe_web import i18n
 from ghe_web.i18n import t
+from ghe_web.page import look
 
 MODES = {"simple": "Simple", "expert": "Expert", "learn": "Learn"}  # Learn: Simple plus ghe_web/learn
 
@@ -36,6 +37,12 @@ def draw() -> tuple[str, str, object, object]:
                 st.session_state[k] = v
     st.session_state.shown_language = lang
     with mode_slot:
-        ui_mode = st.segmented_control(t("Mode"), list(MODES), format_func=lambda k: t(MODES[k]), default="simple",
-                                       required=True, key="ui_mode", label_visibility="collapsed")
+        if look.is_phone():  # a drop-down keeps the bar on one line
+            st.session_state.setdefault("ui_mode", "simple")
+            ui_mode = st.selectbox(t("Mode"), list(MODES), format_func=lambda k: t(MODES[k]), key="ui_mode",
+                                   label_visibility="collapsed")
+        else:
+            ui_mode = st.segmented_control(t("Mode"), list(MODES), format_func=lambda k: t(MODES[k]),
+                                           default="simple", required=True, key="ui_mode",
+                                           label_visibility="collapsed")
     return lang, ui_mode, brand_slot, menu

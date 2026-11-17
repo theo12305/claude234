@@ -102,3 +102,30 @@ SERIES_COLORS = {
     "Lowest": PIPE_UP,
     "Highest": PIPE_DOWN,
 }
+
+
+def chart_theme(dark: bool = False) -> dict:
+    """One look for every Vega-Lite chart (Vega-Lite "config"): light gridlines, no axis lines, muted labels, titles
+    left-aligned, legends at the top left in one row. A chart's own settings win over these."""
+    ink, muted, grid = ("#e2e8f0", "#94a3b8", "#2b3a52") if dark else ("#1e293b", "#64748b", "#e9eef5")
+    return {
+        "axis": {"gridColor": grid, "gridWidth": 1, "domain": False, "tickColor": grid, "tickSize": 4,
+                 "labelColor": muted, "labelFontSize": 11, "labelPadding": 4, "titleColor": ink,
+                 "titleFontSize": 12, "titleFontWeight": 600, "titlePadding": 10},
+        "axisX": {"grid": False, "domain": True, "domainColor": muted, "domainWidth": 1},
+        "legend": {"orient": "top", "direction": "horizontal", "titleAnchor": "start", "labelColor": ink,
+                   "labelFontSize": 12, "titleColor": muted, "titleFontSize": 11, "titleFontWeight": 600,
+                   "symbolSize": 90},
+        "title": {"anchor": "start", "color": ink, "fontSize": 14, "fontWeight": 650, "subtitleColor": muted,
+                  "offset": 10},
+        "view": {"stroke": None},
+        "header": {"labelColor": ink, "titleColor": ink},
+    }
+
+
+def with_theme(spec: dict, dark: bool = False) -> dict:
+    """``spec`` with the house chart look under its own config (the spec's own config wins, key by key)."""
+    config = spec.get("config", {})
+    merged = {k: {**v, **config.get(k, {})} if isinstance(v, dict) else v for k, v in chart_theme(dark).items()}
+    spec["config"] = {**merged, **{k: v for k, v in config.items() if k not in merged}}
+    return spec

@@ -423,17 +423,16 @@ def page(handoff, wells: dict | None = None) -> None:
     "direction", "n_production", "n_injection", "spacing") the page places production and injection wells instead,
     and ``handoff`` gets the WellPlacement."""
     if wells is not None:
-        st.markdown(t("##### Site plan: from a Flurstück to well positions"))
-        st.caption(t("Optional. Find your parcel, check the buildings on the aerial image, set the distances, and get "
-                     "the production wells as far upstream and the injection wells as far downstream as the parcel "
-                     "allows."))
+        st.markdown(t("##### Site plan: from a Flurstück to well positions"), help=t(
+            "Optional. Find your parcel, check the buildings on the aerial image, set the distances, and get the "
+            "production wells as far upstream and the injection wells as far downstream as the parcel allows."))
     else:
-        st.markdown(t("##### Site plan: from a Flurstück to borehole positions"))
-        st.caption(t("Optional. Find your parcel, check the buildings on the aerial image, set the distances, and "
-                     "get the largest number of boreholes that fit, as a shapefile for the irregular borefield."))
+        st.markdown(t("##### Site plan: from a Flurstück to borehole positions"), help=t(
+            "Optional. Find your parcel, check the buildings on the aerial image, set the distances, and get the "
+            "largest number of boreholes that fit, as a shapefile for the irregular borefield."))
 
     with st.container(border=True):
-        st.markdown(t("**1 · Parcel**"))
+        _heading("sp_parcel", t("Parcel"))
         keys = _state_options()
         default = keys.index(_ss("state")) if _ss("state") and by_key(_ss("state")) else 0
         picked = st.selectbox(t("Bundesland"), keys, index=default, format_func=_state_name, key=K + "state_key",
@@ -469,7 +468,7 @@ def page(handoff, wells: dict | None = None) -> None:
         st.warning(note, icon=":material/warning:")
 
     with st.container(border=True):
-        st.markdown(t("**2 · Distances**"))
+        _heading("sp_distances", t("Distances"))
         c = st.columns(4)
         border_default = state.border_distance if state else 3.0
         rules = Rules(
@@ -509,7 +508,7 @@ def page(handoff, wells: dict | None = None) -> None:
             limit, effort = (n_prod, n_inj), direction
 
     with st.container(border=True):
-        st.markdown(t("**3 · Check the buildings and mark areas to keep free**"))
+        _heading("sp_buildings", t("Buildings and areas to keep free"))
         st.caption(t("Buildings: {official} from the official cadastre (red), {osm} more from OpenStreetMap. Compare "
                      "them with the aerial image: draw missing buildings, sheds, trees, pipes or a driveway with the "
                      "polygon or rectangle tool (left of the map); they are kept free. Remove buildings that no "
@@ -571,7 +570,7 @@ def page(handoff, wells: dict | None = None) -> None:
         _well_result(placement, parcel, allowed, effort, rules, site, state, handoff)
         return
     with st.container(border=True):
-        st.markdown(t("**4 · Result**"))
+        _heading("sp_result", t("Borehole positions"))
         c = st.columns(4)
         c[0].metric(t("Boreholes"), len(points))
         c[1].metric(t("Parcel"), fmt("{a:,.0f} m²", a=parcel.area))
@@ -606,9 +605,15 @@ def page(handoff, wells: dict | None = None) -> None:
             st.image(_png(site, rules, points, label), width="stretch")
 
 
+def _heading(key: str, label: str) -> None:
+    """A sub-step heading of the site plan: tinted icon and name, as the input sections."""
+    from ghe_web.page import look
+    st.html(look.section_heading(key, label))
+
+
 def _well_result(placement, parcel, allowed, direction, rules, site, state, handoff) -> None:
     with st.container(border=True):
-        st.markdown(t("**4 · Result**"))
+        _heading("sp_wells", t("Well positions"))
         if placement is None:
             st.error(t("The wells do not fit with these distances. Fewer wells of one kind, a smaller spacing or "
                        "smaller distances help."), icon=":material/error:")
