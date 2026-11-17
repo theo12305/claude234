@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 import shapefile  # pyshp
 
-from .i18n import t
+from ghe_web.i18n import t
 
 EARTH_RADIUS = 6_371_000.0  # m
 FOOT = 0.3048

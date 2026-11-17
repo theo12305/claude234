@@ -14,11 +14,11 @@ from folium.plugins import Draw
 from shapely.geometry import Point, shape
 from streamlit_folium import st_folium
 
-from .. import i18n
-from ..i18n import fmt, t
-from . import export, lookup
-from .layout import Rules, Site, allowed_area, check, flow_vector, place_boreholes, place_wells
-from .states import STATES, by_key
+from ghe_web import i18n
+from ghe_web.i18n import fmt, t
+from ghe_web.siteplan import export, lookup
+from ghe_web.siteplan.layout import Rules, Site, allowed_area, check, flow_vector, place_boreholes, place_wells
+from ghe_web.siteplan.states import STATES, by_key
 
 K = "siteplan."  # session state prefix
 HOW = {"address": "Address", "number": "Flurstück number", "click": "Click on the map", "draw": "Draw the outline",

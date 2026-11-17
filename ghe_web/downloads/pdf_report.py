@@ -28,9 +28,12 @@ from reportlab.pdfbase.ttfonts import TTFont  # noqa: E402
 from reportlab.platypus import (BaseDocTemplate, CondPageBreak, Frame, Image, KeepInFrame, KeepTogether,  # noqa: E402
                                 NextPageTemplate, PageBreak, PageTemplate, Paragraph, Spacer, Table, TableStyle)
 
-from . import analysis, i18n, model, plots, properties  # noqa: E402
-from .i18n import fmt, t  # noqa: E402
-from .properties import SectionInput  # noqa: E402
+from ghe_web.core import analysis, model  # noqa: E402
+from ghe_web import i18n
+from ghe_web.inputs import registry as input_registry
+from ghe_web.charts import input_drawings, palette, result_charts
+from ghe_web.i18n import fmt, t  # noqa: E402
+from ghe_web.inputs import SectionInput  # noqa: E402
 
 METHOD = {"check": "Check of a given length", "hourly": "Sizing, hourly (L4)", "monthly": "Sizing, monthly (L2/L3)"}
 APP_NAME = "GHEtool & Co."
@@ -175,7 +178,7 @@ def _key_table(rows: list[tuple[str, str, str]], width: float) -> Table:
 
 def _input_rows(inputs: dict[str, SectionInput]) -> list[tuple[str, list[tuple[str, str]]]]:
     blocks = []
-    for section in properties.sections():
+    for section in input_registry.sections():
         chosen = inputs.get(section.key)
         if chosen is None or (section.system and inputs.get("system") is not None
                               and section.system != inputs["system"].variant):
@@ -230,12 +233,12 @@ class ReportOptions:
     inputs: bool = True  # the input tables and drawings (full report)
 
 
-def _sheet(opt: ReportOptions) -> tuple[dict, dict, plots.ChartStyle]:
-    from .results.sheet import PARTS, SECTION_DEFAULTS
+def _sheet(opt: ReportOptions) -> tuple[dict, dict, palette.ChartStyle]:
+    from ghe_web.results.sheet import PARTS, SECTION_DEFAULTS
     choice = opt.sheet or {}
     sections = {**SECTION_DEFAULTS, **choice.get("sections", {})}
     parts = {p: d for group in PARTS.values() for p, _, d in group} | choice.get("parts", {})
-    style = choice.get("style") or plots.DEFAULT_STYLE
+    style = choice.get("style") or palette.DEFAULT_STYLE
     return sections, parts, replace(style, pointer=False)  # nothing to point at on paper
 
 
@@ -377,22 +380,22 @@ def _result_figures(result, inputs, key, opt: ReportOptions, extras: dict, figs:
         if parts.get("temp_years"):
             story.append(figs.add(t("Fluid temperature in the boreholes over {n} years",
                                     n=round(float(temps.index.max()))),
-                                  chart_png(plots.temperature_chart(temps, limits, None, style), 700, 320),
+                                  chart_png(result_charts.temperature_chart(temps, limits, None, style), 700, 320),
                                   t("Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the "
                                     "warmest. Grey: without peaks. Dashed: the temperature limits.")))
         if parts.get("temp_zoom") or parts.get("temp_last"):
             story.append(figs.add(t("Last year of the simulation"),
-                                  chart_png(plots.last_year_chart(temps, limits, style=style), 700, 240)))
+                                  chart_png(result_charts.last_year_chart(temps, limits, style=style), 700, 240)))
         if parts.get("temp_extremes"):
             extremes = analysis.yearly_extremes(result)
             story.append(figs.add(t("Lowest and highest temperature per year"),
-                                  chart_png(plots.yearly_extremes_chart(extremes, limits, style), 700, 224)))
+                                  chart_png(result_charts.yearly_extremes_chart(extremes, limits, style), 700, 224)))
     if sections.get("energy"):
         heading(t("Energy"))
         if parts.get("energy_balance"):
             energy = analysis.monthly_ground_energy(result)
             story.append(figs.add(t("Monthly energy balance of the ground"),
-                                  chart_png(plots.energy_balance_chart(energy), 700, 264)))
+                                  chart_png(result_charts.energy_balance_chart(energy), 700, 264)))
         if parts.get("energy_numbers"):
             story.append(_table([(t("Extracted from the ground"), t("{x:,.0f} MWh/yr", x=key.values["extraction_mwh"])),
                                  (t("Injected into the ground"), t("{x:,.0f} MWh/yr", x=key.values["injection_mwh"])),
@@ -402,18 +405,18 @@ def _result_figures(result, inputs, key, opt: ReportOptions, extras: dict, figs:
         duration = analysis.load_duration(result) if parts.get("load_duration") else None
         if duration is not None:
             story.append(figs.add(t("Load duration curve (first year)"),
-                                  chart_png(plots.load_duration_chart(duration), 700, 224)))
+                                  chart_png(result_charts.load_duration_chart(duration), 700, 224)))
     hourly = result.hourly_temperatures
     if sections.get("hourly") and hourly is not None:
         heading(t("Hourly"))
         if parts.get("hourly_daily"):
             story.append(figs.add(t("Hourly fluid temperature (daily range)"),
-                                  chart_png(plots.hourly_band_chart(hourly, limits, style), 700, 240)))
+                                  chart_png(result_charts.hourly_band_chart(hourly, limits, style), 700, 240)))
         if parts.get("hourly_last"):
             story.append(figs.add(t("Hourly fluid temperature in the last year"),
-                                  chart_png(plots.hourly_last_year_chart(hourly, limits, style), 700, 240)))
+                                  chart_png(result_charts.hourly_last_year_chart(hourly, limits, style), 700, 240)))
         if parts.get("hourly_heatmap"):
-            story.append(figs.add(t("Heat map of the last year"), chart_png(plots.heatmap_chart(hourly), 700, 240)))
+            story.append(figs.add(t("Heat map of the last year"), chart_png(result_charts.heatmap_chart(hourly), 700, 240)))
     if sections.get("ground") and (extras.get("ground_map") or parts.get("gfunction")):
         heading(t("Ground"))
         m = extras.get("ground_map")
@@ -421,28 +424,28 @@ def _result_figures(result, inputs, key, opt: ReportOptions, extras: dict, figs:
             north = inputs["borefield"].variant == "custom"
             story.append(figs.add(t("Ground temperature change at {depth:.0f} m depth after {years} years",
                                     depth=m["depth"], years=m["years"]),
-                                  chart_png(plots.ground_map_chart(m, north, size=520), scale=2), max_h=125 * mm))
+                                  chart_png(result_charts.ground_map_chart(m, north, size=520), scale=2), max_h=125 * mm))
         if parts.get("gfunction"):
             curve = analysis.gfunction_curve(result)
             story.append(figs.add(t("g-function of the borefield (thermal interaction of the boreholes)"),
-                                  chart_png(plots.gfunction_chart(curve), 700, 224)))
+                                  chart_png(result_charts.gfunction_chart(curve), 700, 224)))
     if sections.get("field") and extras.get("borehole_map") is not None and len(extras["borehole_map"]) > 1:
         heading(t("Borefield map"))
         story.append(figs.add(t("Share of the load"),
-                              chart_png(plots.borehole_map_chart(extras["borehole_map"], "share"), scale=2),
+                              chart_png(result_charts.borehole_map_chart(extras["borehole_map"], "share"), scale=2),
                               max_h=120 * mm))
     if sections.get("load_optimisation") and extras.get("load_optimisation"):
         opt_ = extras["load_optimisation"]
         heading(t("Load optimisation"))
         story.append(figs.add(t("Load optimisation: heating {heat:.0%} and cooling {cool:.0%} covered by the ground",
                                 heat=opt_["heating_share"], cool=opt_["cooling_share"]),
-                              chart_png(plots.optimisation_chart(opt_["monthly"]), 700, 240)))
+                              chart_png(result_charts.optimisation_chart(opt_["monthly"]), 700, 240)))
     return story
 
 
 def _drawings(inputs, figs: _Figures) -> list:
     story = []
-    for title, drawing in plots.input_drawings(inputs):
+    for title, drawing in input_drawings.input_drawings(inputs):
         for part in drawing if isinstance(drawing, tuple) else (drawing,):
             png = _figure_png(part) if isinstance(part, plt.Figure) else chart_png(part, 700, 224)
             story.append(figs.add(title, png, max_h=95 * mm))
@@ -476,10 +479,10 @@ def make_pdf(result: model.SizingResult, inputs: dict[str, SectionInput], projec
         story = [*head, Spacer(1, 4), meta_table, Spacer(1, 8), _answer_box(result, key, inputs), Spacer(1, 4)]
         story += _key_groups(key)
         if result.hourly_basis:
-            png = chart_png(plots.hourly_band_chart(result.hourly_temperatures, inputs["limits"].values, style),
+            png = chart_png(result_charts.hourly_band_chart(result.hourly_temperatures, inputs["limits"].values, style),
                             900, 300)
         else:
-            png = chart_png(plots.temperature_chart(result.temperatures, inputs["limits"].values, None, style),
+            png = chart_png(result_charts.temperature_chart(result.temperatures, inputs["limits"].values, None, style),
                             900, 320)
         story += [Spacer(1, 6), *figs.add(t("Fluid temperature over the years"), png, max_h=80 * mm, keep=False)]
         story += _warnings(key)

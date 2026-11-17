@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
-from ..i18n import t
+from ghe_web.i18n import t
 
 # "points": a list of (x, y) borehole positions in metres.
 # "hourly": {"heating": [8760 values], "cooling": [8760 values]} in kW.
@@ -55,7 +55,7 @@ class Property:
             if not isinstance(value, dict):
                 return [t("{label}: not a layer table.", label=t(self.label))]
             if value.get("use"):
-                from ..strata.predict import check_rows
+                from ghe_web.strata.predict import check_rows
                 errors.extend(f"{t(self.label)}: {msg}" for msg in check_rows(list(value.get("rows") or [])))
             return errors
         if self.kind == "points":

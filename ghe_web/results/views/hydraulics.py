@@ -1,14 +1,14 @@
 """Hydraulics: Rb, Reynolds number, pressure drop and pump power."""
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
-from ... import analysis, export, i18n, model, plots, report, ui
-from ...i18n import fmt, t
-from ..cache import *  # noqa: F403 (the cached calculations)
-from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from ..registry import Ctx, ResultView, hidden, register
+from ghe_web.core import analysis
+from ghe_web.page import look
+from ghe_web.charts import result_charts
+from ghe_web.i18n import fmt, t
+from ghe_web.results.common import figure
+from ghe_web.results.registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:
@@ -31,11 +31,11 @@ def render(ctx: Ctx) -> None:
             bf = result.borefield
             flow = float(bf.borehole.flow_data.vfr_borehole(fluid_data=bf.borehole.fluid_data,
                                                              temperature=v["t_min"]))
-            figure(plots.pressure_drop_chart(curve, flow, v["dp_kpa"]))
-            ui.caption(t("At the coldest fluid temperature, where the fluid is most viscous. The borehole only: add "
+            figure(result_charts.pressure_drop_chart(curve, flow, v["dp_kpa"]))
+            look.caption(t("At the coldest fluid temperature, where the fluid is most viscous. The borehole only: add "
                          "the manifold, header pipes and heat pump evaporator for the pump. The kink is where the "
                          "flow turns turbulent."))
-    ui.caption(t("Pump energy = hydraulic power ÷ pump efficiency × operating hours, both set under Flow rate in "
+    look.caption(t("Pump energy = hydraulic power ÷ pump efficiency × operating hours, both set under Flow rate in "
                  "step ②."))
 
 

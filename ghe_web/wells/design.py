@@ -2,18 +2,18 @@
 the thermal model. No web code here."""
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
 
-from .. import properties
-from ..properties import SectionInput
-from . import aquifer as aq
-from .hydraulics import C_W, RHO_W, G, FieldHydraulics, Well, entrance_velocity, field_hydraulics, pump_power
-from .thermal import SECONDS_PER_MONTH, SECONDS_PER_YEAR, Streamlines, critical_distance, plume_length, \
-    production_temperature, trace
+from ghe_web.inputs import registry as input_registry
+from ghe_web.inputs import SectionInput
+from ghe_web.wells import aquifer as aq
+from ghe_web.wells.hydraulics import (C_W, RHO_W, G, FieldHydraulics, Well, entrance_velocity, field_hydraulics,
+                                      pump_power)
+from ghe_web.wells.thermal import (SECONDS_PER_MONTH, SECONDS_PER_YEAR, Streamlines, critical_distance, plume_length,
+                                   production_temperature, trace)
 
 HOURS_PER_MONTH = np.array([744, 672, 744, 720, 744, 720, 744, 744, 720, 744, 720, 744])
 CANDIDATES = (5, 6, 8, 10, 12, 15, 18, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200,
@@ -25,7 +25,7 @@ PUMP_SUBMERGENCE = 2.0  # m of water above the pump intake at the lowest level
 
 def _build(inputs: dict[str, SectionInput], key: str):
     chosen = inputs[key]
-    return properties.get(key).variant(chosen.variant).build(chosen.values)
+    return input_registry.get(key).variant(chosen.variant).build(chosen.values)
 
 
 @dataclass
@@ -70,8 +70,8 @@ def groundwater_temperature(inputs: dict[str, SectionInput], depth: float) -> fl
 def thermal_properties(inputs: dict[str, SectionInput], top: float, bottom: float) -> tuple[float, float]:
     """Conductivity [W/(m·K)] and volumetric heat capacity [J/(m³·K)] of the aquifer, from the layers when they
     are in use."""
-    from ..properties.ground import layered
-    from ..strata.predict import effective
+    from ghe_web.inputs.ground import layered
+    from ghe_web.strata.predict import effective
     v = inputs["ground"].values
     if layered(v):
         k, c = effective(list(v["layers"]["rows"]), bottom - top, top)

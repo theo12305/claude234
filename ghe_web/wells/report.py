@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
-from .. import i18n  # noqa: E402
-from ..export import inputs_table  # noqa: E402
-from ..i18n import fmt, t  # noqa: E402
-from ..properties import SectionInput  # noqa: E402
-from ..report import A4, _today  # noqa: E402
-from . import checks, design, plots, sources  # noqa: E402
+from ghe_web import i18n  # noqa: E402
+from ghe_web.downloads.excel import inputs_table  # noqa: E402
+from ghe_web.i18n import fmt, t  # noqa: E402
+from ghe_web.inputs import SectionInput  # noqa: E402
+from ghe_web.downloads.pdf_report import A4, _today  # noqa: E402
+from ghe_web.wells import checks, design, plots, sources  # noqa: E402
 
 
 def key_groups(d: design.Design, inputs: dict[str, SectionInput]) -> dict[str, list[tuple[str, str, str]]]:
@@ -106,7 +106,7 @@ def workbook(d: design.Design, inputs: dict[str, SectionInput], name: str = "") 
 
 def pdf(d: design.Design, inputs: dict[str, SectionInput], name: str = "") -> bytes:
     """Summary page with the key results and the design check, then the site map and the well construction."""
-    from ..properties.ground import layered
+    from ghe_web.inputs.ground import layered
     aquifer = design._build(inputs, "aquifer")
     buf = io.BytesIO()
     with PdfPages(buf) as pdf_file:

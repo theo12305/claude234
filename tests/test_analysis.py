@@ -1,7 +1,9 @@
 import pytest
 
-from ghe_web import analysis, model, properties, report
-from ghe_web.catalog import GROUND
+from ghe_web.core import analysis, model
+from ghe_web.inputs import registry as input_registry
+from ghe_web.downloads import pdf_report
+from ghe_web.core.catalog import GROUND
 
 
 @pytest.fixture(scope="module")
@@ -11,7 +13,7 @@ def sized():
 
 
 def test_presets_only_set_existing_properties():
-    for section in properties.sections():
+    for section in input_registry.sections():
         for variant in section.variants:
             keys = {p.key for p in variant.properties}
             for group in variant.presets:
@@ -59,7 +61,7 @@ def test_annual_building_load_is_close_to_monthly():
     monthly = model.default_inputs()
     annual = model.default_inputs()
     annual["load"].variant = "annual_building"
-    annual["load"].values = properties.get("load").variant("annual_building").defaults()
+    annual["load"].values = input_registry.get("load").variant("annual_building").defaults()
     a, m = model.size(annual).borehole_length, model.size(monthly).borehole_length
     assert a == pytest.approx(m, rel=0.15)
 
@@ -68,7 +70,7 @@ def test_annual_building_load_is_close_to_monthly():
 def test_pipe_variants_size(variant):
     inputs = model.default_inputs()
     inputs["pipe"].variant = variant
-    inputs["pipe"].values = properties.get("pipe").variant(variant).defaults()
+    inputs["pipe"].values = input_registry.get("pipe").variant(variant).defaults()
     assert 20 < model.size(inputs).borehole_length < 500
 
 
@@ -76,7 +78,7 @@ def test_round_trip_with_new_sections():
     inputs = model.default_inputs()
     inputs["calculation"].variant = "check"
     inputs["ground"].variant = "gradient"
-    inputs["ground"].values = properties.get("ground").variant("gradient").defaults()
+    inputs["ground"].values = input_registry.get("ground").variant("gradient").defaults()
     _, loaded = model.from_json(model.to_json(inputs))
     assert loaded["calculation"].variant == "check"
     assert loaded["ground"].variant == "gradient"
@@ -101,5 +103,5 @@ def test_sensitivity(sized):
 
 def test_pdf_report(sized):
     inputs, result = sized
-    pdf = report.make_pdf(result, inputs, "Test")
+    pdf = pdf_report.make_pdf(result, inputs, "Test")
     assert pdf.startswith(b"%PDF") and len(pdf) > 10_000

@@ -8,9 +8,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from .. import catalog
-from ..i18n import fmt, t
-from . import network
+from ghe_web.core import catalog
+from ghe_web.i18n import fmt, t
+from ghe_web.materials import network
 
 # PE100 SDR 11 pipes for the connection and header lines: outer diameter and wall thickness in mm
 PE_SDR11 = {25: 2.3, 32: 2.9, 40: 3.7, 50: 4.6, 63: 5.8, 75: 6.8, 90: 8.2, 110: 10.0, 125: 11.4, 140: 12.7,

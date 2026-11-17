@@ -1,9 +1,9 @@
 from GHEtool import HourlyBuildingLoad, MonthlyBuildingLoadAbsolute, MonthlyGeothermalLoadAbsolute
 
-from ..catalog import MONTHLY_PROFILES
-from ..hourly import example_profile
-from .base import Property, Section, Variant
-from .registry import register
+from ghe_web.core.catalog import MONTHLY_PROFILES
+from ghe_web.core.hourly import example_profile
+from ghe_web.inputs.base import Property, Section, Variant
+from ghe_web.inputs.registry import register
 
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 HOURS_PER_MONTH = (744, 672, 744, 720, 744, 720, 744, 744, 720, 744, 720, 744)

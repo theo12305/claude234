@@ -9,11 +9,11 @@ import html
 import io
 import re
 
-from ..i18n import t
-from ..siteplan import lookup
-from ..siteplan.lookup import LookupError_
-from . import rocks
-from .predict import Borehole, LogLayer
+from ghe_web.i18n import t
+from ghe_web.siteplan import lookup
+from ghe_web.siteplan.lookup import LookupError_
+from ghe_web.strata import rocks
+from ghe_web.strata.predict import Borehole, LogLayer
 
 IMAGE_TYPES = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "gif": "image/gif",
                "webp": "image/webp"}

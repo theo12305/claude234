@@ -2,10 +2,10 @@ from dataclasses import dataclass
 
 from GHEtool import CoaxialPipe, DoubleUTube, SingleUTube
 
-from ..catalog import GROUT, PIPES
-from ..i18n import t
-from .base import PresetGroup, Property, Section, Variant
-from .registry import register
+from ghe_web.core.catalog import GROUT, PIPES
+from ghe_web.i18n import t
+from ghe_web.inputs.base import PresetGroup, Property, Section, Variant
+from ghe_web.inputs.registry import register
 
 K_G = Property("k_g", "Grout thermal conductivity", 1.6, "W/(m·K)", min=0.1, max=5.0, step=0.1)
 K_P = Property("k_p", "Pipe thermal conductivity", 0.42, "W/(m·K)", min=0.05, max=5.0, step=0.01)

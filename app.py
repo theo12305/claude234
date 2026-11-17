@@ -5,7 +5,6 @@ import io
 import math
 import pathlib
 import sys
-import textwrap
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -28,19 +27,24 @@ def _drop_stale_package():
 
 _drop_stale_package()
 
-from ghe_web import analysis, checks, export, geometry, guidance, hourly, i18n, model, plots, properties, report, share, ui
+from ghe_web.core import analysis, checks, geometry, hourly, model
+from ghe_web.downloads import share_link
+from ghe_web.page import guidance, look
+from ghe_web import i18n
+from ghe_web.inputs import registry as input_registry
+from ghe_web.charts import input_drawings
 from ghe_web.i18n import fmt, t
 from ghe_web.siteplan import page as siteplan_page
 from ghe_web.strata import page as strata_page
-from ghe_web.properties import Property, SectionInput, Variant
+from ghe_web.inputs import Property, SectionInput, Variant
 from ghe_web.wells import page as wells_page
 from ghe_web import results
-from ghe_web.results import common as results_common, registry as results_registry, sheet as results_sheet, \
-    summary as results_summary
+from ghe_web.results import (common as results_common, registry as results_registry, sheet as results_sheet,
+                             summary as results_summary)
 from ghe_web.results.cache import cached_size
 
 st.set_page_config(page_title="GHEtool & Co.", page_icon="🌍", layout="wide")
-ui.inject_css()
+look.inject_css()
 st.html("""<style>
 table.keys {width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0;}
 table.keys td {border: none; border-bottom: 1px solid rgba(128,128,128,0.18); padding: 6px 4px; vertical-align: top;}
@@ -101,7 +105,7 @@ in_language = results_common.in_language
 
 
 def chart(c, width="stretch") -> None:
-    ui.show_chart(c, width)
+    look.show_chart(c, width)
 
 
 # Input steps, in page order. A section with an unknown group lands in "More inputs", so new
@@ -125,11 +129,11 @@ EXPERT_ONLY = {("load", "monthly"), ("load", "hourly_building"), ("heat_pump", "
 if "project" not in st.session_state:
     st.session_state.project = ("", model.default_inputs())
     st.session_state.generation = 0
-if share.PARAM in st.query_params:  # opened from a share link: load its project once, then drop it from the address
-    packed = st.query_params[share.PARAM]
-    del st.query_params[share.PARAM]
+if share_link.PARAM in st.query_params:  # opened from a share link: load its project once, then drop it from the address
+    packed = st.query_params[share_link.PARAM]
+    del st.query_params[share_link.PARAM]
     try:
-        text = share.decode(packed)
+        text = share_link.decode(packed)
         st.session_state.project = model.from_json(text)
     except Exception:
         st.session_state.link_error = True
@@ -240,7 +244,7 @@ with menu:
         st.rerun()
 
 with brand_slot:
-    ui.brand(t("Groundwater well sizing") if system == "open" else t("Borehole heat exchanger sizing"))
+    look.brand(t("Groundwater well sizing") if system == "open" else t("Borehole heat exchanger sizing"))
 
 # ---------------------------------------------------------------- start page: the heat source
 
@@ -251,7 +255,7 @@ def choose_heat_source(choice: str, hit: dict | None = None) -> None:
     inputs_now = {**inputs_now, "system": SectionInput(choice, {})}
     if st.session_state.get("ui_mode", "simple") != "expert" and inputs_now["load"].variant == "monthly":
         # Simple asks about the building (heat per year, peak, cooling), not the monthly ground load
-        building = properties.get("load").variant("annual_building")
+        building = input_registry.get("load").variant("annual_building")
         inputs_now["load"] = SectionInput(building.key, building.defaults())
     st.session_state.project = (st.session_state.get(f"{gen}.name", project_name), inputs_now)
     st.session_state.generation += 1
@@ -362,16 +366,16 @@ def field_help(prop: Property, value, values: dict, prefix: str) -> None:
     rock = st.session_state.get(f"{prefix}.preset.Rock type") or None if prop.key == "k_s" else None
     rng = guidance.typical(prop.key, rock, prop.label)
     if rng is not None:
-        ui.range_bar(float(value), rng, prop.min, prop.max, rock)
+        look.range_bar(float(value), rng, prop.min, prop.max, rock)
     now = {k: st.session_state.get(f"{prefix}.{k}", v) for k, v in values.items()}
     note = guidance.side_note(prop.key, float(value), now)
     if note:
-        ui.side_note(note)
+        look.side_note(note)
 
 
 def field_grid(props: list[Property], values: dict, prefix: str, n_cols: int) -> None:
     # on a phone the columns stack, which would mix up the order (column by column): one column there
-    cols = st.columns(1 if ui.is_phone() else n_cols)
+    cols = st.columns(1 if look.is_phone() else n_cols)
     for i, prop in enumerate(props):
         with cols[i % len(cols)]:
             values[prop.key] = widget(prop, values[prop.key], f"{prefix}.{prop.key}")
@@ -480,7 +484,7 @@ def cached_drawing(section_key: str, variant_key: str, project_json: str, langua
     """Input drawings, cached on the inputs and the language. Matplotlib figures are stored as PNG, charts as they
     are."""
     with i18n.using(language):
-        drawing = plots.DRAWINGS[(section_key, variant_key)][1](model.from_json(project_json)[1])
+        drawing = input_drawings.DRAWINGS[(section_key, variant_key)][1](model.from_json(project_json)[1])
     parts = []
     for part in drawing if isinstance(drawing, tuple) else (drawing,):
         if isinstance(part, plt.Figure):
@@ -507,11 +511,11 @@ def borehole_depth() -> tuple[float, float]:
     if system == "open":
         chosen = start.get("aquifer") or SectionInput("unconfined", {})
         variant = st.session_state.get(f"{gen}.aquifer.variant_key", chosen.variant)
-        defaults = {**properties.get("aquifer").variant(variant).defaults(),
+        defaults = {**input_registry.get("aquifer").variant(variant).defaults(),
                     **(chosen.values if variant == chosen.variant else {})}
         return float(st.session_state.get(f"{gen}.aquifer.{variant}.bottom", defaults["bottom"])), 0.0
     chosen = start.get("borefield") or SectionInput("rectangular", {})
-    section = properties.get("borefield")
+    section = input_registry.get("borefield")
     variant = st.session_state.get(f"{gen}.borefield.variant_key", chosen.variant)
     defaults = {**section.variant(variant).defaults(), **(chosen.values if variant == chosen.variant else {})}
     return (float(st.session_state.get(f"{gen}.borefield.{variant}.H", defaults["H"])),
@@ -563,7 +567,7 @@ def section_inputs(section) -> tuple[SectionInput, object]:
         hourly_props = [p for p in variant.properties if p.kind == "hourly"]
         monthly = [p for p in variant.properties if p.kind == "monthly"]
         # wide inputs (tables, hourly files) get their drawing below instead of beside them
-        has_drawing = (section.key, variant.key) in plots.DRAWINGS
+        has_drawing = (section.key, variant.key) in input_drawings.DRAWINGS
         side = has_drawing and not monthly and not hourly_props
         form_col, drawing_col = st.columns([3, 2], gap="large") if side else (st.container(), None)
         prefix = f"{gen}.{section.key}.{variant.key}"
@@ -615,7 +619,7 @@ def next_step_button(step: str) -> None:
 
 
 grouped: dict[str, list] = {}
-for section in properties.sections(system):
+for section in input_registry.sections(system):
     grouped.setdefault(STEPS.get(section.group, MORE), []).append(section)
 step_names = [SITE_PLAN] + list(dict.fromkeys(s for s in [STEPS[k] for k in ("Site", "Borehole", "Loads", "Design")]
                                               + [MORE] if s in grouped))
@@ -754,7 +758,7 @@ if "site_plan_points" in st.session_state:
     x0, y0 = min(x for x, _ in pts), min(y for _, y in pts)
     borefield = inputs["borefield"]
     values = dict(borefield.values) if borefield.variant == "custom" else \
-        {**properties.get("borefield").variant("custom").defaults(),
+        {**input_registry.get("borefield").variant("custom").defaults(),
          **{k: v for k, v in borefield.values.items() if k in ("H", "D", "r_b_mm")}}
     values["points"] = tuple((round(x - x0, 2), round(y - y0, 2)) for x, y in pts)
     st.session_state.site_plan_origin = ((x0, y0), values["points"])  # the material list plan draws the buildings
@@ -841,7 +845,7 @@ with save_slot:
                        f"{name.strip() or 'ghetool-project'}.json", "application/json", width="stretch",
                        icon=":material/save:", on_click="ignore")
 with share_slot, st.expander(t("Share link"), icon=":material/link:"):
-    link, dropped = share.link(st.context.url or "", project_json())
+    link, dropped = share_link.link(st.context.url or "", project_json())
     st.markdown(t("**Share this project**"))
     st.caption(t("Anyone with the link opens the site with your inputs filled in. The project is stored in the link "
                  "itself; nothing is saved on the server. Copy it with the button at the right of the box."))
@@ -861,11 +865,11 @@ if "result_json" in st.session_state and model.system(model.from_json(st.session
 
 if system == "open":
     def _step_of_section(section_key: str) -> str:
-        group = properties.get(section_key).group
+        group = input_registry.get(section_key).group
         return STEPS[group if group in STEPS and group not in ("site_plan", "results") else "more"]
 
     def _goto_section(section_key: str) -> None:
-        group = properties.get(section_key).group
+        group = input_registry.get(section_key).group
         st.session_state.goto_step = group if group in STEPS and group not in ("site_plan", "results") else "more"
 
     wells_page.page(inputs, errors, current_json, name, lang, calc_slot, step_tabs[RESULTS], _step_of_section,
@@ -893,7 +897,7 @@ def calculate() -> None:
 
 
 def section_step_key(section_key: str) -> str:
-    group = properties.get(section_key).group
+    group = input_registry.get(section_key).group
     return group if group in STEPS and group not in ("site_plan", "results") else "more"
 
 
@@ -924,7 +928,7 @@ check_icons = {checks.PROBLEM: ":red[:material/cancel:]", checks.WARNING: ":oran
 
 def show_design_check(found: list[checks.Check]) -> None:
     st.markdown(t("**Design check: {summary}**", summary=checks.summary(found)))
-    ui.caption(t("Every check in one place. The temperature, flow, antifreeze and balance checks appear after a "
+    look.caption(t("Every check in one place. The temperature, flow, antifreeze and balance checks appear after a "
                  "calculation."))
     for i, check in enumerate(found):
         with st.container(border=True):
@@ -946,20 +950,20 @@ with calc_slot:
     n = checks.counts(found_checks)
     with st.container(width="stretch"):
         if errors:
-            ui.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
-                           "; ".join(f"{section_step.get(k, '')}: {t(properties.get(k).label)}" for k in errors))
+            look.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
+                           "; ".join(f"{section_step.get(k, '')}: {t(input_registry.get(k).label)}" for k in errors))
         elif "calc_error" in st.session_state:
-            ui.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
+            look.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
         elif "result_json" in st.session_state:
             res = cached_size(st.session_state.result_json)
             last = t("{n} × {length:.1f} m, {total:,.0f} m in total", n=res.number_of_boreholes,
                      length=res.borehole_length, total=res.total_length)
             if st.session_state.result_json != current_json:
-                ui.calc_status("warn", t("Inputs changed – results out of date"), t("Last result: {x}", x=last))
+                look.calc_status("warn", t("Inputs changed – results out of date"), t("Last result: {x}", x=last))
             else:
-                ui.calc_status("ok", t("Result up to date"), last)
+                look.calc_status("ok", t("Result up to date"), last)
         else:
-            ui.calc_status("grey", t("Not calculated yet"))
+            look.calc_status("grey", t("Not calculated yet"))
     if errors:
         st.button(t("Show"), on_click=first_error_step, key="calc_goto_error", icon=":material/arrow_upward:")
     check_label = " · ".join(x for x in (

@@ -6,17 +6,20 @@ import zipfile
 
 import pandas as pd
 
-from . import analysis, i18n, model, properties, report
-from .i18n import fmt, t
-from .properties import SectionInput
-from .report import METHOD
+from ghe_web.core import analysis, model
+from ghe_web import i18n
+from ghe_web.inputs import registry as input_registry
+from ghe_web.downloads import pdf_report
+from ghe_web.i18n import fmt, t
+from ghe_web.inputs import SectionInput
+from ghe_web.downloads.pdf_report import METHOD
 
 
 def summary_table(result: model.SizingResult, inputs: dict[str, SectionInput], name: str = "") -> pd.DataFrame:
     key = analysis.key_results(result, inputs)
     project, field = t("Project"), t("Borefield")
     rows = [(project, t("Name"), name.strip() or "-", ""),
-            (project, t("Date"), report._today(), ""),
+            (project, t("Date"), pdf_report._today(), ""),
             (project, t("Calculation"), t(METHOD[result.sizing_method]), ""),
             (field, t("Borehole length"), fmt("{x:.1f} m", x=result.borehole_length), ""),
             (field, t("Number of boreholes"), str(result.number_of_boreholes), ""),
@@ -29,7 +32,7 @@ def summary_table(result: model.SizingResult, inputs: dict[str, SectionInput], n
 def inputs_table(inputs: dict[str, SectionInput]) -> pd.DataFrame:
     """One row per scalar input. Tables (monthly loads, positions, hourly profiles) get their own sheets."""
     rows = []
-    for section in properties.sections(model.system(inputs)):
+    for section in input_registry.sections(model.system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             continue
@@ -55,7 +58,7 @@ def inputs_table(inputs: dict[str, SectionInput]) -> pd.DataFrame:
 
 def _table_inputs(inputs: dict[str, SectionInput]) -> dict[str, pd.DataFrame]:
     sheets = {}
-    for section in properties.sections(model.system(inputs)):
+    for section in input_registry.sections(model.system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             continue
@@ -89,7 +92,7 @@ def layer_table(rows) -> pd.DataFrame:
 
 def basis(text: str) -> str:
     """Where a layer comes from ("4 logs, above groundwater"), in the current language."""
-    from .strata.predict import describe_basis
+    from ghe_web.strata.predict import describe_basis
     return describe_basis(text)
 
 
@@ -150,13 +153,13 @@ def _workbook(sheets: dict[str, tuple[pd.DataFrame, bool]]) -> bytes:
 
 
 def zip_bundle(result: model.SizingResult, inputs: dict[str, SectionInput], name: str = "",
-               extra: dict[str, pd.DataFrame] | None = None, report_options: report.ReportOptions | None = None,
+               extra: dict[str, pd.DataFrame] | None = None, report_options: pdf_report.ReportOptions | None = None,
                report_extras: dict | None = None) -> bytes:
     """Workbook, PDF report and the project file, so a design can be archived or shared in one file."""
     stem = name.strip() or "ghetool-project"
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(f"{stem}.xlsx", excel_workbook(result, inputs, name, extra))
-        z.writestr(f"{stem}.pdf", report.make_pdf(result, inputs, name, report_options, report_extras))
+        z.writestr(f"{stem}.pdf", pdf_report.make_pdf(result, inputs, name, report_options, report_extras))
         z.writestr(f"{stem}.json", model.to_json(inputs, name))
     return buf.getvalue()

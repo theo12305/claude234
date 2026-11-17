@@ -43,7 +43,7 @@ def add_table(code: str, table: dict[str, str]) -> None:
 def table(code: str) -> dict[str, str]:
     """All translations of a language: i18n_de.py and the feature packages."""
     if code not in _MERGED:
-        from .i18n_de import DE
+        from ghe_web.i18n.de import DE
         _MERGED[code] = {**(DE if code == "de" else {}), **_EXTRA.get(code, {})}
     return _MERGED[code]
 

@@ -12,11 +12,11 @@ import pandas as pd
 import streamlit as st
 from streamlit_folium import st_folium
 
-from .. import plots
-from ..i18n import fmt, t
-from ..siteplan import lookup
-from ..siteplan.lookup import LookupError_
-from . import predict, reader, rocks, sources
+from ghe_web.charts import input_drawings
+from ghe_web.i18n import fmt, t
+from ghe_web.siteplan import lookup
+from ghe_web.siteplan.lookup import LookupError_
+from ghe_web.strata import predict, reader, rocks, sources
 
 SITE_PLAN = "siteplan."  # session state prefix of the site plan step
 
@@ -309,7 +309,7 @@ def _show_prediction(key: str, prefix: str, length: float, buried: float) -> Non
                              t("Weight"): st.column_config.ProgressColumn(format="percent", min_value=0,
                                                                           max_value=1)})
     with right:
-        fig = plots.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
+        fig = input_drawings.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
         st.pyplot(fig, width="stretch")
     if site and (points or result.used):
         _show_boreholes(key, site, points, result.used, state_key)

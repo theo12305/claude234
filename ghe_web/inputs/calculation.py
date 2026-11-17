@@ -1,5 +1,5 @@
-from .base import Section, Variant
-from .registry import register
+from ghe_web.inputs.base import Section, Variant
+from ghe_web.inputs.registry import register
 
 register(Section(
     key="calculation",

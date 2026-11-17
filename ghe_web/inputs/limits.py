@@ -1,6 +1,6 @@
-from ..i18n import t
-from .base import Property, Section, Variant
-from .registry import register
+from ghe_web.i18n import t
+from ghe_web.inputs.base import Property, Section, Variant
+from ghe_web.inputs.registry import register
 
 register(Section(
     key="limits",

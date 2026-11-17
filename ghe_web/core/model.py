@@ -11,15 +11,15 @@ import numpy as np
 import pandas as pd
 from GHEtool import Borefield
 
-from . import properties
-from .i18n import t
-from .properties import SectionInput
-from .properties.pipe import ConstantRb
+from ghe_web.inputs import registry as input_registry
+from ghe_web.i18n import t
+from ghe_web.inputs import SectionInput
+from ghe_web.inputs.pipe import ConstantRb
 
 
 def default_inputs() -> dict[str, SectionInput]:
     """Each section with its first variant and default values."""
-    return {s.key: SectionInput(s.variant().key, s.variant().defaults()) for s in properties.sections()}
+    return {s.key: SectionInput(s.variant().key, s.variant().defaults()) for s in input_registry.sections()}
 
 
 def system(inputs: dict[str, SectionInput]) -> str:
@@ -31,7 +31,7 @@ def system(inputs: dict[str, SectionInput]) -> str:
 def warnings(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
     """Soft warnings per section key: unusual but allowed inputs."""
     out = {}
-    for section in properties.sections(system(inputs)):
+    for section in input_registry.sections(system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             continue
@@ -47,7 +47,7 @@ def validate(inputs: dict[str, SectionInput]) -> dict[str, list[str]]:
     """Return errors per section key, for the sections of the chosen heat source. An empty dict means everything is
     valid."""
     errors = {}
-    for section in properties.sections(system(inputs)):
+    for section in input_registry.sections(system(inputs)):
         chosen = inputs.get(section.key)
         if chosen is None:
             errors[section.key] = [t("{section}: no input given.", section=t(section.label))]
@@ -86,7 +86,7 @@ def _cross_errors(inputs: dict[str, SectionInput]) -> list[tuple[str, str]]:
 
 def _build(inputs: dict[str, SectionInput], key: str) -> Any:
     chosen = inputs[key]
-    return properties.get(key).variant(chosen.variant).build(chosen.values)
+    return input_registry.get(key).variant(chosen.variant).build(chosen.values)
 
 
 def uses_building_load(inputs: dict[str, SectionInput]) -> bool:
@@ -316,12 +316,12 @@ def from_json(text: str) -> tuple[str, dict[str, SectionInput]]:
     inputs = default_inputs()
     for key, saved in data.get("sections", {}).items():
         try:
-            variant = properties.get(key).variant(saved.get("variant"))
+            variant = input_registry.get(key).variant(saved.get("variant"))
         except KeyError:
             continue
         values = variant.defaults()
         if (key, variant.key) == ("load", "annual_building"):  # files from before the full-load hours
-            from .properties.load import from_annual_energy
+            from ghe_web.inputs.load import from_annual_energy
             values.update(from_annual_energy(saved.get("values", {})))
         for p in variant.properties:
             if p.key in saved.get("values", {}):

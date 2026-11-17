@@ -1,9 +1,9 @@
 from GHEtool import GroundConstantTemperature, GroundFluxTemperature, GroundLayer, GroundTemperatureGradient
 
-from ..catalog import GROUND
-from ..i18n import t
-from .base import PresetGroup, Property, Section, Variant
-from .registry import register
+from ghe_web.core.catalog import GROUND
+from ghe_web.i18n import t
+from ghe_web.inputs.base import PresetGroup, Property, Section, Variant
+from ghe_web.inputs.registry import register
 
 K_S = Property("k_s", "Ground thermal conductivity", 2.8, "W/(m·K)", min=0.1, max=10.0, step=0.1)
 T_G = Property("T_g", "Undisturbed ground temperature", 10.0, "°C", min=-10.0, max=40.0, step=0.5)

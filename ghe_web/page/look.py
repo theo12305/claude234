@@ -7,8 +7,9 @@ import textwrap
 
 import streamlit as st
 
-from . import guidance, i18n
-from .i18n import t
+from ghe_web.page import guidance
+from ghe_web import i18n
+from ghe_web.i18n import t
 
 # Light and dark colours. The Streamlit theme (.streamlit/config.toml) uses the same values.
 PALETTE = {

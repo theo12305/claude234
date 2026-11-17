@@ -1,21 +1,21 @@
 """Export: Excel, PDF report, zip and CSV downloads."""
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
-from ... import analysis, export, i18n, model, plots, report, ui
-from ...i18n import fmt, t
-from ..cache import *  # noqa: F403 (the cached calculations)
-from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from .. import sheet
-from ..registry import Ctx, ResultView, register
+from ghe_web.downloads import excel, pdf_report
+from ghe_web import i18n
+from ghe_web.i18n import t
+from ghe_web.results.cache import cached_borehole_map, cached_ground_map, load_optimisation_done
+from ghe_web.results.common import in_language
+from ghe_web.results import sheet
+from ghe_web.results.registry import Ctx, ResultView, register
 
 
 REPORT_KINDS = {"full": "Full report", "summary": "One-page summary"}
 
 
-def report_settings(sized_json: str, stem: str) -> tuple[report.ReportOptions, dict]:
+def report_settings(sized_json: str, stem: str) -> tuple[pdf_report.ReportOptions, dict]:
     """Report settings in an expander. Text fields keep their values while the page is open."""
     with st.expander(t("Report settings: type, title, company, client, logo, introduction and conclusion"),
                      icon=":material/edit_document:"):
@@ -36,7 +36,7 @@ def report_settings(sized_json: str, stem: str) -> tuple[report.ReportOptions, d
         st.caption(t("The charts in the report are the ones switched on under Customize the results, with the same "
                      "lines and markers."))
     choice = sheet.choice()
-    options = report.ReportOptions(kind=kind, title=title, subtitle=subtitle, author=author, company=company,
+    options = pdf_report.ReportOptions(kind=kind, title=title, subtitle=subtitle, author=author, company=company,
                                    client=client, introduction=intro, conclusion=conclusion,
                                    logo=logo.getvalue() if logo else None, sheet=choice, inputs=with_inputs)
     extras = {"load_optimisation": load_optimisation_done(sized_json)}
@@ -51,7 +51,7 @@ def report_settings(sized_json: str, stem: str) -> tuple[report.ReportOptions, d
 def render(ctx: Ctx) -> None:
     result, sized_inputs, sized_json, name = ctx.result, ctx.sized_inputs, ctx.sized_json, ctx.name
     lang = i18n.language()
-    from ..registry import extra_tables
+    from ghe_web.results.registry import extra_tables
     stem = name.strip() or "ghetool-project"
     extra = extra_tables(ctx)
     included = ", ".join(extra) if extra else t("none yet; run them under Further analysis to include them")
@@ -62,7 +62,7 @@ def render(ctx: Ctx) -> None:
         st.markdown(t("**Excel workbook**"))
         st.caption(t("Summary, inputs, monthly and yearly temperatures, ground energy, hourly results and your "
                      "further analysis (included: {included}).", included=included))
-        st.download_button(t("Download Excel (.xlsx)"), in_language(export.excel_workbook, result, sized_inputs, name,
+        st.download_button(t("Download Excel (.xlsx)"), in_language(excel.excel_workbook, result, sized_inputs, name,
                                                                     extra),
                            f"{stem}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                            type="primary", icon=":material/table_view:", on_click="ignore")
@@ -72,7 +72,7 @@ def render(ctx: Ctx) -> None:
                      "summary: the design, key results and the temperature chart. Fill in the report settings below "
                      "first."))
         st.download_button(t("Download PDF"),
-                           lambda: i18n.call_in(lang, report.make_pdf, result, sized_inputs, name, options,
+                           lambda: i18n.call_in(lang, pdf_report.make_pdf, result, sized_inputs, name, options,
                                                 report_extras),
                            f"{stem}.pdf", "application/pdf", type="primary", icon=":material/picture_as_pdf:",
                            on_click="ignore")
@@ -81,14 +81,14 @@ def render(ctx: Ctx) -> None:
         st.markdown(t("**Everything in one zip**"))
         st.caption(t("Excel workbook, PDF report and the project file, for archiving a design."))
         st.download_button(t("Download zip"),
-                           lambda: i18n.call_in(lang, export.zip_bundle, result, sized_inputs, name, extra, options,
+                           lambda: i18n.call_in(lang, excel.zip_bundle, result, sized_inputs, name, extra, options,
                                                 report_extras),
                            f"{stem}.zip", "application/zip", icon=":material/folder_zip:", on_click="ignore")
     with c4, st.container(border=True):
         st.markdown(t("**CSV files**"))
         st.caption(t("Plain tables for other tools."))
         st.download_button(t("Monthly temperatures (CSV)"),
-                           in_language(lambda: export.monthly_temperatures(result).to_csv(index=False).encode()),
+                           in_language(lambda: excel.monthly_temperatures(result).to_csv(index=False).encode()),
                            f"{stem}_monthly.csv", "text/csv", icon=":material/download:", on_click="ignore")
         if result.hourly_temperatures is not None:
             st.download_button(t("Hourly temperatures (CSV)"),

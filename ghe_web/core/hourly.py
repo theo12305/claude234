@@ -6,7 +6,7 @@ import math
 
 import pandas as pd
 
-from .i18n import t
+from ghe_web.i18n import t
 
 HOURS = 8760
 

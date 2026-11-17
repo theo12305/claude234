@@ -6,9 +6,13 @@ import string
 
 import pytest
 
-from ghe_web import analysis, catalog, guidance, i18n, model, plots, properties, report
+from ghe_web.core import analysis, catalog, model
+from ghe_web.page import guidance
+from ghe_web import i18n
+from ghe_web.inputs import registry as input_registry
+from ghe_web.downloads import pdf_report
+from ghe_web.charts import input_drawings, palette
 from ghe_web.i18n import fmt, t
-from ghe_web import results
 from ghe_web.materials import page as materials_page, quantities as materials
 from ghe_web.results import registry as results_registry
 
@@ -50,7 +54,7 @@ def _app_tables() -> set[str]:
 
 def _registry_texts() -> set[str]:
     texts = set()
-    for section in properties.sections():
+    for section in input_registry.sections():
         texts |= {section.label, section.help}
         for variant in section.variants:
             texts |= {variant.label, variant.help}
@@ -69,8 +73,8 @@ def _data_texts() -> set[str]:
     texts |= {s.label for s in sources.POINT_SERVICES.values()} | {s.link_note for s in sources.POINT_SERVICES.values()}
     texts |= {note for _, _, note in sources.PORTALS.values()}
     texts |= set(siteplan_page.HOW.values())
-    texts |= set(analysis.OBJECTIVES.values()) | set(report.METHOD.values())
-    texts |= {title for title, _ in plots.DRAWINGS.values()} | set(plots.SERIES_COLORS)
+    texts |= set(analysis.OBJECTIVES.values()) | set(pdf_report.METHOD.values())
+    texts |= {title for title, _ in input_drawings.DRAWINGS.values()} | set(palette.SERIES_COLORS)
     texts |= {"Ground conductivity ±15 %", "Ground temperature ±1 K", "Building load ±10 %",
               "Grout conductivity ±25 %", "Borehole resistance ±15 %"}  # analysis.sensitivity
     texts |= {"L-shape", "U-shape", "Box", "Rectangle", "Staggered", "Layout", "Boreholes", "Grid", "Spacing [m]",

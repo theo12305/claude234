@@ -5,7 +5,8 @@ import zipfile
 import pytest
 import shapefile
 
-from ghe_web import geometry, model, properties
+from ghe_web.core import geometry, model
+from ghe_web.inputs import registry as input_registry
 
 WGS84 = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],' \
         'PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]'
@@ -75,7 +76,7 @@ def test_missing_part_is_reported():
 def _custom_inputs(points):
     inputs = model.default_inputs()
     inputs["borefield"].variant = "custom"
-    inputs["borefield"].values = properties.get("borefield").variant("custom").defaults()
+    inputs["borefield"].values = input_registry.get("borefield").variant("custom").defaults()
     inputs["borefield"].values["points"] = points
     return inputs
 
@@ -90,7 +91,7 @@ def test_custom_field_matches_rectangular_field():
 
 
 def test_irregular_example_field_sizes():
-    result = model.size(_custom_inputs(properties.get("borefield").variant("custom").defaults()["points"]))
+    result = model.size(_custom_inputs(input_registry.get("borefield").variant("custom").defaults()["points"]))
     assert result.number_of_boreholes == 60
     assert 50 < result.borehole_length < 300
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .i18n import fmt, t
+from ghe_web.i18n import t
 
 # The choice on the start page: icon, name and a short description of each heat source.
 HEAT_SOURCES = {"closed": ("⭕", "Borehole heat exchangers",

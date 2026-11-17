@@ -2,10 +2,10 @@
 import numpy as np
 from GHEtool.VariableClasses.Efficiency import COP, EER
 
-from ..catalog import COOLING_CURVES, HEATING_CURVES
-from ..i18n import t
-from .base import PresetGroup, Property, Section, Variant
-from .registry import register
+from ghe_web.core.catalog import COOLING_CURVES, HEATING_CURVES
+from ghe_web.i18n import t
+from ghe_web.inputs.base import PresetGroup, Property, Section, Variant
+from ghe_web.inputs.registry import register
 
 # Average fluid temperatures [°C] at which the curve is given. GHEtool interpolates linearly between them
 # and keeps the end values outside the range.

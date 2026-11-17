@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from .. import i18n  # noqa: E402
-from ..i18n import fmt, t  # noqa: E402
-from ..plots import COOLING, HEATING, NEUTRAL  # noqa: E402
-from .design import Design  # noqa: E402
-from .hydraulics import cone  # noqa: E402
-from .thermal import plume  # noqa: E402
+from ghe_web import i18n  # noqa: E402
+from ghe_web.i18n import fmt, t  # noqa: E402
+from ghe_web.charts.palette import COOLING, HEATING, NEUTRAL  # noqa: E402
+from ghe_web.wells.design import Design  # noqa: E402
+from ghe_web.wells.hydraulics import cone  # noqa: E402
+from ghe_web.wells.thermal import plume  # noqa: E402
 
 WATER = "#1565c0"
 PRODUCTION = HEATING
@@ -92,7 +92,7 @@ def site_map(d: Design, aquifer: dict, years: int | None = None) -> plt.Figure:
 
 def well_section(d: Design, aquifer: dict, rows: list[dict] | None = None) -> plt.Figure:
     """Well construction drawing (Ausbauplan) of a production and an injection well with the water levels."""
-    from ..strata import rocks
+    from ghe_web.strata import rocks
     depth = d.screen.depth
     deepest = depth * 1.08 + 1
     fig, ax = plt.subplots(figsize=(7, 6.4))
@@ -191,7 +191,7 @@ def drawdown_profile(d: Design, aquifer: dict) -> alt.Chart:
     ux, uy = (inj.x - prod.x) / length, (inj.y - prod.y) / length
     xs = prod.x + s_along * ux
     ys = prod.y + s_along * uy
-    from .hydraulics import head_change
+    from ghe_web.wells.hydraulics import head_change
     r_w = 0.2
     level = [aquifer["water_depth"] + head_change(d.wells, x, y, aquifer["kf"] * aquifer["thickness"], r_w)
              for x, y in zip(xs, ys)]

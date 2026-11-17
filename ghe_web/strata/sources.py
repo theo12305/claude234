@@ -24,11 +24,11 @@ from dataclasses import dataclass
 import pandas as pd
 from pyproj import Transformer
 
-from ..i18n import t
-from ..siteplan import lookup
-from ..siteplan.lookup import LookupError_
-from . import rocks
-from .predict import Borehole, LogLayer
+from ghe_web.i18n import t
+from ghe_web.siteplan import lookup
+from ghe_web.siteplan.lookup import LookupError_
+from ghe_web.strata import rocks
+from ghe_web.strata.predict import Borehole, LogLayer
 
 GUEK250 = "https://services.bgr.de/arcgis/rest/services/inspire_ge/guek250/MapServer/{layer}/query"
 NRW_BML = "https://www.bml3.nrw.de/service/bml"

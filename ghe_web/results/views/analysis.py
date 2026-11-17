@@ -4,24 +4,25 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from ... import analysis, export, i18n, model, plots, report, ui
-from ...i18n import fmt, t
-from ..cache import *  # noqa: F403 (the cached calculations)
-from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from ..registry import Ctx, ResultView, register
+from ghe_web.page import look
+from ghe_web.charts import result_charts
+from ghe_web.i18n import t
+from ghe_web.results.cache import cached_optimisation, cached_sensitivity, layout_table, sensitivity_table
+from ghe_web.results.common import figure
+from ghe_web.results.registry import Ctx, ResultView, register
 
 
 def render(ctx: Ctx) -> None:
     result, key, sized_json, sized_inputs = ctx.result, ctx.key, ctx.sized_json, ctx.sized_inputs
     with st.expander(t("Sensitivity check: what the borehole length depends on"), icon=":material/tune:"):
-        ui.caption(t("Sizes the field again with one input changed at a time (monthly sizing for speed). The longest "
+        look.caption(t("Sizes the field again with one input changed at a time (monthly sizing for speed). The longest "
                      "bars are the inputs worth measuring carefully, e.g. with a thermal response test."))
         if st.button(t("Run the sensitivity check")):
             st.session_state.sensitivity_json = sized_json
         if st.session_state.get("sensitivity_json") == sized_json:
             with st.spinner(t("Sizing the variations...")):
                 sens = cached_sensitivity(sized_json)
-            figure(plots.tornado_chart(sens))
+            figure(result_charts.tornado_chart(sens))
             base = float(sens["Base"].iloc[0])
             table = pd.DataFrame({t("Input"): sens["Input"].map(t),
                                   t("Length, input lower [m]"): sens["Low"],
@@ -30,12 +31,12 @@ def render(ctx: Ctx) -> None:
                                   t("Change, higher [%]"): (sens["High"] / base - 1) * 100})
             st.dataframe(table.round(1), hide_index=True)
             if result.sizing_method != "monthly":
-                ui.caption(t("The variations use monthly sizing, which gives {base:.1f} m for these inputs (the "
+                look.caption(t("The variations use monthly sizing, which gives {base:.1f} m for these inputs (the "
                              "result above: {length:.1f} m). Read the changes in percent.", base=base,
                              length=result.borehole_length))
 
     with st.expander(t("Compare variants"), icon=":material/compare_arrows:"):
-        ui.caption(t("Keep this result, change the inputs, size again and keep that one too. The comparison stays "
+        look.caption(t("Keep this result, change the inputs, size again and keep that one too. The comparison stays "
                      "until you close the page and is part of the Excel export."))
         label_col, button_col = st.columns([3, 1], vertical_alignment="bottom")
         variant_name = label_col.text_input(t("Name for this result"),
@@ -51,13 +52,13 @@ def render(ctx: Ctx) -> None:
         if kept:
             table = pd.DataFrame(kept)
             st.dataframe(table.rename(columns=t), hide_index=True, width="stretch")
-            figure(plots.comparison_chart(table, "Total length [m]", t("Total length [m]")))
+            figure(result_charts.comparison_chart(table, "Total length [m]", t("Total length [m]")))
             if st.button(t("Clear the comparison")):
                 st.session_state.kept = []
                 st.rerun()
 
     with st.expander(t("Optimise the layout for a plot"), icon=":material/grid_view:"):
-        ui.caption(t("Searches rectangular, L, U, box and staggered fields that fit in the plot and meet the "
+        look.caption(t("Searches rectangular, L, U, box and staggered fields that fit in the plot and meet the "
                      "temperature limits, and lists the ones with the least drilling. Each trial takes a few "
                      "seconds."))
         with st.form("optimise"):

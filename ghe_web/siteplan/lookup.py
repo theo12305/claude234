@@ -18,8 +18,8 @@ from pyproj import Transformer
 from shapely.geometry import Point, Polygon, shape
 from shapely.ops import unary_union
 
-from ..i18n import t
-from .states import State, by_key
+from ghe_web.i18n import t
+from ghe_web.siteplan.states import State, by_key
 
 EPSG = 25832
 USER_AGENT = "GHEtool-Web site plan (https://github.com/theo12305/claude234)"

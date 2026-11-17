@@ -20,7 +20,7 @@ from typing import Any, Callable
 import pandas as pd
 import streamlit as st
 
-from ..i18n import t
+from ghe_web.i18n import t
 
 
 @dataclass
@@ -125,14 +125,14 @@ def load_plugin_data(data: dict | None) -> None:
 
 @st.fragment
 def _as_fragment(key: str, ctx: Ctx) -> None:
-    from .common import start_figures
+    from ghe_web.results.common import start_figures
     start_figures(st.session_state.get("_view_number", 0))
     get(key).render(ctx)
 
 
 def render(view: ResultView, ctx: Ctx, number: int) -> None:
     """Draws one view, as a fragment unless the view says otherwise. ``number`` is its figure number prefix."""
-    from .common import start_figures
+    from ghe_web.results.common import start_figures
     st.session_state._view_number = number
     if view.fragment:
         _as_fragment(view.key, ctx)

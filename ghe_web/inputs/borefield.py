@@ -2,11 +2,11 @@ import math
 
 import pygfunction as gt
 
-from ..catalog import BOREHOLES
-from ..geometry import closest_pair
-from ..i18n import t
-from .base import PresetGroup, Property, Section, Variant
-from .registry import register
+from ghe_web.core.catalog import BOREHOLES
+from ghe_web.core.geometry import closest_pair
+from ghe_web.i18n import t
+from ghe_web.inputs.base import PresetGroup, Property, Section, Variant
+from ghe_web.inputs.registry import register
 
 
 def _rectangular(v):

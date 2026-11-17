@@ -5,8 +5,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from .. import analysis, model
-from ..i18n import t
+from ghe_web.core import analysis, model
+from ghe_web.i18n import t
 
 __all__ = ["cached_size", "cached_sensitivity", "cached_optimisation", "cached_load_optimisation",
            "cached_ground_map", "cached_uniform", "cached_borehole_map", "load_optimisation_done",

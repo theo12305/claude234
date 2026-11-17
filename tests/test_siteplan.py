@@ -4,7 +4,7 @@ import zipfile
 import pytest
 from shapely.geometry import Polygon, box
 
-from ghe_web import geometry
+from ghe_web.core import geometry
 from ghe_web.siteplan import export, lookup
 from ghe_web.siteplan.layout import Rules, Site, allowed_area, check, place_boreholes
 from ghe_web.siteplan.states import STATES

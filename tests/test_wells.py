@@ -5,8 +5,9 @@ import numpy as np
 import pytest
 from scipy.special import exp1
 
-from ghe_web import model
-from ghe_web.properties import SectionInput
+from ghe_web.core import model
+from ghe_web.inputs import registry as input_registry
+from ghe_web.inputs import SectionInput
 from ghe_web.wells import aquifer, checks, design, hydraulics as hy, report, thermal as th
 
 
@@ -14,7 +15,7 @@ def open_inputs(**wells):
     inputs = model.default_inputs()
     inputs["system"] = SectionInput("open", {})
     if wells:
-        inputs["wells"] = SectionInput("check", {**model.properties.get("wells").variant("check").defaults(),
+        inputs["wells"] = SectionInput("check", {**input_registry.get("wells").variant("check").defaults(),
                                                  **wells})
     return inputs
 

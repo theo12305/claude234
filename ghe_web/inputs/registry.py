@@ -1,7 +1,7 @@
 """Central list of all sections shown in the interface."""
 from __future__ import annotations
 
-from .base import Section
+from ghe_web.inputs.base import Section
 
 _SECTIONS: dict[str, Section] = {}
 

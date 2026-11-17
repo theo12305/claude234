@@ -3,14 +3,16 @@ import numpy as np
 import pygfunction as gt
 import pytest
 
-from ghe_web import analysis, model, properties, report
-from ghe_web.catalog import FLUIDS
+from ghe_web.core import analysis, model
+from ghe_web.inputs import registry as input_registry
+from ghe_web.downloads import pdf_report
+from ghe_web.core.catalog import FLUIDS
 
 
 def _hourly_inputs(years=10, **overrides):
     inputs = model.default_inputs()
     inputs["load"].variant = "hourly_building"
-    inputs["load"].values = properties.get("load").variant("hourly_building").defaults()
+    inputs["load"].values = input_registry.get("load").variant("hourly_building").defaults()
     inputs["load"].values.update(simulation_period=years, **overrides)
     return inputs
 
@@ -48,13 +50,13 @@ def test_costs_are_gone(sized):
 def test_pipes_must_fit_in_the_borehole(variant, change, message):
     inputs = model.default_inputs()
     inputs["pipe"].variant = variant
-    inputs["pipe"].values = properties.get("pipe").variant(variant).defaults() | change
+    inputs["pipe"].values = input_registry.get("pipe").variant(variant).defaults() | change
     errors = model.validate(inputs)
     assert message in " ".join(errors.get("pipe", []))
 
 
 def test_pipe_presets_fit_the_default_borehole():
-    section = properties.get("pipe")
+    section = input_registry.get("pipe")
     for variant in ("single_u", "double_u", "coaxial"):
         inputs = model.default_inputs()
         inputs["pipe"].variant = variant
@@ -152,10 +154,10 @@ def test_reports(hourly_check):
     inputs, result = hourly_check
     extras = {"ground_map": analysis.ground_temperature_map(result, cells=40),
               "load_optimisation": analysis.load_optimisation(result, "power")}
-    options = report.ReportOptions(title="Test", subtitle="Sub", author="A", company="C", client="Client",
+    options = pdf_report.ReportOptions(title="Test", subtitle="Sub", author="A", company="C", client="Client",
                                    introduction="Intro.\nSecond paragraph.", conclusion="Done.")
-    full = report.make_pdf(result, inputs, "x", options, extras)
-    summary = report.make_pdf(result, inputs, "x", report.ReportOptions(kind="summary"))
+    full = pdf_report.make_pdf(result, inputs, "x", options, extras)
+    summary = pdf_report.make_pdf(result, inputs, "x", pdf_report.ReportOptions(kind="summary"))
     assert full.startswith(b"%PDF") and summary.startswith(b"%PDF")
     def pages(pdf):
         return pdf.count(b"/Type /Page") - pdf.count(b"/Type /Pages")

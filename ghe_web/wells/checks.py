@@ -1,11 +1,12 @@
 """Design check for groundwater wells, in the same form as the borehole check (``ghe_web.checks``)."""
 from __future__ import annotations
 
-from .. import model, properties
-from ..checks import FINE, PROBLEM, WARNING, Check
-from ..i18n import t
-from ..properties import SectionInput
-from .design import Design
+from ghe_web.core import model
+from ghe_web.inputs import registry as input_registry
+from ghe_web.core.checks import FINE, PROBLEM, WARNING, Check
+from ghe_web.i18n import t
+from ghe_web.inputs import SectionInput
+from ghe_web.wells.design import Design
 
 # Guide values for the groundwater (VDI 4640 Blatt 2 and the usual heat exchanger maker limits)
 IRON, MANGANESE, OXYGEN = 0.2, 0.1, 2.0  # mg/l
@@ -18,11 +19,11 @@ def input_checks(inputs: dict[str, SectionInput]) -> list[Check]:
     out = []
     for key, msgs in model.validate(inputs).items():
         for msg in msgs:
-            out.append(Check(PROBLEM, t(properties.get(key).label), msg, key))
+            out.append(Check(PROBLEM, t(input_registry.get(key).label), msg, key))
     for source in (model.warnings(inputs), model.cross_warnings(inputs)):
         for key, msgs in source.items():
             for msg in msgs:
-                out.append(Check(WARNING, t(properties.get(key).label), msg, key))
+                out.append(Check(WARNING, t(input_registry.get(key).label), msg, key))
     out += water_checks(inputs)
     return out
 

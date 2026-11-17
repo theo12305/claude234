@@ -2,10 +2,10 @@
 
 The calculation itself is in ``ghe_web.wells``; the builds here only turn the fields into SI values.
 """
-from ..i18n import t
-from ..wells.aquifer import SEDIMENTS
-from .base import PresetGroup, Property, Section, Variant
-from .registry import register
+from ghe_web.i18n import t
+from ghe_web.wells.aquifer import SEDIMENTS
+from ghe_web.inputs.base import PresetGroup, Property, Section, Variant
+from ghe_web.inputs.registry import register
 
 register(Section(
     key="system",

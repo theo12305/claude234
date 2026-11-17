@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ...i18n import t
-from ..registry import Ctx, ResultView, hidden, register
+from ghe_web.i18n import t
+from ghe_web.results.registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:

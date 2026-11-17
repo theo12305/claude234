@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from ghe_web import model, results
+from ghe_web.core import model
 from ghe_web.materials import network, quantities as q
 from ghe_web.results import registry
 

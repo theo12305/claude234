@@ -10,10 +10,12 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from . import i18n, model, properties
-from .i18n import fmt, t
-from .properties import SectionInput
-from .properties.load import HOURS_PER_MONTH, MONTHS
+from ghe_web import i18n
+from ghe_web.core import model
+from ghe_web.inputs import registry as input_registry
+from ghe_web.i18n import fmt, t
+from ghe_web.inputs import SectionInput
+from ghe_web.inputs.load import HOURS_PER_MONTH, MONTHS
 
 LAMINAR_RE = 2300
 MONTH_END_HOURS = np.cumsum(HOURS_PER_MONTH)  # hour of the year at which each month ends
@@ -324,7 +326,7 @@ def sensitivity(inputs: dict[str, SectionInput]) -> pd.DataFrame:
             trial = copy.deepcopy(base_inputs)
             values = trial[section].values
             if section == "load":
-                variant = properties.get("load").variant(trial["load"].variant)
+                variant = input_registry.get("load").variant(trial["load"].variant)
                 trial["load"].values = _scaled_load(values, change, variant)
             elif key == "T_g":
                 values[key] = values[key] + change
@@ -347,7 +349,7 @@ def sensitivity(inputs: dict[str, SectionInput]) -> pd.DataFrame:
 def uniform_ground_length(result: model.SizingResult, inputs: dict[str, SectionInput]) -> tuple[float, float]:
     """Sizes the design again with one conductivity and heat capacity, the layer average over the sized
     borehole. Returns (length, conductivity used)."""
-    from .strata.predict import effective
+    from ghe_web.strata.predict import effective
     trial = copy.deepcopy(inputs)
     values = trial["ground"].values
     k, c = effective(list(values["layers"]["rows"]), result.borehole_length, inputs["borefield"].values["D"])

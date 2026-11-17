@@ -7,10 +7,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from . import analysis, model, properties
-from .geometry import closest_pair
-from .i18n import fmt, t
-from .properties import SectionInput
+from ghe_web.core import analysis, model
+from ghe_web.inputs import registry as input_registry
+from ghe_web.core.geometry import closest_pair
+from ghe_web.i18n import fmt, t
+from ghe_web.inputs import SectionInput
 
 PROBLEM, WARNING, FINE = "problem", "warning", "fine"
 K_USUAL = (1.0, 4.5)  # W/(m·K): most soils and rocks; outside this range the value is worth checking
@@ -44,11 +45,11 @@ def input_checks(inputs: dict[str, SectionInput]) -> list[Check]:
     errors = model.validate(inputs)
     for key, msgs in errors.items():
         for msg in msgs:
-            out.append(Check(PROBLEM, t(properties.get(key).label), msg, key))
+            out.append(Check(PROBLEM, t(input_registry.get(key).label), msg, key))
     for source in (model.warnings(inputs), model.cross_warnings(inputs)):
         for key, msgs in source.items():
             for msg in msgs:
-                out.append(Check(WARNING, t(properties.get(key).label), msg, key))
+                out.append(Check(WARNING, t(input_registry.get(key).label), msg, key))
     if "borefield" in errors:
         return out
 
