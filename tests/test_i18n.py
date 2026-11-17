@@ -102,6 +102,8 @@ def _data_texts() -> set[str]:
     texts |= {"Drilling", "Borehole heat exchangers", "Grouting", "Horizontal piping", "Heat transfer fluid",
               "Tests and documentation", "pcs", "m", "m³", "l", "kg", "LS"}  # groups and units of the material list
     texts |= {x for label, unit in analysis.SWEEP_INPUTS.values() for x in (label, unit)}  # "Vary one input"
+    from ghe_web.learn import page as learn_page
+    texts |= set(learn_page.TABS.values()) | set(learn_page.STUDIES.values())  # Learn mode
     return texts
 
 

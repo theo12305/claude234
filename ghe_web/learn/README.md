@@ -1,18 +1,30 @@
-# learn: Learn mode for new colleagues
+# learn: Learn mode
 
-The third mode next to Simple and Expert. It is Simple plus explanations: three more tabs (Introduction, Glossary,
-Literature) and two cards on the results ("Why this length?" and "Where the degrees go"). Simple and Expert stay as
-they are; only the literature list in the menu ☰ and a "Read more" line in the "?" help of some fields appear there.
+The third mode next to Simple and Expert, for colleagues new to borefield design (scientific or engineering
+background). Learn mode is a page of its own, without the planning steps: pick one of three sized example projects
+and study it in five tabs.
 
-| File           | What is in it                                                                              |
-|----------------|--------------------------------------------------------------------------------------------|
-| `sources.py`   | the numbered literature list ([1] … [12]); add new entries at the end so numbers stay      |
-| `glossary.py`  | the technical terms, with symbol, text, sources; `FIELDS` links input fields to terms      |
-| `modules.py`   | the 8 introduction modules: text, exercises, self-check question, sources                  |
-| `explain.py`   | the "Why this length?" steps and the split of the fluid temperature (no Streamlit)         |
-| `exercises.py` | the practice project (6 boreholes) and the calculations behind the exercises (no Streamlit)|
-| `page.py`      | everything drawn on the page (Streamlit)                                                   |
-| `text.py`      | `L(en, de)`: long texts are written in both languages in place                             |
-| `de.py`        | German for the short labels in `t("...")`                                                  |
+- **Parameters**: every input that matters, with its value, its local sensitivity on this project (elasticity
+  ε = (ΔL/L)/(Δx/x), or m/K for temperatures) and a "?" with definition, governing relation, practice values and
+  sources.
+- **Result explained**: why this length, the temperature budget of the limiting month, the yearly extremes and the
+  method (temporal superposition on the g-function).
+- **Explore**: parameter study, the three projects compared (normalised), regeneration share, ground temperature over
+  the years, borehole resistance (grout and flow).
+- **Glossary** and **Literature**.
 
-To correct a text, edit it in `modules.py` or `glossary.py`; both languages sit next to each other.
+Simple and Expert only get a "Read more" line in the "?" help of fields with a glossary entry, and the literature
+list in the menu ☰.
+
+| File            | What is in it                                                                              |
+|-----------------|--------------------------------------------------------------------------------------------|
+| `projects.py`   | the example projects, the parameters, sensitivities and studies (no Streamlit)             |
+| `examples.json` | precomputed lengths and sensitivities; rewrite with `python -m tools.learn_examples`       |
+| `glossary.py`   | every parameter and concept: definition, equation, practice values, sources                |
+| `sources.py`    | the numbered literature list ([1] … [12]); add new entries at the end so numbers stay      |
+| `explain.py`    | "why this length" and the temperature budget (no Streamlit)                                |
+| `page.py`       | everything drawn on the page (Streamlit)                                                   |
+| `text.py`       | `L(en, de)`: long texts are written in both languages in place                             |
+| `de.py`         | German for the short labels in `t("...")`                                                  |
+
+To correct a text, edit it in `projects.py`, `glossary.py` or `explain.py`; both languages sit next to each other.

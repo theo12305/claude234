@@ -49,11 +49,14 @@ if ui_mode == "expert":
 project_name, start_inputs, gen = project.load()
 system = st.session_state.get(f"{gen}.system.variant_key", model.system(start_inputs))
 page = Page(lang=lang, ui_mode=ui_mode, gen=gen, project_name=project_name, start=start_inputs, system=system,
-            steps=steps.labels(system, ui_mode != "expert", ui_mode == "learn"), menu=menu_popover, brand_slot=brand_slot)
+            steps=steps.labels(system, ui_mode != "expert"), menu=menu_popover, brand_slot=brand_slot)
 steps.follow_goto(page)
 
 menu.draw(page)
 menu.brand(page)
+if page.learn:  # Learn mode is a page of its own: example projects, explained (ghe_web/learn)
+    learn_page.page(page)
+    st.stop()
 start.welcome(page)  # the start page stops here until a heat source is chosen
 start.intro(page)
 
@@ -74,7 +77,6 @@ site_plan.tab(page)
 # Save project and share link in the menu (now that the inputs are read)
 page.address, page.plugins = siteplan_page.address(), results_registry.plugin_store()
 project.save_and_share(page)
-learn_page.tabs(page)  # Learn mode: introduction, glossary, literature (ghe_web/learn)
 
 if "result_json" in st.session_state and \
         model.system(model.from_json(st.session_state.result_json)[1]) != page.system:
