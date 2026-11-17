@@ -9,7 +9,7 @@ from ghe_web.core import analysis, model
 from ghe_web.i18n import t
 
 __all__ = ["cached_size", "cached_sensitivity", "cached_optimisation", "cached_load_optimisation",
-           "cached_ground_map", "cached_uniform", "cached_borehole_map", "load_optimisation_done",
+           "cached_ground_map", "cached_sweep", "cached_uniform", "cached_borehole_map", "load_optimisation_done",
            "sensitivity_table", "layout_table"]
 
 
@@ -34,9 +34,14 @@ def cached_load_optimisation(project_json: str, objective: str) -> dict | None:
     return analysis.load_optimisation(cached_size(project_json), objective)
 
 
+@st.cache_resource(max_entries=16, show_spinner=False)
+def cached_ground_map(project_json: str, years: float | None = None) -> dict | None:
+    return analysis.ground_temperature_map(cached_size(project_json), years=years)
+
+
 @st.cache_resource(max_entries=8, show_spinner=False)
-def cached_ground_map(project_json: str) -> dict | None:
-    return analysis.ground_temperature_map(cached_size(project_json))
+def cached_sweep(project_json: str, section: str, key: str | None, values: tuple) -> pd.DataFrame:
+    return analysis.sweep(model.from_json(project_json)[1], section, key, values)
 
 
 @st.cache_resource(max_entries=8, show_spinner=False)

@@ -27,6 +27,7 @@ def _drop_stale_package():
 _drop_stale_package()
 
 from ghe_web.core import model  # noqa: E402
+from ghe_web.learn import page as learn_page  # noqa: E402
 from ghe_web.page import (appbar, calculation, design_check, look, menu, project, results_tab,  # noqa: E402
                           sections, site_plan, start, steps)
 from ghe_web.page.state import Page  # noqa: E402
@@ -48,7 +49,7 @@ if ui_mode == "expert":
 project_name, start_inputs, gen = project.load()
 system = st.session_state.get(f"{gen}.system.variant_key", model.system(start_inputs))
 page = Page(lang=lang, ui_mode=ui_mode, gen=gen, project_name=project_name, start=start_inputs, system=system,
-            steps=steps.labels(system, ui_mode != "expert"), menu=menu_popover, brand_slot=brand_slot)
+            steps=steps.labels(system, ui_mode != "expert", ui_mode == "learn"), menu=menu_popover, brand_slot=brand_slot)
 steps.follow_goto(page)
 
 menu.draw(page)
@@ -73,6 +74,7 @@ site_plan.tab(page)
 # Save project and share link in the menu (now that the inputs are read)
 page.address, page.plugins = siteplan_page.address(), results_registry.plugin_store()
 project.save_and_share(page)
+learn_page.tabs(page)  # Learn mode: introduction, glossary, literature (ghe_web/learn)
 
 if "result_json" in st.session_state and \
         model.system(model.from_json(st.session_state.result_json)[1]) != page.system:

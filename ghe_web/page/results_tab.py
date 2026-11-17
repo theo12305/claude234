@@ -10,6 +10,7 @@ import streamlit as st
 from ghe_web import results
 from ghe_web.core import analysis, checks, model
 from ghe_web.i18n import t
+from ghe_web.learn import page as learn_page
 from ghe_web.page import calculation, design_check, project
 from ghe_web.page.state import Page
 from ghe_web.results import registry as results_registry
@@ -48,6 +49,8 @@ def draw(page: Page, found_checks: list[checks.Check]) -> None:
             with st.container(horizontal=True, horizontal_alignment="right", key="sheetbar"):
                 results_sheet.customize(sections)
             results_summary.answer_section(ctx)
+            if page.learn:
+                learn_page.results_cards(ctx)
             number = 0
             for view in sections:  # every section switched on, one below the other
                 if not results_sheet.section_on(view.key):

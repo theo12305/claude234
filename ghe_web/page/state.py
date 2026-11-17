@@ -10,7 +10,7 @@ from ghe_web.inputs import SectionInput
 @dataclass
 class Page:
     lang: str  # "en" or "de"
-    ui_mode: str  # "simple" or "expert"
+    ui_mode: str  # "simple", "expert" or "learn" (Simple plus explanations, ghe_web/learn)
     gen: int  # generation of the widgets: loading a project rebuilds every widget (their keys start with it)
     project_name: str  # the name the widgets start from
     start: dict[str, SectionInput]  # the inputs the widgets start from: the defaults or a loaded project
@@ -38,6 +38,10 @@ class Page:
     @property
     def simple(self) -> bool:
         return self.ui_mode != "expert"
+
+    @property
+    def learn(self) -> bool:
+        return self.ui_mode == "learn"
 
     def step(self, key: str) -> str | None:
         """The tab label of a step id, or None when this heat source or mode has no such step."""

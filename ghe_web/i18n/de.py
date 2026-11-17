@@ -2203,8 +2203,6 @@ DE: dict[str, str] = {
         'Ergebnis aktuell',
     'Show':
         'Zeigen',
-    'Simple / Expert: the switch next to the language. Simple shows the main fields and puts the others under "More options"; nothing is left out of the calculation.':
-        'Einfach / Experte: der Schalter neben der Sprache. Einfach zeigt die wichtigsten Felder und legt die übrigen unter „Weitere Optionen“; in der Berechnung fehlt nichts.',
     'Size a geothermal system in your browser':
         'Geothermie-Anlagen im Browser auslegen',
     'Start with {what}':
@@ -2293,8 +2291,8 @@ DE: dict[str, str] = {
         "Abbildung {n}",
     "Fluid temperature in the boreholes over {n} years":
         "Fluidtemperatur in den Sonden über {n} Jahre",
-    "How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of the simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a borehole. Boreholes in the middle change most because their neighbours add up. The seasonal swing on top of this averages out over a year and is left out.":
-        "Wie das jährliche Ungleichgewicht den Untergrund um das Feld am Ende der Simulation erwärmt (rot) oder abkühlt (blau), auf halber Sondentiefe. Linien: gleiche Änderung, alle {step:g} K. Jeder Punkt ist eine Sonde. Sonden in der Mitte ändern sich am stärksten, weil sich ihre Nachbarn addieren. Die jahreszeitliche Schwankung gleicht sich über ein Jahr aus und ist nicht enthalten.",
+    "How the yearly imbalance warms (red) or cools (blue) the ground around the field after {n} years, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a borehole. Boreholes in the middle change most because their neighbours add up. The seasonal swing on top of this averages out over a year and is left out.":
+        "Wie das jährliche Ungleichgewicht den Untergrund um das Feld nach {n} Jahren erwärmt (rot) oder abkühlt (blau), auf halber Sondentiefe. Linien: gleiche Änderung, alle {step:g} K. Jeder Punkt ist eine Sonde. Sonden in der Mitte ändern sich am stärksten, weil sich ihre Nachbarn addieren. Die jahreszeitliche Schwankung gleicht sich über ein Jahr aus und ist nicht enthalten.",
     "Injection (cooling, warms the ground)":
         "Eintrag (Kühlen, erwärmt den Untergrund)",
     "Mean fluid temperature [°C]":

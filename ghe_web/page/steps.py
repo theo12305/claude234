@@ -21,14 +21,19 @@ WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer"
 
 # Simple mode: the borehole, fluid and limits are part of the Loads step, which becomes step 2
 SIMPLE_STEP_LABELS = {"Loads": "② Loads", "check": "③ Design check"}
+# Learn mode: three more tabs at the end (drawn by ghe_web/learn/page.py)
+LEARN_LABELS = {"learn_intro": ":material/school: Introduction", "learn_glossary": ":material/dictionary: Glossary",
+                "learn_literature": ":material/menu_book: Literature"}
 
 
-def labels(system: str, simple: bool) -> dict[str, str]:
+def labels(system: str, simple: bool, learn: bool = False) -> dict[str, str]:
     """Step id -> tab label in the current language."""
     labels_ = WELL_STEP_LABELS if system == "open" else STEP_LABELS
     if simple:  # three input steps: the borehole, fluid and limits come with typical values under Loads
         # (only the labels of steps this heat source has: wells have no design check, which crashed the tabs)
         labels_ = {**labels_, **{k: v for k, v in SIMPLE_STEP_LABELS.items() if k in labels_}}
+    if learn:
+        labels_ = {**labels_, **LEARN_LABELS}
     steps = {k: t(v) for k, v in labels_.items()}
     if simple:
         steps["Borehole"] = steps["Design"] = steps["Loads"]
@@ -46,7 +51,7 @@ def follow_goto(page: Page) -> None:
         # the language or the heat source changed: the same tab, under its new label
         for code in i18n.LANGUAGES:
             with i18n.using(code):
-                match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS, SIMPLE_STEP_LABELS) for k, v in labels.items()
+                match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS, SIMPLE_STEP_LABELS, LEARN_LABELS) for k, v in labels.items()
                          if t(v) == st.session_state.step]
             if match:
                 st.session_state.step = page.steps[match[0]]
@@ -79,6 +84,7 @@ def make_tabs(page: Page, grouped: dict[str, list]) -> None:
     # borehole heat exchangers: confirm the design check, then the results, then the further analysis
     page.step_names += [steps.get("check"), steps["results"], steps.get("analysis")] if steps.get("check") \
         else [steps["results"]]
+    page.step_names += [steps[k] for k in LEARN_LABELS if k in steps]
     page.step_tabs = dict(zip(page.step_names, st.tabs(page.step_names, default=steps["Site"], key="step",
                                                        on_change="rerun")))
 

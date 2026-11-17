@@ -19,7 +19,7 @@ def take_settings(text: str) -> None:
     saved = model.saved_language(text)
     if saved in i18n.LANGUAGES:
         st.session_state.pending_language = saved
-    if model.saved_setting(text, "mode") in ("simple", "expert"):
+    if model.saved_setting(text, "mode") in ("simple", "expert", "learn"):
         st.session_state.pending_mode = model.saved_setting(text, "mode")
     siteplan_page.set_address(model.saved_setting(text, "address") or "")
     results_registry.load_plugin_data(model.saved_plugins(text))

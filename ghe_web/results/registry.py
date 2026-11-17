@@ -124,9 +124,11 @@ def load_plugin_data(data: dict | None) -> None:
 # ---------------------------------------------------------------- drawing
 
 @st.fragment
-def _as_fragment(key: str, ctx: Ctx) -> None:
+def _as_fragment(key: str, ctx: Ctx, number: int) -> None:
+    # the number comes as an argument: a click inside the view reruns only this fragment, with the same arguments
     from ghe_web.results.common import start_figures
-    start_figures(st.session_state.get("_view_number", 0))
+    st.session_state._view_number = number
+    start_figures(number)
     get(key).render(ctx)
 
 
@@ -135,7 +137,7 @@ def render(view: ResultView, ctx: Ctx, number: int) -> None:
     from ghe_web.results.common import start_figures
     st.session_state._view_number = number
     if view.fragment:
-        _as_fragment(view.key, ctx)
+        _as_fragment(view.key, ctx, number)
     else:
         start_figures(number)
         view.render(ctx)

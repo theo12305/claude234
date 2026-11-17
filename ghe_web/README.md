@@ -16,6 +16,7 @@ own README.md with a list of its files. To change one thing, open only the folde
 | `strata/`     | ground layers from borehole logs and geological maps                                   | `page.py`  |
 | `wells/`      | groundwater wells (open loop): own model and own results page                          | `page.py`  |
 | `materials/`  | material list and horizontal piping plan (hidden on the page for now)                  | `page.py`  |
+| `learn/`      | Learn mode: introduction modules, glossary, literature list, "Why this length?" cards  | `page.py`  |
 
 ## How one calculation flows through the code
 

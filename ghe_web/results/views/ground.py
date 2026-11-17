@@ -21,7 +21,14 @@ def render(ctx: Ctx) -> None:
     if sheet.on("ground_numbers"):
         _numbers(m)
     if sheet.on("ground_map"):
-        _map(m, north)
+        end = int(round(m["years"]))
+        choices = sorted({y for y in (1, 2, 5, 10, 20, 25, 30, 40, 50, 75, 100) if y < end} | {end})
+        year = st.select_slider(t("Year"), options=choices, value=end, key="ground_map_year",
+                                help=t("Move through the years to see the ground change. The colours stay the same "
+                                       "for every year, so the maps compare."))
+        shown = m if year == end else {**cached_ground_map(sized_json, year),
+                                       "scale": (float(m["table"]["Change"].min()), float(m["table"]["Change"].max()))}
+        _map(shown, north)
     if sheet.on("gfunction"):
         look.caption(t("The dimensionless step response of the field. Its rise at large times shows how strongly the "
                        "boreholes influence each other."))
@@ -44,11 +51,11 @@ def _map(m: dict, north: bool) -> None:
         figure(result_charts.ground_map_chart(m, north, size=290 if look.is_phone() else 420), data=m["table"].round(4),
                width="content")
     with right:
-        look.caption(t("How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end "
-                       "of the simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each "
-                       "dot is a borehole. Boreholes in the middle change most because their neighbours add up. The "
-                       "seasonal swing on top of this averages out over a year and is left out.",
-                       step=result_charts.ground_classes(m["table"]["Change"])[0]))
+        look.caption(t("How the yearly imbalance warms (red) or cools (blue) the ground around the field after {n} "
+                       "years, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a "
+                       "borehole. Boreholes in the middle change most because their neighbours add up. The seasonal "
+                       "swing on top of this averages out over a year and is left out.",
+                       n=round(m["years"]), step=result_charts.ground_classes(m["table"]["Change"])[0]))
         look.caption(t("Calculated with the finite line source (uniform heat flow per metre, with the mirror image at "
                        "the surface), which is also the basis of the g-function."))
 

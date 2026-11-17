@@ -8,6 +8,7 @@ from ghe_web.core import model
 from ghe_web.i18n import t
 from ghe_web.page import look, project
 from ghe_web.page.state import Page
+from ghe_web.learn import page as learn_page
 from ghe_web.wells import page as wells_page
 
 
@@ -59,8 +60,10 @@ def draw(page: Page) -> None:
                     "and the PDF report and Excel export.\n\nSave the project in the menu ☰ to continue later. "
                     "Calculations use the open-source [GHEtool](https://github.com/wouterpeere/GHEtool)."))
         st.caption(t(":material/dark_mode: Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
-        st.caption(t("Simple / Expert: the switch next to the language. Simple shows the main fields and puts the "
-                     "others under \"More options\"; nothing is left out of the calculation."))
+        st.caption(t("Simple / Expert / Learn: the switch next to the language. Simple shows the main fields and "
+                     "puts the others under \"More options\"; nothing is left out of the calculation. Learn is Simple "
+                     "plus explanations, an introduction, a glossary and the literature."))
+        learn_page.menu_button()
         if page.system == "open":
             wells_page.sources_button("menu")
         if st.button(t("Change the heat source"), icon=":material/swap_horiz:", width="stretch",
