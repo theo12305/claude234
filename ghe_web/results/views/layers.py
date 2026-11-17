@@ -29,9 +29,8 @@ def render(ctx: Ctx) -> None:
     c3.metric(t("Layers reached"), t("{n} of {total}", n=len(parts), total=len(rows)))
     left, right = st.columns([2, 3], gap="large")
     with left:
-        st.pyplot(plots.borehole_log(rows, length, buried, t("{n} boreholes of {length:.1f} m",
-                                                             n=result.number_of_boreholes, length=length)),
-                  width="stretch")
+        ui.show_figure(plots.borehole_log(rows, length, buried, t("{n} boreholes of {length:.1f} m",
+                                                                  n=result.number_of_boreholes, length=length)))
     with right:
         st.markdown(t("**Share of the heat exchange per layer**"))
         figure(plots.layer_share_chart(parts))

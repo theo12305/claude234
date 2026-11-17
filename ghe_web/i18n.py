@@ -13,6 +13,8 @@ runs in its own thread), so two users can work in different languages at the sam
 """
 from __future__ import annotations
 
+import re
+
 import contextvars
 import string
 from contextlib import contextmanager
@@ -104,7 +106,15 @@ def translate(text: str) -> str:
 def t(text: str, **values) -> str:
     """The text in the current language; keyword values are filled in with the language's number format."""
     out = translate(text)
+    count = values.get("n")
+    if isinstance(count, int) and not isinstance(count, bool) and "(" in out:
+        # "{n} warning(s)" / "{n} Warnung(en)": singular for one, plural otherwise
+        out = _PLURAL.sub(lambda m: "" if count == 1 else m.group(1), out)
     return fmt(out, **values) if values else out
+
+
+# plural endings written in brackets right after a word, e.g. warning(s), Warnung(en), Fläche(n), Problem(e)
+_PLURAL = re.compile(r"(?<=[^\W\d_])\((s|es|e|en|n|se)\)")
 
 
 def months() -> tuple[str, ...]:

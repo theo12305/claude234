@@ -1,4 +1,4 @@
-"""The results sheet: which parts of 📊 Results are shown and what the temperature charts contain.
+"""The results sheet: which parts of Results are shown and what the temperature charts contain.
 
 Every result view is a section of the sheet that can be switched on and off, and most sections have parts (single
 charts, tables) that can be switched too. The temperature charts have their own switches (series, limits, shading,
