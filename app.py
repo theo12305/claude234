@@ -69,7 +69,7 @@ steps.make_tabs(page, grouped)
 sections.read_steps(page, grouped)
 sections.finish(page)
 
-# ⓪ Site plan, and what it hands to the inputs
+# Site plan, and what it hands to the inputs
 site_plan.apply_site_plan(page)
 site_plan.apply_well_plan(page)
 site_plan.tab(page)

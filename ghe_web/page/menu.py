@@ -38,11 +38,11 @@ def draw(page: Page) -> None:
         with st.expander(t("How to use this tool"), icon=":material/help:"):
             if page.system == "open":
                 st.markdown(t(
-                    "1. **⓪ Site plan** (optional): find the parcel.\n2. **① Ground & aquifer**: choose groundwater "
+                    "1. **Site plan** (optional): find the parcel.\n2. **Ground & aquifer**: choose groundwater "
                     "wells as heat source, the ground temperature (or predicted layers), the aquifer and the water "
-                    "analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or "
-                    "check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the "
-                    "building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water "
+                    "analysis.\n3. **Wells**: drilling diameter, well losses, and whether to size the wells or "
+                    "check given ones.\n4. **Loads**: the heat taken from and put into the groundwater, or the "
+                    "building demand.\n5. **Limits & calculation**: temperature spread and the limits of the water "
                     "authority.\n6. Press **Size the wells** in the bar at the bottom. The **:material/bar_chart: "
                     "Results** tab shows the flow, wells, water levels, temperatures, the site map, the well "
                     "construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the "
@@ -50,11 +50,11 @@ def draw(page: Page) -> None:
                     "GHEtool has no open-loop model."))
             else:
                 st.markdown(t(
-                    "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n2. **① "
-                    "Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n3. **② "
-                    "Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n4. **③ "
+                    "1. **Site plan** (optional): find the parcel and place as many boreholes as fit.\n2. **"
+                    "Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n3. **"
+                    "Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n4. **"
                     "Loads**: the heat extracted from and injected into the ground, or the building demand with the "
-                    "heat pump efficiency.\n5. **④ Limits & calculation**: the allowed fluid temperatures, and "
+                    "heat pump efficiency.\n5. **Limits & calculation**: the allowed fluid temperatures, and "
                     "whether to size the length or check a given one.\n6. Press **Size borefield** in the bar at the "
                     "bottom. The **:material/bar_chart: Results** tab shows key figures, charts, further analysis "
                     "and the PDF report and Excel export.\n\nSave the project in the menu ☰ to continue later. "

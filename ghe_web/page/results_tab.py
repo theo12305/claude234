@@ -63,6 +63,4 @@ def draw(page: Page, found_checks: list[checks.Check]) -> None:
         if ctx is None:
             st.info(t("The further analysis starts from a result. Calculate first."), icon=":material/info:")
         else:
-            st.caption(t("Sensitivity, variants and a layout search, starting from the result in "
-                         ":material/bar_chart: Results."))
             results_registry.render(results_registry.get("analysis"), ctx, 1)

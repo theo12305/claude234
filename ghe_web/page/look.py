@@ -144,7 +144,30 @@ h1, h2, h3, h4, h5 {{letter-spacing: -0.01em;}}
 div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {{background: var(--card);}}
 .st-key-welcome, .st-key-quick_downloads, .st-key-calcbar div[data-testid="stVerticalBlock"],
 .st-key-appbar div[data-testid="stVerticalBlock"] {{background: transparent !important;}}
-/* tabs: the input steps */
+/* tabs: the input steps, each with its icon; the open one on a light tint of the accent */
+.st-key-step [role="tablist"] {{gap: 4px;}}
+.st-key-step [role="tab"] {{padding: 6px 12px; border-radius: 10px 10px 0 0;}}
+.st-key-step [role="tab"] [data-testid="stIconMaterial"] {{color: var(--muted); font-size: 1.15rem;}}
+.st-key-step [role="tab"][aria-selected="true"] {{background: color-mix(in srgb, var(--accent) 9%, transparent);}}
+.st-key-step [role="tab"][aria-selected="true"] [data-testid="stIconMaterial"] {{color: var(--accent);}}
+/* section headings: the name with an icon on a light tint (ground warm, water and borehole cool, loads red,
+   limits and calculation indigo) */
+.sechead {{display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 1.1rem; line-height: 1.3;
+  margin: 0 0 4px;}}
+.sechead .ic {{flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  color: var(--tint); background: color-mix(in srgb, var(--tint) 13%, transparent);}}
+.sechead .ic .mi {{color: inherit; font-size: 19px;}}
+.tint-earth {{--tint: #b7791f;}} .tint-water {{--tint: #0284c7;}} .tint-hx {{--tint: var(--accent);}}
+.tint-load {{--tint: #e11d48;}} .tint-limit {{--tint: #6366f1;}} .tint-plain {{--tint: var(--muted);}}
+/* the "?" of a section heading right after its name, not at the far end of the card */
+div:has(> [data-testid="stMarkdownContainer"] > .sechead) {{display: flex; align-items: center;
+  justify-content: flex-start; gap: 8px;}}
+[data-testid="stMarkdownContainer"]:has(> .sechead) {{flex: 0 1 auto; width: auto;}}
+div[class*="st-key-frow"] {{padding: 0 !important; background: transparent !important;}}
+/* a row of fields where a label wraps: every label of the row takes two lines, so the boxes line up */
+div[class*="st-key-frow2"] [data-testid="stWidgetLabel"] {{min-height: 2.42rem; display: flex; align-items: flex-end;}}
+div[class*="st-key-frow"] [data-testid="stWidgetLabel"] p {{line-height: 1.38; font-size: .875rem;}}
+.lbl {{font-weight: 600; font-size: 1.05rem; margin: 10px 0 2px;}}
 /* app bar */
 .st-key-appbar {{background: var(--bar); color: var(--bar-text); border-radius: 16px; padding: 12px 18px;
   margin-bottom: 4px; gap: 10px;}}
@@ -266,6 +289,23 @@ def brand(subtitle: str) -> None:
             f"<div class='s'>{html.escape(subtitle)}</div></div></div>")
 
 
+# Section -> (Material icon, tint) of its heading. Unknown sections get a neutral dot.
+SECTION_ICONS = {
+    "system": ("heat_pump", "hx"), "ground": ("layers", "earth"), "borefield": ("grid_view", "earth"),
+    "aquifer": ("water", "water"), "water_quality": ("science", "water"), "wells": ("water_pump", "water"),
+    "pipe": ("adjust", "hx"), "fluid": ("water_drop", "hx"), "flow": ("speed", "hx"),
+    "load": ("thermostat", "load"), "heat_pump": ("heat_pump", "load"),
+    "typical": ("tune", "hx"), "limits": ("device_thermostat", "limit"), "calculation": ("calculate", "limit"), "well_limits": ("rule", "limit"),
+}
+
+
+def section_heading(key: str, label: str) -> str:
+    """HTML of a section heading: its icon on a light tint, then the name."""
+    name, tint = SECTION_ICONS.get(key, ("radio_button_unchecked", "plain"))
+    return (f"<div class='sechead tint-{tint}'><span class='ic'>{icon(name)}</span>"
+            f"<span>{html.escape(label)}</span></div>")
+
+
 def chips(items: list[tuple[str, str]]) -> str:
     """HTML chips; each item is (kind, text) with kind ok, warn, bad, info or grey."""
     return "".join(f"<span class='chip {kind}'>{html.escape(text)}</span>" for kind, text in items)
@@ -301,10 +341,11 @@ def range_bar(value: float, rng: guidance.Typical, low_limit, high_limit, rock: 
     lo, hi, _, _ = guidance.position(value, rng, low_limit, high_limit)
     dot = (value - lo) / ((hi - lo) or 1.0)
     unusual = guidance.verdict(value, rng) != "typical"
-    st.html(f"<div class='rangebar'><div class='track'><div class='band' style='left:{band_lo * 100:.1f}%;"
-            f"width:{(band_hi - band_lo) * 100:.1f}%'></div><div class='dot' style='left:{dot * 100:.1f}%'></div>"
-            f"</div><div class='txt{' warn' if unusual else ''}'>{html.escape(guidance.verdict_text(value, rng, rock))}"
-            f"</div></div>")
+    text = html.escape(guidance.verdict_text(value, rng, rock))
+    # the typical range sits in the bar's tooltip; only an unusual value gets a line of text
+    st.html(f"<div class='rangebar' title='{text}'><div class='track'><div class='band' style='left:"
+            f"{band_lo * 100:.1f}%;width:{(band_hi - band_lo) * 100:.1f}%'></div><div class='dot' style='left:"
+            f"{dot * 100:.1f}%'></div></div>" + (f"<div class='txt warn'>{text}</div>" if unusual else "") + "</div>")
 
 
 def caption(text: str) -> None:
@@ -350,6 +391,10 @@ def expert_css() -> None:
 .stTabs [data-baseweb="select"] > div {min-height: 2.1rem; font-size: .9rem;}
 .stTabs [data-testid="stWidgetLabel"] p {font-size: .82rem;}
 .stTabs h5 {font-size: 1rem; line-height: 1.4; padding: .1rem 0 .45rem;}
+.stTabs div[class*="st-key-frow"] [data-testid="stWidgetLabel"] p {font-size: .82rem;}
+.stTabs div[class*="st-key-frow2"] [data-testid="stWidgetLabel"] {min-height: 2.27rem;}
+.stTabs .sechead {font-size: 1rem;} .stTabs .sechead .ic {width: 26px; height: 26px; border-radius: 8px;}
+.stTabs .sechead .ic .mi {font-size: 17px;}
 .stTabs div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {padding: 10px 14px;}
 .rangebar {margin: -4px 0 6px;} .rangebar .txt {font-size: .7rem;}
 </style>""")

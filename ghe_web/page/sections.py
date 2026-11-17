@@ -9,7 +9,7 @@ from ghe_web.core import model
 from ghe_web.i18n import t
 from ghe_web.inputs import SectionInput
 from ghe_web.inputs import registry as input_registry
-from ghe_web.page import guidance, steps
+from ghe_web.page import guidance, look, steps
 from ghe_web.page.fields import (cached_drawing, field_grid, hourly_input, monthly_table, points_input,
                                  preset_pickers, show_drawing)
 from ghe_web.page.state import Page
@@ -62,7 +62,7 @@ def section_inputs(page: Page, section) -> tuple[SectionInput, object]:
         keys = variant_choices(page, section, variant.key)
         if len(keys) == 1 and section.variant(keys[0]).help:
             about = " ".join(x for x in (about, t(section.variant(keys[0]).help)) if x)
-        st.markdown(f"##### {t(section.label)}", help=about)
+        st.markdown(look.section_heading(section.key, t(section.label)), unsafe_allow_html=True, help=about)
         if len(keys) > 1:  # the section heading names it, so the drop-down has no label of its own
             shown = section.variant(st.session_state.get(f"{page.gen}.{section.key}.variant_key", variant.key))
             picked = st.selectbox(t(section.label), keys, index=keys.index(variant.key),
@@ -98,12 +98,10 @@ def section_inputs(page: Page, section) -> tuple[SectionInput, object]:
             basic = [p for p in simple if not page.simple or not (guidance.is_advanced(section.key, p.key) or
                                                                   p.key in filled)]
             more = [p for p in simple if p not in basic]
-            field_grid(basic, values, prefix, (2 if side else 3) if page.simple else (3 if side else 4))
+            field_grid(basic, values, prefix, (2 if side else 3) if page.simple else (3 if side else 4), not side)
             if more:
                 with st.expander(t("More options ({n})", n=len(more)), icon=":material/tune:"):
-                    st.caption(t("Fields most people leave at their typical value. They are always part of the "
-                                 "calculation; switch to Expert at the top to see every field at once."))
-                    field_grid(more, values, prefix, 2 if side else 3)
+                    field_grid(more, values, prefix, 2 if side else 3, not side)
             if monthly:
                 values.update(monthly_table(monthly, values, f"{prefix}.monthly"))
         for prop in layer_props:  # full width below the fields and the drawing
@@ -180,7 +178,7 @@ def read_steps(page: Page, grouped: dict[str, list]) -> None:
                     continue
                 read_section(page, section, step)
             if typical:  # Simple: one card with typical values, opened to change them
-                st.markdown("##### " + t("Typical values"), help=t(
+                st.markdown(look.section_heading("typical", t("Typical values")), unsafe_allow_html=True, help=t(
                     "These inputs start with values that suit most projects. Open the card to change them; Expert at "
                     "the top shows them as steps of their own."))
                 summary_slot = st.empty()
