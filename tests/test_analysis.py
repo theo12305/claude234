@@ -1,9 +1,9 @@
 import pytest
 
 from ghe_web.core import analysis, model
-from ghe_web.inputs import registry as input_registry
-from ghe_web.downloads import pdf_report
 from ghe_web.core.catalog import GROUND
+from ghe_web.downloads import pdf_report
+from ghe_web.inputs import registry as input_registry
 
 
 @pytest.fixture(scope="module")

@@ -12,8 +12,8 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from ghe_web import i18n  # noqa: E402
-from ghe_web.i18n import fmt, t  # noqa: E402
 from ghe_web.charts.palette import COOLING, HEATING, NEUTRAL  # noqa: E402
+from ghe_web.i18n import fmt, t  # noqa: E402
 from ghe_web.wells.design import Design  # noqa: E402
 from ghe_web.wells.hydraulics import cone  # noqa: E402
 from ghe_web.wells.thermal import plume  # noqa: E402
@@ -158,7 +158,7 @@ def temperature_chart(d: Design, limits: dict) -> alt.Chart:
                       legend=alt.Legend(orient="top", title=None))
     lines = alt.Chart(long).mark_line(strokeWidth=1.4).encode(
         x=alt.X("Years:Q", title=t("Time [years]")), y=alt.Y("Temperature:Q", title=t("Temperature [°C]"),
-                                                            scale=alt.Scale(zero=False)),
+                                                             scale=alt.Scale(zero=False)),
         color=color, tooltip=[alt.Tooltip("Series:N", title=t("Series")),
                               alt.Tooltip("Years:Q", format=".2f", title=t("Years")),
                               alt.Tooltip("Temperature:Q", format=".2f", title="°C")])

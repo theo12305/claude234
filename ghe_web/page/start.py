@@ -76,8 +76,8 @@ def welcome(page: Page) -> None:
                               t("Start with {what}", what=t(label)), key=f"welcome.{key_}", width="stretch",
                               type="primary" if key_ == model.system(page.start) else "secondary",
                               on_click=choose_heat_source, args=(page, key_, hit), icon=":material/arrow_forward:")
-            st.caption(t("You can switch later in the menu ☰ or under ① in the heat source section. To continue a saved "
-                         "project, open it in the menu ☰."))
+            st.caption(t("You can switch later in the menu ☰ or under ① in the heat source section. To continue a "
+                         "saved project, open it in the menu ☰."))
         st.stop()
 
 
@@ -86,11 +86,11 @@ def intro(page: Page) -> None:
     if st.session_state.get("step") not in (None, page.steps["site_plan"], page.steps["Site"]):
         pass  # the intro only on the first steps
     elif page.system == "open":
-        st.caption(t("Fill in the input steps, then press **Size the wells** in the bar at the bottom. Every field has a "
-                     "question mark with an explanation; the drop-downs fill in typical values."))
+        st.caption(t("Fill in the input steps, then press **Size the wells** in the bar at the bottom. Every field "
+                     "has a question mark with an explanation; the drop-downs fill in typical values."))
     else:
-        st.caption(t("Fill in the input steps, then press **Size borefield** in the bar at the bottom. Every field has a "
-                     "question mark with an explanation; the drop-downs fill in typical values."))
+        st.caption(t("Fill in the input steps, then press **Size borefield** in the bar at the bottom. Every field "
+                     "has a question mark with an explanation; the drop-downs fill in typical values."))
     if st.session_state.pop("opened_link", False):
         st.success(t("Opened the project from the link. Hourly demand files are not part of links: upload it again if "
                      "the project uses one."), icon=":material/link:")

@@ -4,9 +4,9 @@ import pygfunction as gt
 import pytest
 
 from ghe_web.core import analysis, model
-from ghe_web.inputs import registry as input_registry
-from ghe_web.downloads import pdf_report
 from ghe_web.core.catalog import FLUIDS
+from ghe_web.downloads import pdf_report
+from ghe_web.inputs import registry as input_registry
 
 
 def _hourly_inputs(years=10, **overrides):
@@ -155,7 +155,7 @@ def test_reports(hourly_check):
     extras = {"ground_map": analysis.ground_temperature_map(result, cells=40),
               "load_optimisation": analysis.load_optimisation(result, "power")}
     options = pdf_report.ReportOptions(title="Test", subtitle="Sub", author="A", company="C", client="Client",
-                                   introduction="Intro.\nSecond paragraph.", conclusion="Done.")
+                                       introduction="Intro.\nSecond paragraph.", conclusion="Done.")
     full = pdf_report.make_pdf(result, inputs, "x", options, extras)
     summary = pdf_report.make_pdf(result, inputs, "x", pdf_report.ReportOptions(kind="summary"))
     assert full.startswith(b"%PDF") and summary.startswith(b"%PDF")

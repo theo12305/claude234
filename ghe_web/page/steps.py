@@ -40,7 +40,8 @@ def follow_goto(page: Page) -> None:
         st.session_state.step = page.steps["results"]
     if "goto_step" in st.session_state:
         st.session_state.step = page.steps[st.session_state.pop("goto_step")]
-    if st.session_state.get("step") not in (None, *page.steps.values()):  # language or heat source changed: same tab, new label
+    if st.session_state.get("step") not in (None, *page.steps.values()):
+        # the language or the heat source changed: the same tab, under its new label
         for code in i18n.LANGUAGES:
             with i18n.using(code):
                 match = [k for labels in (STEP_LABELS, WELL_STEP_LABELS, SIMPLE_STEP_LABELS) for k, v in labels.items()
@@ -50,8 +51,6 @@ def follow_goto(page: Page) -> None:
                 break
         else:
             del st.session_state.step
-
-
 
 
 def section_step_key(page: Page, section_key: str) -> str:
@@ -72,11 +71,13 @@ def grouped_sections(page: Page) -> dict[str, list]:
 def make_tabs(page: Page, grouped: dict[str, list]) -> None:
     """The tabs: site plan, the input steps, then (borehole heat exchangers) the design check, the results and the
     further analysis."""
-    page.step_names = [page.steps["site_plan"]] + list(dict.fromkeys(s for s in [page.steps[k] for k in ("Site", "Borehole", "Loads", "Design")]
-                                                  + [page.steps["more"]] if s in grouped))
+    steps = page.steps
+    inputs = [steps[k] for k in ("Site", "Borehole", "Loads", "Design")] + [steps["more"]]
+    page.step_names = [steps["site_plan"]] + list(dict.fromkeys(s for s in inputs if s in grouped))
     # borehole heat exchangers: confirm the design check, then the results, then the further analysis
-    page.step_names += [page.step("check"), page.steps["results"], page.step("analysis")] if page.step("check") else [page.steps["results"]]
-    page.step_tabs = dict(zip(page.step_names, st.tabs(page.step_names, default=page.steps["Site"], key="step", on_change="rerun")))
+    page.step_names += [steps["check"], steps["results"], steps["analysis"]] if "check" in steps else [steps["results"]]
+    page.step_tabs = dict(zip(page.step_names, st.tabs(page.step_names, default=steps["Site"], key="step",
+                                                       on_change="rerun")))
 
 
 def next_step_button(page: Page, step: str) -> None:

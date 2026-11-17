@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import streamlit as st
 
+from ghe_web import i18n
 from ghe_web.core import checks
 from ghe_web.downloads import excel, pdf_report
-from ghe_web import i18n
-from ghe_web.page import look
 from ghe_web.i18n import fmt, t
-from ghe_web.results.cache import *  # noqa: F403 (the cached calculations)
+from ghe_web.page import look
 from ghe_web.results import sheet
+from ghe_web.results.cache import *  # noqa: F403 (the cached calculations)
 from ghe_web.results.common import in_language, key_table
 from ghe_web.results.registry import Ctx, extra_tables
 
@@ -65,7 +65,7 @@ def answer_section(ctx: Ctx) -> None:
         ("❄️ " + t("Lowest fluid temperature"), fmt("{x:.1f} °C", x=t_lo), margin_note(vals["margin_cold"],
                                                                                        limits["T_min"]), "cold"),
         ("🔥 " + t("Highest fluid temperature"), fmt("{x:.1f} °C", x=t_hi), margin_note(vals["margin_warm"],
-                                                                                        limits["T_max"]), "warm"),
+                                                                                       limits["T_max"]), "warm"),
         ("⭕ " + t("Borehole thermal resistance"), fmt("{x:.3f} m·K/W", x=result.borehole_resistance),
          t("effective Rb"), ""),
     ]

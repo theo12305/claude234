@@ -12,9 +12,9 @@ import pandas as pd
 
 from ghe_web import i18n
 from ghe_web.core import model
-from ghe_web.inputs import registry as input_registry
 from ghe_web.i18n import fmt, t
 from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
 from ghe_web.inputs.load import HOURS_PER_MONTH, MONTHS
 
 LAMINAR_RE = 2300
@@ -402,8 +402,7 @@ def load_optimisation(result: model.SizingResult, objective: str = "power") -> d
     power: the largest constant share of the peaks; energy: the most energy, month by month;
     balance: the most power while keeping the ground in balance over the years."""
     from GHEtool import HourlyBuildingLoad
-    from GHEtool.Methods import (optimise_load_profile_balance, optimise_load_profile_energy,
-                                 optimise_load_profile_power)
+    from GHEtool.Methods import optimise_load_profile_balance, optimise_load_profile_energy, optimise_load_profile_power
     from GHEtool.VariableClasses import HourlyBuildingLoadMultiYear
     load = result.borefield.load
     if not isinstance(load, (HourlyBuildingLoad, HourlyBuildingLoadMultiYear)):

@@ -7,10 +7,10 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from ghe_web.inputs import registry as input_registry
 from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
 from ghe_web.wells import aquifer as aq
-from ghe_web.wells.hydraulics import (C_W, RHO_W, G, FieldHydraulics, Well, entrance_velocity, field_hydraulics,
+from ghe_web.wells.hydraulics import (C_W, RHO_W, FieldHydraulics, G, Well, entrance_velocity, field_hydraulics,
                                       pump_power)
 from ghe_web.wells.thermal import (SECONDS_PER_MONTH, SECONDS_PER_YEAR, Streamlines, critical_distance, plume_length,
                                    production_temperature, trace)

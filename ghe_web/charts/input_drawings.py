@@ -16,10 +16,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib.patches import Circle  # noqa: E402
 
-from ghe_web.i18n import fmt, t  # noqa: E402
-from ghe_web.inputs import SectionInput  # noqa: E402
 from ghe_web.charts.palette import (EXTRACTION, GROUND, GROUT, INJECTION, PIPE_DOWN, PIPE_UP,  # noqa: E402
                                     load_colors, month_order)
+from ghe_web.i18n import fmt, t  # noqa: E402
+from ghe_web.inputs import SectionInput  # noqa: E402
 
 
 def rectangular_layout(values: dict) -> plt.Figure:
@@ -230,7 +230,7 @@ def load_profile(values: dict) -> alt.Chart:
     data = pd.DataFrame({
         "Month": month_order() * 2,
         "Energy": [-float(x) for x in values["baseload_extraction"]]
-                  + [float(x) for x in values["baseload_injection"]],
+        + [float(x) for x in values["baseload_injection"]],
         "Type": [ext] * 12 + [inj] * 12,
     })
     return alt.Chart(data).mark_bar().encode(

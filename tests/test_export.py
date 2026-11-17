@@ -4,10 +4,10 @@ import zipfile
 import openpyxl
 import pytest
 
+from ghe_web.charts import result_charts
 from ghe_web.core import analysis, model
 from ghe_web.downloads import excel
 from ghe_web.inputs import registry as input_registry
-from ghe_web.charts import result_charts
 
 
 @pytest.fixture(scope="module")

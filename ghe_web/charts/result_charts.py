@@ -8,10 +8,10 @@ import numpy as np
 import pandas as pd
 
 from ghe_web import i18n
-from ghe_web.i18n import fmt, t
-from ghe_web.charts.palette import (AVERAGE_COLUMNS, COOLING, ChartStyle, DEFAULT_STYLE, EXTRACTION,  # noqa: E402
-                                    HEATING, INJECTION, NEUTRAL, PIPE_DOWN, PIPE_UP, SERIES_COLORS, month_names,
+from ghe_web.charts.palette import (AVERAGE_COLUMNS, COOLING, DEFAULT_STYLE, EXTRACTION, HEATING,
+                                    INJECTION, NEUTRAL, PIPE_DOWN, PIPE_UP, SERIES_COLORS, ChartStyle, month_names,
                                     month_order)
+from ghe_web.i18n import fmt, t
 
 
 def _series_color(series: list[str]) -> alt.Color:

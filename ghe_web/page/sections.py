@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from ghe_web.charts import input_drawings
 from ghe_web.core import model
 from ghe_web.i18n import t
 from ghe_web.inputs import SectionInput
@@ -13,7 +14,6 @@ from ghe_web.page.fields import (cached_drawing, field_grid, hourly_input, month
                                  preset_pickers, show_drawing)
 from ghe_web.page.state import Page
 from ghe_web.strata import page as strata_page
-from ghe_web.charts import input_drawings
 
 # Input methods for specialists: listed in Expert only (and in Simple while a project uses them)
 EXPERT_ONLY = {("load", "monthly"), ("load", "hourly_building"), ("heat_pump", "curve"), ("pipe", "coaxial"),
@@ -96,7 +96,7 @@ def section_inputs(page: Page, section) -> tuple[SectionInput, object]:
             # Simple: fields a drop-down fills in (rock type, pipe, grout, ...) go under "More options" too
             filled = {k for group in variant.presets for option in group.options.values() for k in option}
             basic = [p for p in simple if not page.simple or not (guidance.is_advanced(section.key, p.key) or
-                                                              p.key in filled)]
+                                                                  p.key in filled)]
             more = [p for p in simple if p not in basic]
             field_grid(basic, values, prefix, (2 if side else 3) if page.simple else (3 if side else 4))
             if more:
@@ -121,6 +121,7 @@ def section_inputs(page: Page, section) -> tuple[SectionInput, object]:
 
 
 def read_section(page: Page, section, step: str) -> None:
+    """Draws a section, keeps its values and remembers where its drawing goes."""
     page.inputs[section.key], target = section_inputs(page, section)
     page.section_step[section.key] = step
     # Drawn later because some drawings use other sections too
@@ -151,7 +152,7 @@ def typical_summary(page: Page, sections) -> str:
                     parts.append(t(str(value)))
                 else:
                     parts.append(f"{t(prop.label)} {value:g}" + (f" {t(prop.unit)}" if prop.unit
-                                                                                   else ""))
+                                                                 else ""))
         lines.append(f"**{t(section.label)}:** " + " · ".join(parts))
     return "  \n".join(lines)
 
@@ -168,19 +169,20 @@ def read_steps(page: Page, grouped: dict[str, list]) -> None:
                              "{b:.0f} m to the parcel border downstream.", **st.session_state.pop("well_plan_done")),
                            icon=":material/check_circle:")
             # Simple: the calculation method stays asked; the borehole, fluid and limits go in the typical values card
-            typical = [x for x in sections if page.simple and x.group in ("Borehole", "Design") and x.key != "calculation"]
+            typical = [x for x in sections
+                       if page.simple and x.group in ("Borehole", "Design") and x.key != "calculation"]
             for section in [x for x in sections if x not in typical]:
                 if hidden_in_simple(page, section):
                     chosen = page.start.get(section.key)
                     key_ = variant_choices(page, section, chosen.variant if chosen else section.variant().key)[0]
                     page.inputs[section.key] = SectionInput(key_, chosen.values if chosen and chosen.variant == key_
-                                                       else section.variant(key_).defaults())
+                                                            else section.variant(key_).defaults())
                     continue
                 read_section(page, section, step)
             if typical:  # Simple: one card with typical values, opened to change them
                 st.markdown("##### " + t("Typical values"), help=t(
-                    "These inputs start with values that suit most projects. Open the card to change them; Expert at the "
-                    "top shows them as steps of their own."))
+                    "These inputs start with values that suit most projects. Open the card to change them; Expert at "
+                    "the top shows them as steps of their own."))
                 summary_slot = st.empty()
                 with st.expander(t("Change the typical values"), icon=":material/tune:"):
                     for section in typical:

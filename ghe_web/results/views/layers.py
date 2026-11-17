@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ghe_web.page import look
 from ghe_web.charts import input_drawings
 from ghe_web.i18n import fmt, t
+from ghe_web.page import look
 from ghe_web.results.cache import cached_uniform
 from ghe_web.results.common import figure
 from ghe_web.results.registry import Ctx, ResultView, register
@@ -30,22 +30,22 @@ def render(ctx: Ctx) -> None:
     left, right = st.columns([2, 3], gap="large")
     with left:
         st.pyplot(input_drawings.borehole_log(rows, length, buried, t("{n} boreholes of {length:.1f} m",
-                                                             n=result.number_of_boreholes, length=length)),
+                                                                      n=result.number_of_boreholes, length=length)),
                   width="stretch")
     with right:
         st.markdown(t("**Share of the heat exchange per layer**"))
         figure(input_drawings.layer_share_chart(parts))
         look.caption(t("Length in the layer × its conductivity, as a share of the whole borehole. Layers that conduct "
-                     "well carry more of the heat, so they are worth reaching."))
+                       "well carry more of the heat, so they are worth reaching."))
         st.markdown(t("**Average conductivity for other borehole lengths**"))
         top = max(float(rows[-1]["top"]) * 1.2, length * 1.6, 50.0)
         figure(input_drawings.conductivity_with_length(rows, buried, range(10, int(top) + 1, 5), length))
         look.caption(t("Dashed: the calculated length. Where the curve rises, a deeper borehole reaches better "
-                     "ground."))
+                       "ground."))
     if used:
         with st.expander(t("Compare: the same design with one average value"), icon=":material/compare_arrows:"):
             look.caption(t("Sizes again with a single conductivity and heat capacity, the average over the borehole "
-                         "length found here. The difference shows how much the layering matters."))
+                           "length found here. The difference shows how much the layering matters."))
             if st.button(t("Calculate the comparison"), key="uniform_go"):
                 st.session_state.uniform_json = sized_json
             if st.session_state.get("uniform_json") == sized_json:

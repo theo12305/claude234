@@ -12,7 +12,9 @@ from ghe_web.core import analysis, checks, model
 from ghe_web.i18n import t
 from ghe_web.page import calculation, design_check, project
 from ghe_web.page.state import Page
-from ghe_web.results import registry as results_registry, sheet as results_sheet, summary as results_summary
+from ghe_web.results import registry as results_registry
+from ghe_web.results import sheet as results_sheet
+from ghe_web.results import summary as results_summary
 from ghe_web.results.cache import cached_size
 
 
@@ -25,8 +27,8 @@ def draw(page: Page, found_checks: list[checks.Check]) -> None:
         sized_inputs = model.from_json(sized_json)[1]
         result = cached_size(sized_json)
         ctx = results.Ctx(result=result, key=analysis.key_results(result, sized_inputs), sized_inputs=sized_inputs,
-                          sized_json=sized_json, current_json=page.current_json, inputs=page.inputs, name=page.name, simple=page.simple,
-                          found_checks=found_checks,
+                          sized_json=sized_json, current_json=page.current_json, inputs=page.inputs, name=page.name,
+                          simple=page.simple, found_checks=found_checks,
                           show_design_check=functools.partial(design_check.show_design_check, page),
                           project_json=functools.partial(project.project_json, page))
 
@@ -51,7 +53,8 @@ def draw(page: Page, found_checks: list[checks.Check]) -> None:
                 if not results_sheet.section_on(view.key):
                     continue
                 number += 1
-                st.markdown(f"<h3 class='sheethead'>{number} · {html.escape(t(view.title))}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 class='sheethead'>{number} · {html.escape(t(view.title))}</h3>",
+                            unsafe_allow_html=True)
                 results_registry.render(view, ctx, number)
             st.markdown(f"<h3 class='sheethead'>{html.escape(t('Downloads'))}</h3>", unsafe_allow_html=True)
             results_registry.render(results_registry.get("export"), ctx, number + 1)

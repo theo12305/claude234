@@ -1,8 +1,8 @@
 import pytest
 
+from ghe_web.charts import input_drawings
 from ghe_web.core import analysis, model
 from ghe_web.downloads import excel, pdf_report
-from ghe_web.charts import input_drawings
 from ghe_web.siteplan import states
 from ghe_web.strata import predict, rocks, sources
 from ghe_web.strata.predict import Borehole, LogLayer
@@ -278,6 +278,7 @@ def test_read_log_text_html_and_pdf():
         reader.layers_from_text("no depths here")
     # a PDF with a text layer is read without the reading service
     import io
+
     import matplotlib.pyplot as plt
     fig = plt.figure()
     for i, line in enumerate(LOG_TEXT.splitlines()):

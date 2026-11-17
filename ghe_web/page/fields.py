@@ -19,6 +19,7 @@ from ghe_web.page import guidance, look
 
 
 def widget(prop: Property, value, key: str):
+    """The widget for one field (number, toggle or drop-down), with label, unit and help."""
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
     help_text = t(prop.help) or None
     # A preset may already have put a value in the session state; then the widget must not get one too.
@@ -57,6 +58,7 @@ def field_help(prop: Property, value, values: dict, prefix: str) -> None:
 
 
 def field_grid(props: list[Property], values: dict, prefix: str, n_cols: int) -> None:
+    """Fields in columns, each with its typical range below."""
     # on a phone the columns stack, which would mix up the order (column by column): one column there
     cols = st.columns(1 if look.is_phone() else n_cols)
     for i, prop in enumerate(props):
@@ -97,6 +99,7 @@ def preset_pickers(variant: Variant, key_prefix: str, values: dict) -> None:
 
 
 def monthly_table(props: list[Property], values: dict, key: str) -> dict:
+    """Monthly values as an editable table (paste from Excel works)."""
     # The columns are named by the input keys (the editor stores edits by column name); the labels follow the
     # language, so switching it keeps the edits.
     df = pd.DataFrame({p.key: list(values[p.key]) for p in props}, index=list(i18n.months()))
@@ -181,6 +184,7 @@ def cached_drawing(section_key: str, variant_key: str, project_json: str, langua
 
 
 def show_drawing(parts: tuple) -> None:
+    """An input drawing: pictures (matplotlib, stored as PNG) and charts."""
     for part in parts:
         if isinstance(part, bytes):
             st.image(part, width="stretch")
@@ -189,4 +193,5 @@ def show_drawing(parts: tuple) -> None:
 
 
 def chart(c, width="stretch") -> None:
+    """A chart in the look of the page."""
     look.show_chart(c, width)

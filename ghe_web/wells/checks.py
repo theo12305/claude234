@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from ghe_web.core import model
-from ghe_web.inputs import registry as input_registry
 from ghe_web.core.checks import FINE, PROBLEM, WARNING, Check
 from ghe_web.i18n import t
 from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
 from ghe_web.wells.design import Design
 
 # Guide values for the groundwater (VDI 4640 Blatt 2 and the usual heat exchanger maker limits)

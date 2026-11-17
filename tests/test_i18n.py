@@ -6,20 +6,24 @@ import string
 
 import pytest
 
-from ghe_web.core import analysis, catalog, model
-from ghe_web.page import guidance
 from ghe_web import i18n
-from ghe_web.inputs import registry as input_registry
-from ghe_web.downloads import pdf_report
 from ghe_web.charts import input_drawings, palette
+from ghe_web.core import analysis, catalog, model
+from ghe_web.downloads import pdf_report
 from ghe_web.i18n import fmt, t
-from ghe_web.materials import page as materials_page, quantities as materials
+from ghe_web.inputs import registry as input_registry
+from ghe_web.materials import page as materials_page
+from ghe_web.materials import quantities as materials
+from ghe_web.page import guidance
 from ghe_web.results import registry as results_registry
 
 DE = i18n.table("de")  # i18n_de.py and the de.py of the feature packages
-from ghe_web.siteplan import page as siteplan_page, states
-from ghe_web.strata import rocks, sources
-from ghe_web.wells import page as wells_page, plots as wells_plots, sources as wells_sources
+from ghe_web.siteplan import page as siteplan_page  # noqa: E402
+from ghe_web.siteplan import states  # noqa: E402
+from ghe_web.strata import rocks, sources  # noqa: E402
+from ghe_web.wells import page as wells_page  # noqa: E402
+from ghe_web.wells import plots as wells_plots  # noqa: E402
+from ghe_web.wells import sources as wells_sources  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -39,9 +43,9 @@ def _literal_calls() -> set[str]:
 
 
 def _app_tables() -> set[str]:
-    """Dictionaries of labels in app.py and the result views (tabs, chart choices, ...) translated with t()."""
+    """Dictionaries of labels in the page parts and the result views (tabs, chart choices, ...) translated with t()."""
     texts = set()
-    files = [ROOT / "app.py", *(ROOT / "ghe_web" / "results").rglob("*.py")]
+    files = [ROOT / "app.py", *(ROOT / "ghe_web" / "page").rglob("*.py"), *(ROOT / "ghe_web" / "results").rglob("*.py")]
     for path in files:
         for node in ast.parse(path.read_text(encoding="utf-8")).body:
             if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict) and node.targets[0].id.isupper():

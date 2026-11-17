@@ -1,11 +1,10 @@
 """Hourly temperatures (only for hourly loads)."""
 from __future__ import annotations
 
-
 from ghe_web.charts import result_charts
 from ghe_web.i18n import t
-from ghe_web.results.common import figure
 from ghe_web.results import sheet
+from ghe_web.results.common import figure
 from ghe_web.results.registry import Ctx, ResultView, register
 
 

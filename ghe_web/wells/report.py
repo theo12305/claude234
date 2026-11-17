@@ -13,9 +13,9 @@ from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
 from ghe_web import i18n  # noqa: E402
 from ghe_web.downloads.excel import inputs_table  # noqa: E402
+from ghe_web.downloads.pdf_report import A4, _today  # noqa: E402
 from ghe_web.i18n import fmt, t  # noqa: E402
 from ghe_web.inputs import SectionInput  # noqa: E402
-from ghe_web.downloads.pdf_report import A4, _today  # noqa: E402
 from ghe_web.wells import checks, design, plots, sources  # noqa: E402
 
 

@@ -3,13 +3,12 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ghe_web.page import look
 from ghe_web.charts import result_charts
 from ghe_web.i18n import fmt, t
+from ghe_web.page import look
 from ghe_web.results.cache import cached_borehole_map
 from ghe_web.results.common import figure
 from ghe_web.results.registry import Ctx, ResultView, register
-
 
 FIELD_COLOURS = {"share": "Share of the load", "change": "Temperature change"}
 
@@ -41,16 +40,17 @@ def render(ctx: Ctx) -> None:
         figure(result_charts.borehole_map_chart(table, colour))
     with right:
         if colour == "share":
-            look.caption(t("GHEtool sizes the field with one wall temperature for all boreholes. To reach it, boreholes "
-                         "at the edge and in the corners take more heat than those in the middle, because they have "
-                         "fewer neighbours. Red: more than the average, blue: less. The difference grows over the "
-                         "years as the boreholes start to influence each other."))
+            look.caption(t("GHEtool sizes the field with one wall temperature for all boreholes. To reach it, "
+                           "boreholes at the edge and in the corners take more heat than those in the middle, "
+                           "because they have fewer neighbours. Red: more than the average, blue: less. The "
+                           "difference grows over the years as the boreholes start to influence each other."))
         else:
-            look.caption(t("How much the yearly imbalance warms (red) or cools (blue) the ground at each borehole wall, "
-                         "with the same heat from every borehole. Boreholes in the middle change most, because their "
-                         "neighbours add up; a larger spacing there, or moving boreholes to the edge, helps."))
+            look.caption(t("How much the yearly imbalance warms (red) or cools (blue) the ground at each borehole "
+                           "wall, with the same heat from every borehole. Boreholes in the middle change most, "
+                           "because their neighbours add up; a larger spacing there, or moving boreholes to the "
+                           "edge, helps."))
         look.caption(t("Finite line source with the mirror image at the surface, one segment per borehole (the same "
-                     "model as the g-function). Numbers as in the input table of the borefield."))
+                       "model as the g-function). Numbers as in the input table of the borefield."))
         st.download_button(t("Download the table (CSV)"),
                            lambda: table.round(4).to_csv(index=False).encode(),
                            f"{name.strip() or 'ghetool-project'}_boreholes.csv", "text/csv",

@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 
+from ghe_web.charts import input_drawings, result_charts
 from ghe_web.core import model
 from ghe_web.inputs import registry as input_registry
-from ghe_web.charts import input_drawings, result_charts
 
 
 def test_every_input_drawing_renders():

@@ -5,9 +5,9 @@ import zlib
 import pytest
 
 from ghe_web.core import analysis, checks, model
-from ghe_web.inputs import registry as input_registry
 from ghe_web.downloads import share_link
 from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
 
 
 def _irregular_field() -> dict:

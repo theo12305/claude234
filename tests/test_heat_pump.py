@@ -1,10 +1,10 @@
 import pytest
 
+from ghe_web.charts import input_drawings
 from ghe_web.core import analysis, model
+from ghe_web.core.catalog import COOLING_CURVES, HEATING_CURVES
 from ghe_web.downloads import excel
 from ghe_web.inputs import registry as input_registry
-from ghe_web.charts import input_drawings
-from ghe_web.core.catalog import COOLING_CURVES, HEATING_CURVES
 
 
 def building_inputs(curve: bool):
@@ -43,11 +43,13 @@ def test_heat_pump_key_results_and_export(curve_result):
     key = analysis.key_results(result, inputs)
     assert "Heat pump" in key.by_group()
     assert key.values["electricity_mwh"] > 0 and "cop_coldest" in key.values
-    for chart in input_drawings.efficiency_curves(inputs["heat_pump"].values, (key.values["t_min"], key.values["t_max"])):
+    operating = (key.values["t_min"], key.values["t_max"])
+    for chart in input_drawings.efficiency_curves(inputs["heat_pump"].values, operating):
         chart.to_json()
     for chart in input_drawings.heat_pump_yearly_chart(result.heat_pump, show_spf=True):
         chart.to_json()
     import io
+
     import openpyxl
     wb = openpyxl.load_workbook(io.BytesIO(excel.excel_workbook(result, inputs)), read_only=True)
     assert "Heat pump" in wb.sheetnames

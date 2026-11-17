@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
 
+from ghe_web.charts import result_charts
 from ghe_web.core import hourly, model
 from ghe_web.inputs import registry as input_registry
-from ghe_web.charts import result_charts
 
 
 def _hourly_inputs(**overrides):
@@ -35,7 +35,8 @@ def test_leap_year_is_trimmed():
     assert len(heating) == 8760 and "leap" in notes[0]
 
 
-@pytest.mark.parametrize("rows, message", [(["1,2"] * 100, "8760"), (["-1,2"] * 8760, "negative"), (["1"] * 8760, "two columns")])
+@pytest.mark.parametrize("rows, message", [(["1,2"] * 100, "8760"), (["-1,2"] * 8760, "negative"), (["1"] * 8760, "two "
+                                                                                                                  "columns")])
 def test_bad_files_are_reported(rows, message):
     with pytest.raises(hourly.HourlyFileError, match=message):
         hourly.read_profile("demand.csv", "\n".join(rows).encode())

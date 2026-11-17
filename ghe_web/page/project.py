@@ -66,8 +66,8 @@ def save_and_share(page: Page) -> None:
     with page.share_slot, st.expander(t("Share link"), icon=":material/link:"):
         link, dropped = share_link.link(st.context.url or "", project_json(page))
         st.markdown(t("**Share this project**"))
-        st.caption(t("Anyone with the link opens the site with your inputs filled in. The project is stored in the link "
-                     "itself; nothing is saved on the server. Copy it with the button at the right of the box."))
+        st.caption(t("Anyone with the link opens the site with your inputs filled in. The project is stored in the "
+                     "link itself; nothing is saved on the server. Copy it with the button at the right of the box."))
         st.code(link, language=None, wrap_lines=True)
         if dropped:
             st.warning(t("The hourly demand file is not part of the link (too large): send the file separately."),

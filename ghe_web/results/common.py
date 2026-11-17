@@ -9,8 +9,8 @@ import pandas as pd
 import streamlit as st
 
 from ghe_web import i18n
-from ghe_web.page import look
 from ghe_web.i18n import t
+from ghe_web.page import look
 
 
 def in_language(fn, *args):
@@ -31,6 +31,7 @@ def start_figures(view_number: int) -> None:
 
 def _picture(spec: dict, kind: str) -> bytes:
     import vl_convert as vlc
+
     from ghe_web.downloads.pdf_report import _register_chart_fonts
     _register_chart_fonts()  # DejaVu from matplotlib: the text is there even on a server without fonts
     spec["config"] = {**spec.get("config", {}), "font": "DejaVu Sans"}

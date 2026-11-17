@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ghe_web.downloads import excel, pdf_report
 from ghe_web import i18n
+from ghe_web.downloads import excel, pdf_report
 from ghe_web.i18n import t
+from ghe_web.results import sheet
 from ghe_web.results.cache import cached_borehole_map, cached_ground_map, load_optimisation_done
 from ghe_web.results.common import in_language
-from ghe_web.results import sheet
 from ghe_web.results.registry import Ctx, ResultView, register
-
 
 REPORT_KINDS = {"full": "Full report", "summary": "One-page summary"}
 
@@ -37,8 +36,8 @@ def report_settings(sized_json: str, stem: str) -> tuple[pdf_report.ReportOption
                      "lines and markers."))
     choice = sheet.choice()
     options = pdf_report.ReportOptions(kind=kind, title=title, subtitle=subtitle, author=author, company=company,
-                                   client=client, introduction=intro, conclusion=conclusion,
-                                   logo=logo.getvalue() if logo else None, sheet=choice, inputs=with_inputs)
+                                       client=client, introduction=intro, conclusion=conclusion,
+                                       logo=logo.getvalue() if logo else None, sheet=choice, inputs=with_inputs)
     extras = {"load_optimisation": load_optimisation_done(sized_json)}
     if choice["sections"].get("ground"):  # calculated for the page already, so cached
         extras["ground_map"] = cached_ground_map(sized_json)

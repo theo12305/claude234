@@ -7,13 +7,13 @@ from typing import Callable
 import pandas as pd
 import streamlit as st
 
-from ghe_web.core import checks as ghe_checks
 from ghe_web import i18n
+from ghe_web.core import checks as ghe_checks
 from ghe_web.core import model
-from ghe_web.inputs import registry as input_registry
-from ghe_web.page import look
 from ghe_web.i18n import fmt, t
 from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
+from ghe_web.page import look
 from ghe_web.wells import checks, design, plots, report, sources
 
 VIEWS = {"overview": "Overview", "hydraulics": "Hydraulics", "temperatures": "Temperatures", "map": "Site map",
@@ -84,7 +84,7 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
         with st.container(width="stretch"):
             if errors:
                 look.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
-                               "; ".join(f"{step_of(k)}: {t(input_registry.get(k).label)}" for k in errors))
+                                 "; ".join(f"{step_of(k)}: {t(input_registry.get(k).label)}" for k in errors))
             elif "calc_error" in st.session_state:
                 look.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
             elif d_last is not None:
@@ -197,7 +197,7 @@ def _verdict(d: design.Design, inputs, found: list | None = None) -> None:
         chip_items.append(("warn", t("{n} warning(s)", n=len(warnings))))
     chip_items.append(("ok", t("{n} fine", n=len(found) - len(problems) - len(warnings))))
     look.answer_card(not problems, t("Answer"), t("{p} + {i} wells, {d:g} m apart", p=d.n_production, i=d.n_injection,
-                                                d=d.distance), sub, chip_items)
+                                                  d=d.distance), sub, chip_items)
     look.tiles([
         ("💧 " + t("Peak flow"), fmt("{x:.1f} m³/h", x=d.q_peak * 3600), fmt("{x:.1f} l/s", x=d.q_peak * 1000), ""),
         ("Σ " + t("Water per year"), fmt("{x:,.0f} m³", x=d.volume_year), "", ""),

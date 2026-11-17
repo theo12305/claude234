@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ghe_web.core import analysis
-from ghe_web.page import look
 from ghe_web.charts import result_charts
+from ghe_web.core import analysis
 from ghe_web.i18n import fmt, t
+from ghe_web.page import look
 from ghe_web.results.common import figure
 from ghe_web.results.registry import Ctx, ResultView, hidden, register
 
@@ -30,13 +30,13 @@ def render(ctx: Ctx) -> None:
         if curve is not None:
             bf = result.borefield
             flow = float(bf.borehole.flow_data.vfr_borehole(fluid_data=bf.borehole.fluid_data,
-                                                             temperature=v["t_min"]))
+                                                            temperature=v["t_min"]))
             figure(result_charts.pressure_drop_chart(curve, flow, v["dp_kpa"]))
             look.caption(t("At the coldest fluid temperature, where the fluid is most viscous. The borehole only: add "
-                         "the manifold, header pipes and heat pump evaporator for the pump. The kink is where the "
-                         "flow turns turbulent."))
+                           "the manifold, header pipes and heat pump evaporator for the pump. The kink is where the "
+                           "flow turns turbulent."))
     look.caption(t("Pump energy = hydraulic power ÷ pump efficiency × operating hours, both set under Flow rate in "
-                 "step ②."))
+                   "step ②."))
 
 
 

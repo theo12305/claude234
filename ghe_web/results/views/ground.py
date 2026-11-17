@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ghe_web.core import analysis
-from ghe_web.page import look
 from ghe_web.charts import result_charts
+from ghe_web.core import analysis
 from ghe_web.i18n import fmt, t
+from ghe_web.page import look
+from ghe_web.results import sheet
 from ghe_web.results.cache import cached_ground_map
 from ghe_web.results.common import figure
-from ghe_web.results import sheet
 from ghe_web.results.registry import Ctx, ResultView, register
 
 
@@ -24,7 +24,7 @@ def render(ctx: Ctx) -> None:
         _map(m, north)
     if sheet.on("gfunction"):
         look.caption(t("The dimensionless step response of the field. Its rise at large times shows how strongly the "
-                     "boreholes influence each other."))
+                       "boreholes influence each other."))
         curve = analysis.gfunction_curve(result)
         figure(result_charts.gfunction_chart(curve), data=curve)
 
@@ -44,13 +44,13 @@ def _map(m: dict, north: bool) -> None:
         figure(result_charts.ground_map_chart(m, north, size=290 if look.is_phone() else 420), data=m["table"].round(4),
                width="content")
     with right:
-        look.caption(t("How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end of "
-                     "the simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each dot is a "
-                     "borehole. Boreholes in the middle change most because their neighbours add up. The seasonal "
-                     "swing on top of this averages out over a year and is left out.",
-                     step=result_charts.ground_classes(m["table"]["Change"])[0]))
+        look.caption(t("How the yearly imbalance warms (red) or cools (blue) the ground around the field at the end "
+                       "of the simulation, halfway down the boreholes. Lines: equal change, every {step:g} K. Each "
+                       "dot is a borehole. Boreholes in the middle change most because their neighbours add up. The "
+                       "seasonal swing on top of this averages out over a year and is left out.",
+                       step=result_charts.ground_classes(m["table"]["Change"])[0]))
         look.caption(t("Calculated with the finite line source (uniform heat flow per metre, with the mirror image at "
-                     "the surface), which is also the basis of the g-function."))
+                       "the surface), which is also the basis of the g-function."))
 
 
 register(ResultView("ground", "Ground", 80, render))

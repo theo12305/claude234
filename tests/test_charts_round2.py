@@ -4,9 +4,9 @@ import json
 import numpy as np
 import pytest
 
-from ghe_web.core import analysis, model
 from ghe_web import i18n
 from ghe_web.charts import palette, result_charts
+from ghe_web.core import analysis, model
 
 
 @pytest.fixture(scope="module")

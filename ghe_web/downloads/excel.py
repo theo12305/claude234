@@ -6,13 +6,13 @@ import zipfile
 
 import pandas as pd
 
-from ghe_web.core import analysis, model
 from ghe_web import i18n
-from ghe_web.inputs import registry as input_registry
+from ghe_web.core import analysis, model
 from ghe_web.downloads import pdf_report
+from ghe_web.downloads.pdf_report import METHOD
 from ghe_web.i18n import fmt, t
 from ghe_web.inputs import SectionInput
-from ghe_web.downloads.pdf_report import METHOD
+from ghe_web.inputs import registry as input_registry
 
 
 def summary_table(result: model.SizingResult, inputs: dict[str, SectionInput], name: str = "") -> pd.DataFrame:

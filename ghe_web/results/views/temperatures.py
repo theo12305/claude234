@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import streamlit as st
 
+from ghe_web.charts import result_charts
 from ghe_web.core import analysis
 from ghe_web.downloads import excel
-from ghe_web.charts import result_charts
 from ghe_web.i18n import t
 from ghe_web.results import sheet
 from ghe_web.results.common import TEMPERATURE_CAPTION, figure
@@ -39,7 +39,8 @@ def render(ctx: Ctx) -> None:
         else:
             figure(main, TEMPERATURE_CAPTION(), table)
     elif sheet.on("temp_zoom"):
-        figure(result_charts.last_year_chart(result.temperatures, limits, compact=True, style=style), data=table.tail(12))
+        figure(result_charts.last_year_chart(result.temperatures, limits, compact=True, style=style),
+               data=table.tail(12))
     if sheet.on("temp_last"):
         caption = t("Into the borefield = supply from the heat pump; out of the borefield = return to the heat pump.") \
             if "Into borefield (peak extraction)" in result.temperatures else None

@@ -1,7 +1,7 @@
 """Typical ranges, side notes and Simple-mode fields next to the inputs."""
 from ghe_web.core import catalog, model
-from ghe_web.page import guidance
 from ghe_web.inputs import registry as input_registry
+from ghe_web.page import guidance
 
 
 def test_rock_ranges_contain_the_dropdown_value():
@@ -35,7 +35,7 @@ def test_old_projects_with_yearly_energy_become_full_load_hours():
     import json
     text = json.loads(model.to_json(model.default_inputs()))
     values = text["sections"]["load"]["values"] = {"annual_heating_mwh": 300.0, "peak_heating_kw": 150.0,
-                                                  "annual_cooling_mwh": 40.0, "peak_cooling_kw": 0.0}
+                                                   "annual_cooling_mwh": 40.0, "peak_cooling_kw": 0.0}
     text["sections"]["load"]["variant"] = "annual_building"
     _, inputs = model.from_json(json.dumps(text))
     assert values and inputs["load"].values["full_load_hours_heating"] == 2000.0

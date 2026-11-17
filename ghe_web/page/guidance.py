@@ -102,7 +102,7 @@ def typical(key: str, rock: str | None = None, label: str = "") -> Typical | Non
 
 
 def position(value: float, rng: Typical, low_limit: float | None, high_limit: float | None) -> tuple[float, float,
-                                                                                                      float, float]:
+                                                                                                     float, float]:
     """Axis of the bar and where the typical band and the value sit on it, each from 0 to 1."""
     span = rng.high - rng.low
     lo, hi = rng.low - span, rng.high + span

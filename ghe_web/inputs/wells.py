@@ -3,9 +3,9 @@
 The calculation itself is in ``ghe_web.wells``; the builds here only turn the fields into SI values.
 """
 from ghe_web.i18n import t
-from ghe_web.wells.aquifer import SEDIMENTS
 from ghe_web.inputs.base import PresetGroup, Property, Section, Variant
 from ghe_web.inputs.registry import register
+from ghe_web.wells.aquifer import SEDIMENTS
 
 register(Section(
     key="system",

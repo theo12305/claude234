@@ -9,11 +9,12 @@ import pandas as pd
 import streamlit as st
 
 from ghe_web.downloads import excel
-from ghe_web.page import look
 from ghe_web.i18n import fmt, t
+from ghe_web.materials import network
+from ghe_web.materials import quantities as q
+from ghe_web.page import look
 from ghe_web.results.common import in_language
 from ghe_web.results.registry import Ctx, ResultView, plugin_data, register
-from ghe_web.materials import network, quantities as q
 
 KEY = "materials"
 TOOLS = {"entrance": "Building entrance", "manifold": "Manifold", "trench": "Draw trench"}
@@ -237,8 +238,8 @@ def _items(ctx: Ctx) -> tuple[q.Layout, list[q.Item]]:
 def render(ctx: Ctx) -> None:
     data = _state()
     look.caption(t("Quantities from the sizing result and the horizontal piping on the plan. Click the building "
-                 "entrance on the plan; the trenches are routed automatically, or draw them yourself. No prices: "
-                 "export the list and price it in your own tools."))
+                   "entrance on the plan; the trenches are routed automatically, or draw them yourself. No prices: "
+                   "export the list and price it in your own tools."))
     _settings(data, ctx.simple)
     lay, items = _items(ctx)
     bar = st.container(horizontal=True, vertical_alignment="bottom", gap="small", key="mat_toolbar")
@@ -262,7 +263,7 @@ def render(ctx: Ctx) -> None:
              "trench": t("Click the corners of a trench one after the other, then Finish line. Lines that touch or "
                          "cross are joined; each BHE and the manifold are joined to the nearest trench.")}
     look.caption(hints[tool] + " " + t("Dark blue: BHEs. Teal: trenches, thicker with more circuits. Orange dashed: "
-                                     "header pipe. Click resolution {s:g} m.", s=step))
+                                       "header pipe. Click resolution {s:g} m.", s=step))
     if lay.entrance_assumed:
         st.info(t("The building entrance is assumed 10 m west of the field. Click it on the plan for the real "
                   "lengths."), icon=":material/info:")
@@ -274,12 +275,12 @@ def render(ctx: Ctx) -> None:
     connection = sum(2 * (p + float(data["reserve"])) for p in r.paths)
     volume = next(it.quantity for it in items if it.group == t("Heat transfer fluid"))
     look.tiles([("⛏️ " + t("Trench length"), fmt("{x:,.0f} m", x=r.trench_length), t("circuits and header"), ""),
-              ("〰️ " + t("Connection pipe"), fmt("{x:,.0f} m", x=connection),
-               t("longest circuit {x:.0f} m", x=max(r.paths) + data["reserve"]), ""),
-              ("➡️ " + t("Header pipe"), fmt("{x:,.1f} m", x=r.header_length),
-               t("manifold to building, single length") if not lay.manifold_in_building else t("manifold in the "
-                                                                                                 "building"), ""),
-              ("💧 " + t("System volume"), fmt("{x:,.2f} m³", x=volume), t("heat transfer fluid"), "")])
+                ("〰️ " + t("Connection pipe"), fmt("{x:,.0f} m", x=connection),
+                 t("longest circuit {x:.0f} m", x=max(r.paths) + data["reserve"]), ""),
+                ("➡️ " + t("Header pipe"), fmt("{x:,.1f} m", x=r.header_length),
+                 t("manifold to building, single length") if not lay.manifold_in_building
+                 else t("manifold in the building"), ""),
+                ("💧 " + t("System volume"), fmt("{x:,.2f} m³", x=volume), t("heat transfer fluid"), "")])
     df = table(items)
     st.markdown(f"<span class='fignum'>{t('Table {n}', n=str(st.session_state.get('_view_number', 0)) + '.2')}"
                 f"</span><div class='figtitle'>{t('Material list')}</div>", unsafe_allow_html=True)
@@ -295,7 +296,7 @@ def render(ctx: Ctx) -> None:
     c2.download_button(t("Material list (CSV)"), df.to_csv(index=False).encode(), f"{ctx.stem}_materials.csv",
                        "text/csv", icon=":material/download:", on_click="ignore", width="stretch")
     look.caption(t("The material list and the plan settings are saved with the project (menu ☰ > Save project) and "
-                 "are part of the Excel export under Export."))
+                   "are part of the Excel export under Export."))
 
 
 def tables(ctx: Ctx) -> dict[str, pd.DataFrame]:

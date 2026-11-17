@@ -8,10 +8,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ghe_web.core import analysis, model
-from ghe_web.inputs import registry as input_registry
 from ghe_web.core.geometry import closest_pair
 from ghe_web.i18n import fmt, t
 from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
 
 PROBLEM, WARNING, FINE = "problem", "warning", "fine"
 K_USUAL = (1.0, 4.5)  # W/(m·K): most soils and rocks; outside this range the value is worth checking
@@ -138,9 +138,9 @@ def result_checks(result: model.SizingResult, inputs: dict[str, SectionInput],
     w = v.get("w_per_m_extraction")
     if w is not None and w > VDI_MAX_W_PER_M:
         out.append(Check(WARNING, t("Specific heat extraction"),
-                         t("{w:.0f} W/m at peak is above the VDI 4640-2 guide value for normal ground (60 W/m; up to 84 W/m "
-                           "only in rock with a high conductivity). The simulation allows it, but check the peak load "
-                           "and the ground values.", w=w), "load"))
+                         t("{w:.0f} W/m at peak is above the VDI 4640-2 guide value for normal ground (60 W/m; up to "
+                           "84 W/m only in rock with a high conductivity). The simulation allows it, but check the "
+                           "peak load and the ground values.", w=w), "load"))
 
     depth = result.borehole_length + inputs["borefield"].values["D"]
     if depth > 100:

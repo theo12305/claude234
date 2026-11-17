@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 from GHEtool import Borefield
 
-from ghe_web.inputs import registry as input_registry
 from ghe_web.i18n import t
 from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
 from ghe_web.inputs.pipe import ConstantRb
 
 

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ghe_web.downloads import excel
 from ghe_web.charts import result_charts
+from ghe_web.downloads import excel
 from ghe_web.i18n import t
 from ghe_web.results.common import TEMPERATURE_CAPTION, figure, key_table
 from ghe_web.results.registry import Ctx, ResultView, hidden, register

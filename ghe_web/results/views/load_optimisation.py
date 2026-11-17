@@ -4,11 +4,11 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from ghe_web.core import analysis
 from ghe_web import i18n
-from ghe_web.page import look
 from ghe_web.charts import result_charts
+from ghe_web.core import analysis
 from ghe_web.i18n import fmt, t
+from ghe_web.page import look
 from ghe_web.results.cache import cached_load_optimisation, load_optimisation_done
 from ghe_web.results.common import figure
 from ghe_web.results.registry import Ctx, ResultView, register
@@ -17,8 +17,8 @@ from ghe_web.results.registry import Ctx, ResultView, register
 def render(ctx: Ctx) -> None:
     result, sized_json, name = ctx.result, ctx.sized_json, ctx.name
     look.caption(t("Keeps the borefield as designed and works out how much of the hourly building demand it can take "
-                 "within the temperature limits. The rest comes from a backup boiler, gas or electric, or a chiller "
-                 "(a hybrid system). This answers: how far does a smaller or cheaper field get me?"))
+                   "within the temperature limits. The rest comes from a backup boiler, gas or electric, or a chiller "
+                   "(a hybrid system). This answers: how far does a smaller or cheaper field get me?"))
     names = analysis.OBJECTIVES
     with st.form("load_opt_form"):
         notes_ = [t("the largest share of the peak power"), t("the most energy, month by month"),
@@ -46,7 +46,7 @@ def render(ctx: Ctx) -> None:
               t("{x:,.1f} MWh per year", x=opt["backup_cooling_mwh"]), delta_color="off", delta_arrow="off")
     figure(result_charts.optimisation_chart(opt["monthly"]))
     look.caption(t("Peak power taken by the ground: heating {heat:,.0f} kW, cooling {cool:,.0f} kW (building side).",
-                 heat=opt["ground_peak_heating_kw"], cool=opt["ground_peak_cooling_kw"]))
+                   heat=opt["ground_peak_heating_kw"], cool=opt["ground_peak_cooling_kw"]))
     stem = name.strip() or "ghetool-project"
     st.download_button(t("Download the optimised load, first year hourly (CSV)"),
                        lambda: opt["first_year"].round(3).to_csv().encode(), f"{stem}_optimised_load.csv",

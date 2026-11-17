@@ -4,9 +4,9 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from ghe_web.page import look
 from ghe_web.charts import result_charts
 from ghe_web.i18n import t
+from ghe_web.page import look
 from ghe_web.results.cache import cached_optimisation, cached_sensitivity, layout_table, sensitivity_table
 from ghe_web.results.common import figure
 from ghe_web.results.registry import Ctx, ResultView, register
@@ -16,7 +16,7 @@ def render(ctx: Ctx) -> None:
     result, key, sized_json, sized_inputs = ctx.result, ctx.key, ctx.sized_json, ctx.sized_inputs
     with st.expander(t("Sensitivity check: what the borehole length depends on"), icon=":material/tune:"):
         look.caption(t("Sizes the field again with one input changed at a time (monthly sizing for speed). The longest "
-                     "bars are the inputs worth measuring carefully, e.g. with a thermal response test."))
+                       "bars are the inputs worth measuring carefully, e.g. with a thermal response test."))
         if st.button(t("Run the sensitivity check")):
             st.session_state.sensitivity_json = sized_json
         if st.session_state.get("sensitivity_json") == sized_json:
@@ -32,12 +32,12 @@ def render(ctx: Ctx) -> None:
             st.dataframe(table.round(1), hide_index=True)
             if result.sizing_method != "monthly":
                 look.caption(t("The variations use monthly sizing, which gives {base:.1f} m for these inputs (the "
-                             "result above: {length:.1f} m). Read the changes in percent.", base=base,
-                             length=result.borehole_length))
+                               "result above: {length:.1f} m). Read the changes in percent.", base=base,
+                               length=result.borehole_length))
 
     with st.expander(t("Compare variants"), icon=":material/compare_arrows:"):
         look.caption(t("Keep this result, change the inputs, size again and keep that one too. The comparison stays "
-                     "until you close the page and is part of the Excel export."))
+                       "until you close the page and is part of the Excel export."))
         label_col, button_col = st.columns([3, 1], vertical_alignment="bottom")
         variant_name = label_col.text_input(t("Name for this result"),
                                             value=t("Variant {n}", n=len(st.session_state.get("kept", [])) + 1))
@@ -59,8 +59,8 @@ def render(ctx: Ctx) -> None:
 
     with st.expander(t("Optimise the layout for a plot"), icon=":material/grid_view:"):
         look.caption(t("Searches rectangular, L, U, box and staggered fields that fit in the plot and meet the "
-                     "temperature limits, and lists the ones with the least drilling. Each trial takes a few "
-                     "seconds."))
+                       "temperature limits, and lists the ones with the least drilling. Each trial takes a few "
+                       "seconds."))
         with st.form("optimise"):
             o1, o2, o3 = st.columns(3)
             plot_l = o1.number_input(t("Plot length [m]"), 10.0, 1000.0, 70.0, 5.0)

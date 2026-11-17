@@ -369,7 +369,7 @@ def _site_map(state, parcel, buildings, ignored, drawn, allowed, points, kinds=N
     fd = folium.FeatureGroup(name=t("Excluded areas you drew"))
     for g in drawn:
         folium.GeoJson(_geojson(g), style_function=lambda _: {"color": "#ff8c1a", "weight": 2,
-                                                             "fillColor": "#ff8c1a", "fillOpacity": 0.35}).add_to(fd)
+                                                              "fillColor": "#ff8c1a", "fillOpacity": 0.35}).add_to(fd)
     fd.add_to(m)
     fp = folium.FeatureGroup(name=t("Wells ({n})", n=len(points)) if kinds else t("Boreholes ({n})", n=len(points)))
     for i, (x, y) in enumerate(points, start=1):

@@ -25,15 +25,16 @@ from reportlab.lib.styles import ParagraphStyle  # noqa: E402
 from reportlab.lib.units import mm  # noqa: E402
 from reportlab.pdfbase import pdfmetrics  # noqa: E402
 from reportlab.pdfbase.ttfonts import TTFont  # noqa: E402
-from reportlab.platypus import (BaseDocTemplate, CondPageBreak, Frame, Image, KeepInFrame, KeepTogether,  # noqa: E402
-                                NextPageTemplate, PageBreak, PageTemplate, Paragraph, Spacer, Table, TableStyle)
+from reportlab.platypus import (BaseDocTemplate, CondPageBreak, Frame, Image, KeepInFrame,  # noqa: E402
+                                KeepTogether, NextPageTemplate, PageBreak, PageTemplate, Paragraph, Spacer, Table,
+                                TableStyle)
 
+from ghe_web import i18n  # noqa: E402
+from ghe_web.charts import input_drawings, palette, result_charts  # noqa: E402
 from ghe_web.core import analysis, model  # noqa: E402
-from ghe_web import i18n
-from ghe_web.inputs import registry as input_registry
-from ghe_web.charts import input_drawings, palette, result_charts
 from ghe_web.i18n import fmt, t  # noqa: E402
 from ghe_web.inputs import SectionInput  # noqa: E402
+from ghe_web.inputs import registry as input_registry  # noqa: E402
 
 METHOD = {"check": "Check of a given length", "hourly": "Sizing, hourly (L4)", "monthly": "Sizing, monthly (L2/L3)"}
 APP_NAME = "GHEtool & Co."
@@ -416,7 +417,8 @@ def _result_figures(result, inputs, key, opt: ReportOptions, extras: dict, figs:
             story.append(figs.add(t("Hourly fluid temperature in the last year"),
                                   chart_png(result_charts.hourly_last_year_chart(hourly, limits, style), 700, 240)))
         if parts.get("hourly_heatmap"):
-            story.append(figs.add(t("Heat map of the last year"), chart_png(result_charts.heatmap_chart(hourly), 700, 240)))
+            story.append(figs.add(t("Heat map of the last year"),
+                                  chart_png(result_charts.heatmap_chart(hourly), 700, 240)))
     if sections.get("ground") and (extras.get("ground_map") or parts.get("gfunction")):
         heading(t("Ground"))
         m = extras.get("ground_map")
@@ -424,7 +426,8 @@ def _result_figures(result, inputs, key, opt: ReportOptions, extras: dict, figs:
             north = inputs["borefield"].variant == "custom"
             story.append(figs.add(t("Ground temperature change at {depth:.0f} m depth after {years} years",
                                     depth=m["depth"], years=m["years"]),
-                                  chart_png(result_charts.ground_map_chart(m, north, size=520), scale=2), max_h=125 * mm))
+                                  chart_png(result_charts.ground_map_chart(m, north, size=520), scale=2),
+                                  max_h=125 * mm))
         if parts.get("gfunction"):
             curve = analysis.gfunction_curve(result)
             story.append(figs.add(t("g-function of the borefield (thermal interaction of the boreholes)"),

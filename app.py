@@ -12,7 +12,8 @@ import streamlit as st
 def _drop_stale_package():
     """After a deploy the server reruns app.py but keeps the old ghe_web modules in memory, which crashes
     the page. When any ghe_web file changed since it was imported, forget the old modules and cached results."""
-    stamp = tuple(sorted((str(p), p.stat().st_mtime_ns) for p in (pathlib.Path(__file__).parent / "ghe_web").rglob("*.py")))
+    files = (pathlib.Path(__file__).parent / "ghe_web").rglob("*.py")
+    stamp = tuple(sorted((str(p), p.stat().st_mtime_ns) for p in files))
     loaded = sys.modules.get("ghe_web")
     if loaded is not None and getattr(loaded, "_stamp", None) != stamp:
         for name in [m for m in sys.modules if m == "ghe_web" or m.startswith("ghe_web.")]:
@@ -26,8 +27,8 @@ def _drop_stale_package():
 _drop_stale_package()
 
 from ghe_web.core import model  # noqa: E402
-from ghe_web.page import (appbar, calculation, design_check, look, menu, project, results_tab, sections,  # noqa: E402
-                          site_plan, start, steps)
+from ghe_web.page import (appbar, calculation, design_check, look, menu, project, results_tab,  # noqa: E402
+                          sections, site_plan, start, steps)
 from ghe_web.page.state import Page  # noqa: E402
 from ghe_web.results import registry as results_registry  # noqa: E402
 from ghe_web.siteplan import page as siteplan_page  # noqa: E402

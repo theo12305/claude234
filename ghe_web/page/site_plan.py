@@ -61,9 +61,9 @@ def apply_well_plan(page: Page) -> None:
         else:
             values["max_distance"] = float(placement.distance)
         aquifer_input = page.inputs["aquifer"]
+        aquifer = SectionInput(aquifer_input.variant, {**aquifer_input.values, "direction": direction})
         st.session_state.project = (page.name, {**page.inputs, "wells": SectionInput(w.variant, values),
-                                           "aquifer": SectionInput(aquifer_input.variant,
-                                                                   {**aquifer_input.values, "direction": direction})})
+                                                "aquifer": aquifer})
         st.session_state.generation += 1
         st.session_state.goto_step = "Borehole"
         st.session_state.well_plan_done = {"p": len(placement.production), "i": len(placement.injection),
