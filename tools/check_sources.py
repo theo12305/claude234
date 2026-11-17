@@ -109,15 +109,6 @@ def _parcel_info(state, x, y):
 def _traced(state, x, y):
     poly = lookup.parcel_from_map(state.overlay, x, y).geometry
     b = poly.bounds
-    if "--show-traced" in sys.argv or True:  # TEMPORARY: picture of the map and the traced outline for review
-        import base64
-        w = state.overlay
-        r = lookup._session().get(w.url, params={
-            "SERVICE": "WMS", "VERSION": w.version, "REQUEST": "GetMap", "LAYERS": w.layer, "STYLES": "",
-            "CRS": "EPSG:25832", "BBOX": f"{x - 60},{y - 60},{x + 60},{y + 60}", "WIDTH": 600, "HEIGHT": 600,
-            "FORMAT": "image/png", "TRANSPARENT": "TRUE"}, timeout=40)
-        print(f"TRACED {state.key} {x:.2f} {y:.2f} {poly.wkt}", flush=True)
-        print(f"MAPPNG {state.key} {base64.b64encode(r.content).decode()}", flush=True)
     return f"{poly.area:,.0f} m², {b[2] - b[0]:.1f} x {b[3] - b[1]:.1f} m, {len(poly.exterior.coords)} corners"
 
 
