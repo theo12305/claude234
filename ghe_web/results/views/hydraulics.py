@@ -36,7 +36,7 @@ def render(ctx: Ctx) -> None:
                            "the manifold, header pipes and heat pump evaporator for the pump. The kink is where the "
                            "flow turns turbulent."))
     look.caption(t("Pump energy = hydraulic power ÷ pump efficiency × operating hours, both set under Flow rate in "
-                   "step ②."))
+                   "the Borehole & fluid step."))
 
 
 

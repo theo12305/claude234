@@ -31,9 +31,9 @@ check_icons = {checks.PROBLEM: ":red[:material/cancel:]", checks.WARNING: ":oran
 
 def show_design_check(page: Page, found: list[checks.Check]) -> None:
     """The list of checks, each with a button to the step where it can be fixed."""
-    st.markdown(t("**Design check: {summary}**", summary=checks.summary(found)))
-    look.caption(t("Every check in one place. The temperature, flow, antifreeze and balance checks appear after a "
-                   "calculation."))
+    st.markdown(t("**Design check: {summary}**", summary=checks.summary(found)),
+                help=t("Every check in one place. The temperature, flow, antifreeze and balance checks appear after a "
+                       "calculation."))
     for i, check in enumerate(found):
         with st.container(border=True):
             text_col, button_col = st.columns([4, 1.6], vertical_alignment="center")

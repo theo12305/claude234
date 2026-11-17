@@ -40,11 +40,11 @@ DE: dict[str, str] = {
     "thorough": "gründlich",
 
     # ------------------------------------------------------------ page, steps, sidebar
-    "⓪ Site plan": "⓪ Lageplan",
-    "① Ground & borefield": "① Untergrund & Sondenfeld",
-    "② Borehole & fluid": "② Sonde & Fluid",
-    "③ Loads": "③ Lasten",
-    "④ Limits & calculation": "④ Grenzwerte & Berechnung",
+    ":material/map: Site plan": ":material/map: Lageplan",
+    ":material/layers: Ground & borefield": ":material/layers: Untergrund & Sondenfeld",
+    ":material/adjust: Borehole & fluid": ":material/adjust: Sonde & Fluid",
+    ":material/thermostat: Loads": ":material/thermostat: Lasten",
+    ":material/tune: Limits & calculation": ":material/tune: Grenzwerte & Berechnung",
     "More inputs": "Weitere Eingaben",
     ":material/bar_chart: Results": ":material/bar_chart: Ergebnisse",
     "Project": "Projekt",
@@ -57,24 +57,24 @@ DE: dict[str, str] = {
         "nichts gespeichert.",
     "Borehole heat exchanger sizing": "Auslegung von Erdwärmesonden",
     "How to use this tool": "So arbeiten Sie mit diesem Werkzeug",
-    "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n"
-    "2. **① Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n"
-    "3. **② Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n"
-    "4. **③ Loads**: the heat extracted from and injected into the ground, or the building demand with the heat "
+    "1. **Site plan** (optional): find the parcel and place as many boreholes as fit.\n"
+    "2. **Ground & borefield**: ground properties (or predicted layers) and the borefield layout.\n"
+    "3. **Borehole & fluid**: borehole heat exchanger, heat transfer fluid and flow rate.\n"
+    "4. **Loads**: the heat extracted from and injected into the ground, or the building demand with the heat "
     "pump efficiency.\n"
-    "5. **④ Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a given "
+    "5. **Limits & calculation**: the allowed fluid temperatures, and whether to size the length or check a given "
     "one.\n"
     "6. Press **Size borefield** in the bar at the bottom. The **:material/bar_chart: Results** tab shows key figures, charts, further analysis "
     "and the PDF report and Excel export.\n\n"
     "Save the project in the menu ☰ to continue later. Calculations use the open-source "
     "[GHEtool](https://github.com/wouterpeere/GHEtool).":
-        "1. **⓪ Lageplan** (optional): Flurstück finden und so viele Sonden wie möglich platzieren.\n"
-        "2. **① Untergrund & Sondenfeld**: Untergrundeigenschaften (oder prognostizierte Schichten) und die "
+        "1. **Lageplan** (optional): Flurstück finden und so viele Sonden wie möglich platzieren.\n"
+        "2. **Untergrund & Sondenfeld**: Untergrundeigenschaften (oder prognostizierte Schichten) und die "
         "Anordnung des Sondenfelds.\n"
-        "3. **② Sonde & Fluid**: Erdwärmesonde, Wärmeträgerfluid und Durchfluss.\n"
-        "4. **③ Lasten**: Wärmeentzug aus dem und Wärmeeintrag in den Untergrund, oder der Gebäudebedarf mit der "
+        "3. **Sonde & Fluid**: Erdwärmesonde, Wärmeträgerfluid und Durchfluss.\n"
+        "4. **Lasten**: Wärmeentzug aus dem und Wärmeeintrag in den Untergrund, oder der Gebäudebedarf mit der "
         "Effizienz der Wärmepumpe.\n"
-        "5. **④ Grenzwerte & Berechnung**: die zulässigen Fluidtemperaturen und ob die Länge ausgelegt oder eine "
+        "5. **Grenzwerte & Berechnung**: die zulässigen Fluidtemperaturen und ob die Länge ausgelegt oder eine "
         "vorgegebene Länge geprüft wird.\n"
         "6. In der Leiste unten auf **Sondenfeld auslegen** klicken. Der Reiter **:material/bar_chart: Ergebnisse** zeigt Kennwerte, "
         "Diagramme, weitere Analysen sowie PDF-Bericht und Excel-Export.\n\n"
@@ -929,9 +929,9 @@ DE: dict[str, str] = {
     "Preview map": "Übersichtskarte",
     "Preview map (.png)": "Übersichtskarte (.png)",
     "Project background, scope of the calculation...": "Projekthintergrund, Umfang der Berechnung …",
-    "Pump energy = hydraulic power ÷ pump efficiency × operating hours, both set under Flow rate in step ②.":
-        "Pumpenenergie = hydraulische Leistung ÷ Pumpenwirkungsgrad × Betriebsstunden, beides unter Durchfluss in "
-        "Schritt ② festgelegt.",
+    "Pump energy = hydraulic power ÷ pump efficiency × operating hours, both set under Flow rate in the Borehole & fluid step.":
+        "Pumpenenergie = hydraulische Leistung ÷ Pumpenwirkungsgrad × Betriebsstunden, beides unter Durchfluss im "
+        "Schritt Sonde & Fluid festgelegt.",
     "Pump energy per year": "Pumpenenergie pro Jahr",
     "Pump power": "Pumpenleistung",
     "Puts the average conductivity and heat capacity into the fields above.":
@@ -1060,9 +1060,6 @@ DE: dict[str, str] = {
         "Die Datei hat 8784 Stunden (Schaltjahr); der letzte Tag wurde verworfen.",
     "The file needs two columns with numbers: heating and cooling demand in kW.":
         "Die Datei braucht zwei Zahlenspalten: Heiz- und Kältebedarf in kW.",
-    "The files are made when you click, so the page stays fast. The PDF report and the Excel workbook are in the language chosen at the top.":
-        "Die Dateien werden erst beim Klick erstellt, damit die Seite schnell bleibt. PDF-Bericht und "
-        "Excel-Arbeitsmappe erscheinen in der oben gewählten Sprache.",
     "The first layer has to start at the surface (0 m).": "Die erste Schicht muss an der Geländeoberfläche (0 m) beginnen.",
     "The flow is laminar (Re = {re:,.0f}). A higher flow rate, smaller pipes or less antifreeze lower the borehole resistance and can shorten the boreholes.":
         "Die Strömung ist laminar (Re = {re:,.0f}). Ein höherer Durchfluss, kleinere Rohre oder weniger "
@@ -1075,8 +1072,8 @@ DE: dict[str, str] = {
         "Mit der vorgegebenen Länge von {length:.0f} m bleibt das Fluid nicht innerhalb der Grenzwerte.",
     "The given length of {length:.0f} m keeps the fluid within the limits.":
         "Mit der vorgegebenen Länge von {length:.0f} m bleibt das Fluid innerhalb der Grenzwerte.",
-    "The heat pump efficiency is fixed (SCOP/SEER). Choose **Depends on the fluid temperature** under Heat pump efficiency in step ③ to see how the COP changes as the ground cools.":
-        "Die Wärmepumpeneffizienz ist fest (SCOP/SEER). Wählen Sie unter Wärmepumpeneffizienz in Schritt ③ "
+    "The heat pump efficiency is fixed (SCOP/SEER). Choose **Depends on the fluid temperature** under Heat pump efficiency in the Loads step to see how the COP changes as the ground cools.":
+        "Die Wärmepumpeneffizienz ist fest (SCOP/SEER). Wählen Sie unter Wärmepumpeneffizienz im Schritt Lasten "
         "**Abhängig von der Fluidtemperatur**, um zu sehen, wie sich der COP bei Abkühlung des Untergrunds ändert.",
     "The inputs changed since this result was calculated. Press **{action}** to update it.":
         "Die Eingaben haben sich seit dieser Berechnung geändert. Klicken Sie auf **{action}**, um das Ergebnis zu "
@@ -1128,8 +1125,8 @@ DE: dict[str, str] = {
     "These are the monthly temperatures with block peaks, shown for comparison. The sizing checked the limits hour by hour: see **Hourly** for those temperatures.":
         "Dies sind die monatlichen Temperaturen mit Blockspitzen, zum Vergleich dargestellt. Die Auslegung hat die "
         "Grenzwerte stündlich geprüft: Diese Temperaturen finden Sie unter **Stündlich**.",
-    "These layers were not used: the calculation took the single conductivity from step ①. Switch on **Calculate with the layers** under Ground to size with them.":
-        "Diese Schichten wurden nicht verwendet: Die Berechnung nutzte die einzelne Wärmeleitfähigkeit aus Schritt ①. "
+    "These layers were not used: the calculation took the single conductivity from the Ground & borefield step. Switch on **Calculate with the layers** under Ground to size with them.":
+        "Diese Schichten wurden nicht verwendet: Die Berechnung nutzte die einzelne Wärmeleitfähigkeit aus dem Schritt Untergrund & Sondenfeld. "
         "Schalten Sie unter Untergrund **Mit den Schichten rechnen** ein, um mit ihnen auszulegen.",
     "This is not a readable BoreholeML file ({error}).": "Dies ist keine lesbare BoreholeML-Datei ({error}).",
     "This point is not in Germany.": "Dieser Punkt liegt nicht in Deutschland.",
@@ -1171,8 +1168,8 @@ DE: dict[str, str] = {
     "What the borehole length depends on most": "Wovon die Sondenlänge am stärksten abhängt",
     "When it gets cold or warm (average fluid temperature, last year)":
         "Wann es kalt oder warm wird (mittlere Fluidtemperatur, letztes Jahr)",
-    "Where the boreholes will be. Find your parcel in step ⓪ Site plan to use it here.":
-        "Wo die Sonden liegen sollen. Suchen Sie Ihr Flurstück in Schritt ⓪ Lageplan, um es hier zu verwenden.",
+    "Where the boreholes will be. Find your parcel in the Site plan step to use it here.":
+        "Wo die Sonden liegen sollen. Suchen Sie Ihr Flurstück im Schritt Lageplan, um es hier zu verwenden.",
     "Who covers the demand (average year)": "Wer den Bedarf deckt (Durchschnittsjahr)",
     "With a limit, the boreholes kept are spread as far apart as possible.":
         "Mit einer Begrenzung werden die verbleibenden Sonden so weit wie möglich verteilt.",
@@ -1552,8 +1549,8 @@ DE: dict[str, str] = {
     # groundwater wells (open loop)
     '**Downloads**':
         '**Downloads**',
-    '1. **⓪ Site plan** (optional): find the parcel.\n2. **① Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted layers), the aquifer and the water analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water authority.\n6. Press **Size the wells** in the bar at the bottom. The **:material/bar_chart: Results** tab shows the flow, wells, water levels, temperatures, the site map, the well construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected water and a planar plume) are written for this tool; GHEtool has no open-loop model.':
-        '1. **⓪ Lageplan** (optional): das Flurstück finden.\n2. **① Untergrund & Grundwasserleiter**: Brunnen als Wärmequelle wählen, die Untergrundtemperatur (oder vorhergesagte Schichten), den Grundwasserleiter und die Wasseranalyse.\n3. **② Brunnen**: Bohrdurchmesser, Brunnenverluste, und ob die Brunnen ausgelegt oder vorgegebene Brunnen geprüft werden.\n4. **③ Lasten**: die dem Grundwasser entzogene und zugeführte Wärme oder der Gebäudebedarf.\n5. **④ Grenzwerte & Berechnung**: Temperaturspreizung und die Grenzwerte der Wasserbehörde.\n6. **Brunnen auslegen** in der Leiste unten drücken. Der Reiter **:material/bar_chart: Ergebnisse** zeigt Förderstrom, Brunnen, Wasserstände, Temperaturen, den Lageplan, den Brunnenausbau und die Downloads.\n\nDie Brunnenhydraulik (Thiem, Dupuit-Jacob, Sichardt) und das thermische Modell (Fließwege des eingeleiteten Wassers und eine ebene Temperaturfahne) sind für dieses Werkzeug geschrieben; GHEtool hat kein Modell für offene Systeme.',
+    '1. **Site plan** (optional): find the parcel.\n2. **Ground & aquifer**: choose groundwater wells as heat source, the ground temperature (or predicted layers), the aquifer and the water analysis.\n3. **Wells**: drilling diameter, well losses, and whether to size the wells or check given ones.\n4. **Loads**: the heat taken from and put into the groundwater, or the building demand.\n5. **Limits & calculation**: temperature spread and the limits of the water authority.\n6. Press **Size the wells** in the bar at the bottom. The **:material/bar_chart: Results** tab shows the flow, wells, water levels, temperatures, the site map, the well construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow paths of the injected water and a planar plume) are written for this tool; GHEtool has no open-loop model.':
+        '1. **Lageplan** (optional): das Flurstück finden.\n2. **Untergrund & Grundwasserleiter**: Brunnen als Wärmequelle wählen, die Untergrundtemperatur (oder vorhergesagte Schichten), den Grundwasserleiter und die Wasseranalyse.\n3. **Brunnen**: Bohrdurchmesser, Brunnenverluste, und ob die Brunnen ausgelegt oder vorgegebene Brunnen geprüft werden.\n4. **Lasten**: die dem Grundwasser entzogene und zugeführte Wärme oder der Gebäudebedarf.\n5. **Grenzwerte & Berechnung**: Temperaturspreizung und die Grenzwerte der Wasserbehörde.\n6. **Brunnen auslegen** in der Leiste unten drücken. Der Reiter **:material/bar_chart: Ergebnisse** zeigt Förderstrom, Brunnen, Wasserstände, Temperaturen, den Lageplan, den Brunnenausbau und die Downloads.\n\nDie Brunnenhydraulik (Thiem, Dupuit-Jacob, Sichardt) und das thermische Modell (Fließwege des eingeleiteten Wassers und eine ebene Temperaturfahne) sind für dieses Werkzeug geschrieben; GHEtool hat kein Modell für offene Systeme.',
     '2 m below the lowest water level':
         '2 m unter dem tiefsten Wasserstand',
     'A change of {k:g} K reaches {x:.0f} m downstream, beyond the parcel border at {b:g} m. The water authority may ask for a plume model; the estimate leaves out the heat exchange with the layers above and below, so the real plume is shorter.':
@@ -2056,10 +2053,10 @@ DE: dict[str, str] = {
         '°',
     '‰':
         '‰',
-    '① Ground & aquifer':
-        '① Untergrund & Grundwasserleiter',
-    '② Wells':
-        '② Brunnen',
+    ':material/layers: Ground & aquifer':
+        ':material/layers: Untergrund & Grundwasserleiter',
+    ':material/water_pump: Wells':
+        ':material/water_pump: Brunnen',
     'The layer table under Ground has a permeable stretch ({rocks}) from {top:.1f} to {bottom:.1f} m below ground, kf about {kf:.1e} m/s (typical values for these rocks).':
         'Die Schichtentabelle unter Untergrund hat einen durchlässigen Abschnitt ({rocks}) von {top:.1f} bis {bottom:.1f} m unter Gelände, kf etwa {kf:.1e} m/s (typische Werte dieser Gesteine).',
     'Use these values':
@@ -2159,12 +2156,6 @@ DE: dict[str, str] = {
         'Einfach',
     'Mode':
         'Modus',
-    'Fields most people leave at their typical value. They are always part of the calculation; switch to Expert at the top to see every field at once.':
-        'Felder, die meist beim typischen Wert bleiben. Sie gehen immer in die Berechnung ein; oben auf Experte umschalten, um alle Felder auf einmal zu sehen.',
-    'Fill in the input steps, then press **Size borefield** in the bar at the bottom. Every field has a question mark with an explanation; the drop-downs fill in typical values.':
-        'Die Eingabeschritte ausfüllen, dann in der Leiste unten auf **Sondenfeld auslegen** klicken. Jedes Feld hat ein Fragezeichen mit Erklärung; die Auswahllisten setzen typische Werte ein.',
-    'Fill in the input steps, then press **Size the wells** in the bar at the bottom. Every field has a question mark with an explanation; the drop-downs fill in typical values.':
-        'Die Eingabeschritte ausfüllen, dann in der Leiste unten auf **Brunnen auslegen** klicken. Jedes Feld hat ein Fragezeichen mit Erklärung; die Auswahllisten setzen typische Werte ein.',
     'Free and without login. Your project stays on your device.':
         'Kostenlos und ohne Anmeldung. Ihr Projekt bleibt auf Ihrem Gerät.',
     'Inputs changed – results out of date':
@@ -2191,8 +2182,6 @@ DE: dict[str, str] = {
         'Die Berechnung ist fehlgeschlagen',
     'Which heat source?':
         'Welche Wärmequelle?',
-    'You can switch later in the menu ☰ or under ① in the heat source section. To continue a saved project, open it in the menu ☰.':
-        'Wechseln geht später im Menü ☰ oder unter ① im Abschnitt Wärmequelle. Ein gespeichertes Projekt öffnen Sie im Menü ☰.',
     'cooling decides the length':
         'das Kühlen bestimmt die Länge',
     'heating decides the length':
@@ -2215,8 +2204,6 @@ DE: dict[str, str] = {
         '{n} × {length:.1f} m, insgesamt {total:,.0f} m',
     '{total:,.0f} m drilled · fluid between {lo:.1f} and {hi:.1f} °C over {years} years · {decides} ({method})':
         '{total:,.0f} m Bohrmeter · Fluid zwischen {lo:.1f} und {hi:.1f} °C über {years} Jahre · {decides} ({method})',
-    '≈ the heat load of {a:,.0f} m² (old building, 100 W/m²) to {b:,.0f} m² (new building, 40 W/m²) of heated floor':
-        '≈ die Heizlast von {a:,.0f} m² (Altbau, 100 W/m²) bis {b:,.0f} m² (Neubau, 40 W/m²) beheizter Fläche',
     '≈ {l:.2f} l/s = {m3:.2f} m³/h per borehole (water-glycol, about 1030 kg/m³)':
         '≈ {l:.2f} l/s = {m3:.2f} m³/h je Sonde (Wasser-Glykol, etwa 1030 kg/m³)',
     'Borehole heat exchangers':
@@ -2279,8 +2266,8 @@ DE: dict[str, str] = {
         "Mittlere Fluidtemperatur [°C]",
     "Net balance":
         "Bilanz",
-    "No address found. Try without the house number, or start without an address and find the parcel in step ⓪ Site plan.":
-        "Keine Adresse gefunden. Versuchen Sie es ohne Hausnummer, oder starten Sie ohne Adresse und suchen Sie das Flurstück in Schritt ⓪ Lageplan.",
+    "No address found. Try without the house number, or start without an address and find the parcel in the Site plan step.":
+        "Keine Adresse gefunden. Versuchen Sie es ohne Hausnummer, oder starten Sie ohne Adresse und suchen Sie das Flurstück im Schritt Lageplan.",
     "Picture for reports (PNG)":
         "Bild für Berichte (PNG)",
     "Returned to the ground (warms it)":
@@ -2322,7 +2309,6 @@ DE: dict[str, str] = {
     "Own values": "Eigene Werte",
     "These inputs start with values that suit most projects. Open the card to change them; Expert at the top shows them as steps of their own.": "Diese Eingaben starten mit Werten, die zu den meisten Projekten passen. Öffnen Sie die Karte, um sie zu ändern; Experte oben zeigt sie als eigene Schritte.",
     "Typical values": "Typische Werte",
-    "② Loads": "② Lasten",
     # ------------------------------------------------------------ results sheet, design check step, full-load hours
     '**Charts and tables**': '**Diagramme und Tabellen**',
     '**Sections**': '**Abschnitte**',
@@ -2342,7 +2328,6 @@ DE: dict[str, str] = {
     'Fluid at the heating peaks (blue)': 'Fluid bei den Heizspitzen (blau)',
     'Fluid temperature over the years': 'Fluidtemperatur über die Jahre',
     'Fluid without peaks (grey)': 'Fluid ohne Spitzen (grau)',
-    'Full report and more downloads at the end of the page.': 'Vollständiger Bericht und weitere Downloads am Ende der Seite.',
     'Full-load hours cooling': 'Volllaststunden Kühlen',
     'Full-load hours heating': 'Volllaststunden Heizen',
     'Ground key figures': 'Kennwerte des Untergrunds',
@@ -2359,7 +2344,6 @@ DE: dict[str, str] = {
     'Peak cooling load': 'Kühllast (Spitze)',
     'Peak heating load': 'Heizlast (Spitze)',
     'Peak heating and cooling power of the building and their full-load hours; the yearly energy is peak × full-load hours. It is split over the months with a profile, and the month with the largest share gets the full peak.': 'Heiz- und Kühllast (Spitze) des Gebäudes und ihre Volllaststunden; die Jahresenergie ist Spitzenlast × Volllaststunden. Sie wird mit einem Profil auf die Monate verteilt, und der Monat mit dem größten Anteil erhält die volle Spitze.',
-    'Sensitivity, variants and a layout search, starting from the result in :material/bar_chart: Results.': 'Sensitivität, Varianten und eine Feldsuche, ausgehend vom Ergebnis unter :material/bar_chart: Ergebnisse.',
     'Shading outside the limits': 'Schattierung außerhalb der Grenzwerte',
     'Table of the key results': 'Tabelle der wichtigsten Ergebnisse',
     'Table of the monthly temperatures': 'Tabelle der Monatstemperaturen',
@@ -2371,8 +2355,7 @@ DE: dict[str, str] = {
     'Yearly extraction, injection and imbalance': 'Jährlicher Entzug, Eintrag und Ungleichgewicht',
     'Yearly heating energy divided by the peak heating load. VDI 4640 assumes 1,800–2,400 h for heating only; with hot water up to about 2,400 h.': 'Jährliche Heizenergie geteilt durch die Heizlast (Spitze). VDI 4640 geht für reines Heizen von 1.800–2.400 h aus; mit Trinkwarmwasser bis etwa 2.400 h.',
     'h/yr': 'h/a',
-    '③ Design check': '③ Planungsprüfung',
-    '⑤ Design check': '⑤ Planungsprüfung',
+    ':material/fact_check: Design check': ':material/fact_check: Planungsprüfung',
     ':material/science: Further analysis': ':material/science: Weitere Auswertungen',
     'Blue: the fluid at the heating peaks, the coldest. Red: at the cooling peaks, the warmest. Grey: without peaks. Dashed: the temperature limits.': 'Blau: das Fluid bei den Heizspitzen, am kältesten. Rot: bei den Kühlspitzen, am wärmsten. Grau: ohne Spitzen. Gestrichelt: die Temperaturgrenzen.',
     'Drawings of the inputs': 'Zeichnungen der Eingaben',

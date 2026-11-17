@@ -141,10 +141,6 @@ def side_note(key: str, value: float, values: dict) -> str | None:
         litres = value / 1.03
         return t("≈ {l:.2f} l/s = {m3:.2f} m³/h per borehole (water-glycol, about 1030 kg/m³)", l=litres,
                  m3=litres * 3.6)
-    if key in ("peak_heating_kw",) and value > 0:
-        # specific heat load of 40 W/m² (new, well insulated) to 100 W/m² (old, not refurbished)
-        return t("≈ the heat load of {a:,.0f} m² (old building, 100 W/m²) to {b:,.0f} m² (new building, 40 W/m²) "
-                 "of heated floor", a=value * 1000 / 100, b=value * 1000 / 40)
     if key in ("full_load_hours_heating", "full_load_hours_cooling"):
         kind = key.rsplit("_", 1)[1]
         energy = value * float(values.get(f"peak_{kind}_kw") or 0) / 1000

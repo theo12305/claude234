@@ -75,14 +75,25 @@ def field_help(prop: Property, value, values: dict, prefix: str) -> None:
         look.side_note(note)
 
 
-def field_grid(props: list[Property], values: dict, prefix: str, n_cols: int) -> None:
-    """Fields in columns, each with its typical range below."""
-    # on a phone the columns stack, which would mix up the order (column by column): one column there
-    cols = st.columns(1 if look.is_phone() else n_cols)
-    for i, prop in enumerate(props):
-        with cols[i % len(cols)]:
-            values[prop.key] = widget(prop, values[prop.key], f"{prefix}.{prop.key}")
-            field_help(prop, values[prop.key], values, prefix)
+def _label_length(prop: Property) -> int:
+    return len(t(prop.label)) + (len(t(prop.unit)) + 3 if prop.unit else 0) + (3 if prop.help else 0)
+
+
+def field_grid(props: list[Property], values: dict, prefix: str, n_cols: int, wide: bool = True) -> None:
+    """Fields in rows of ``n_cols``, each with its typical range below. Every row starts at the same height, and
+    when a label in a row wraps onto two lines, all labels of that row take two lines, so the boxes line up.
+    ``wide``: the grid spans the whole card (False: it shares the card with a drawing)."""
+    n = 1 if look.is_phone() else n_cols  # on a phone: one field per row
+    fits = (165 if wide else 95) // n  # characters that fit on one label line, roughly
+    for start in range(0, len(props), n):
+        row = props[start:start + n]
+        two_lines = n > 1 and any(_label_length(p) > fits for p in row)
+        box = st.container(key=f"frow{'2' if two_lines else '1'}.{prefix}.{row[0].key}")
+        cols = box.columns(n)
+        for col, prop in zip(cols, row):
+            with col:
+                values[prop.key] = widget(prop, values[prop.key], f"{prefix}.{prop.key}")
+                field_help(prop, values[prop.key], values, prefix)
 
 
 def matching_preset(group, now: dict) -> str:

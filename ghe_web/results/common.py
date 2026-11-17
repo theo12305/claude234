@@ -47,8 +47,10 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
     state["n"] += 1
     number = f"{state['view']}.{state['n']}" if state["view"] else str(state["n"])
     head = st.container(horizontal=True, gap="small", key=f"fighead.{number}")
+    # the caption explains how to read the figure: behind the "?" next to the title, like the help of the fields
     head.markdown(f"<span class='fignum'>{html.escape(t('Figure {n}', n=number))}</span>"
-                  + (f"<div class='figtitle'>{html.escape(title)}</div>" if title else ""), unsafe_allow_html=True)
+                  + (f"<div class='figtitle'>{html.escape(title)}</div>" if title else ""), unsafe_allow_html=True,
+                  help=caption or None)
     stem = "".join(ch if ch.isalnum() else "_" for ch in title)[:50].strip("_") or "figure"
     stem = f"figure_{number.replace('.', '-')}_{stem}"
 
@@ -73,8 +75,6 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
                                f"{stem}.csv", "text/csv", icon=":material/table:", width="stretch",
                                key=f"fig.{number}.csv", on_click="ignore")
     look.show_chart(c, width, title=not title)
-    if caption:
-        look.caption(caption)
 
 
 def key_table(rows: list[tuple[str, str, str]]) -> None:
