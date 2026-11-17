@@ -107,7 +107,7 @@ def _register_chart_fonts() -> None:
         pass
 
 
-def chart_png(chart, width: int = 700, height: int | None = None, scale: float = 2.0) -> bytes:
+def chart_png(chart, width: int = 700, height: int | None = None, scale: float = 3.0) -> bytes:
     """An Altair chart as PNG, with a white background, the number format of the language and fonts that are
     always there (DejaVu from matplotlib), without its title (the report writes it above)."""
     import vl_convert as vlc
@@ -136,7 +136,7 @@ def _image(png: bytes, max_w: float = TEXT_W, max_h: float = 120 * mm) -> Image:
 
 def _figure_png(fig: plt.Figure) -> bytes:
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=170, bbox_inches="tight", facecolor="white")
+    fig.savefig(buf, format="png", dpi=300, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return buf.getvalue()
 
@@ -426,7 +426,7 @@ def _result_figures(result, inputs, key, opt: ReportOptions, extras: dict, figs:
             north = inputs["borefield"].variant == "custom"
             story.append(figs.add(t("Ground temperature change at {depth:.0f} m depth after {years} years",
                                     depth=m["depth"], years=m["years"]),
-                                  chart_png(result_charts.ground_map_chart(m, north, size=520), scale=2),
+                                  chart_png(result_charts.ground_map_chart(m, north, size=520), scale=3),
                                   max_h=125 * mm))
         if parts.get("gfunction"):
             curve = analysis.gfunction_curve(result)
@@ -435,7 +435,7 @@ def _result_figures(result, inputs, key, opt: ReportOptions, extras: dict, figs:
     if sections.get("field") and extras.get("borehole_map") is not None and len(extras["borehole_map"]) > 1:
         heading(t("Borefield map"))
         story.append(figs.add(t("Share of the load"),
-                              chart_png(result_charts.borehole_map_chart(extras["borehole_map"], "share"), scale=2),
+                              chart_png(result_charts.borehole_map_chart(extras["borehole_map"], "share"), scale=3),
                               max_h=120 * mm))
     if sections.get("load_optimisation") and extras.get("load_optimisation"):
         opt_ = extras["load_optimisation"]

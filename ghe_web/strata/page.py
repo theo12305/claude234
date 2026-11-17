@@ -14,6 +14,7 @@ from streamlit_folium import st_folium
 
 from ghe_web.charts import input_drawings
 from ghe_web.i18n import fmt, t
+from ghe_web.page import look
 from ghe_web.siteplan import lookup
 from ghe_web.siteplan.lookup import LookupError_
 from ghe_web.strata import predict, reader, rocks, sources
@@ -59,7 +60,7 @@ def _location(key: str):
     how = st.selectbox(t("Location"), options, format_func=names.get, key=f"{key}.where",
                        help=t("Where the boreholes will be. Find your parcel in step ⓪ Site plan to use it here."))
     if how == "plan":
-        st.caption(f"📍 {plan[2]}")
+        st.caption(f":material/location_on: {plan[2]}")
         return plan
     if how == "address":
         c1, c2 = st.columns([4, 1], vertical_alignment="bottom")
@@ -77,7 +78,7 @@ def _location(key: str):
                 st.warning(t("No address found."), icon=":material/warning:")
         site = st.session_state.get(f"{key}.site")
         if site:
-            st.caption(f"📍 {site[2]}")
+            st.caption(f":material/location_on: {site[2]}")
         return site
     c1, c2 = st.columns(2)
     lat = c1.number_input(t("Latitude [°]"), 47.0, 55.2, 50.94, 0.001, format="%.5f", key=f"{key}.lat")
@@ -310,7 +311,7 @@ def _show_prediction(key: str, prefix: str, length: float, buried: float) -> Non
                                                                           max_value=1)})
     with right:
         fig = input_drawings.borehole_log(result.rows(), length, buried, t("Predicted layers"), groundwater=gw)
-        st.pyplot(fig, width="stretch")
+        look.show_figure(fig)
     if site and (points or result.used):
         _show_boreholes(key, site, points, result.used, state_key)
 
@@ -498,7 +499,7 @@ def layers_input(prop, value: dict, key: str, prefix: str, length: float, buried
                     help=t("Each layer keeps its own conductivity and heat capacity; GHEtool averages them over the "
                            "borehole length while it sizes, so a deeper borehole reaches other layers. Off: the "
                            "single values above are used."))
-    with st.expander(t("🔮 Predict the layers from nearby borehole logs and the geological map"), expanded=False):
+    with st.expander(t(":material/online_prediction: Predict the layers from nearby borehole logs and the geological map"), expanded=False):
         st.caption(t("Looks for logged boreholes around the site and interpolates their layers (nearer logs weigh "
                      "more), then gives every layer its VDI 4640 conductivity and heat capacity. It is a first "
                      "estimate for planning; a thermal response test measures the real value."))

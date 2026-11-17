@@ -12,11 +12,12 @@ from ghe_web.page.state import Page
 # sections show up without changes here. The tab labels follow the language; the ids stay the same.
 STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & borefield", "Borehole": "② Borehole & fluid",
                "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
-               "check": "⑤ Design check", "results": "📊 Results", "analysis": "🔬 Further analysis"}
+               "check": "⑤ Design check", "results": ":material/bar_chart: Results",
+               "analysis": ":material/science: Further analysis"}
 # The same steps for groundwater wells (open loop)
 WELL_STEP_LABELS = {"site_plan": "⓪ Site plan", "Site": "① Ground & aquifer", "Borehole": "② Wells",
                     "Loads": "③ Loads", "Design": "④ Limits & calculation", "more": "More inputs",
-                    "results": "📊 Results"}
+                    "results": ":material/bar_chart: Results"}
 
 # Simple mode: the borehole, fluid and limits are part of the Loads step, which becomes step 2
 SIMPLE_STEP_LABELS = {"Loads": "② Loads", "check": "③ Design check"}
@@ -75,7 +76,8 @@ def make_tabs(page: Page, grouped: dict[str, list]) -> None:
     inputs = [steps[k] for k in ("Site", "Borehole", "Loads", "Design")] + [steps["more"]]
     page.step_names = [steps["site_plan"]] + list(dict.fromkeys(s for s in inputs if s in grouped))
     # borehole heat exchangers: confirm the design check, then the results, then the further analysis
-    page.step_names += [steps["check"], steps["results"], steps["analysis"]] if "check" in steps else [steps["results"]]
+    page.step_names += [steps.get("check"), steps["results"], steps.get("analysis")] if steps.get("check") \
+        else [steps["results"]]
     page.step_tabs = dict(zip(page.step_names, st.tabs(page.step_names, default=steps["Site"], key="step",
                                                        on_change="rerun")))
 

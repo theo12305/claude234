@@ -1,6 +1,6 @@
 """The result views of the borehole heat exchanger results, as plug-ins.
 
-A view is one entry in the "View" drop-down of 📊 Results. It registers itself with ``register(ResultView(...))``
+A view is one entry in the "View" drop-down of Results. It registers itself with ``register(ResultView(...))``
 in its own module, like the input sections in ``ghe_web/properties``; the page only lists what is registered. To add
 a view: write a module with ``render(ctx)``, register it, and import the module in ``ghe_web/results/__init__.py``
 (or in your feature package, see ``ghe_web/materials``).

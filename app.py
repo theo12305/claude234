@@ -34,7 +34,7 @@ from ghe_web.results import registry as results_registry  # noqa: E402
 from ghe_web.siteplan import page as siteplan_page  # noqa: E402
 from ghe_web.wells import page as wells_page  # noqa: E402
 
-st.set_page_config(page_title="GHEtool & Co.", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="GHEtool & Co.", page_icon=look.favicon(), layout="wide")
 look.inject_css()
 look.key_table_css()
 

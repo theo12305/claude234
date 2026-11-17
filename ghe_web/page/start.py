@@ -9,7 +9,7 @@ from ghe_web.core import model
 from ghe_web.i18n import t
 from ghe_web.inputs import SectionInput
 from ghe_web.inputs import registry as input_registry
-from ghe_web.page import guidance
+from ghe_web.page import guidance, look
 from ghe_web.page.state import Page
 from ghe_web.siteplan import page as siteplan_page
 
@@ -36,7 +36,7 @@ def choose_heat_source(page: Page, choice: str, hit: dict | None = None) -> None
 def welcome_address() -> dict | None:
     """The optional address on the start page; the place picked from the matches, or None."""
     with st.container(border=True):
-        st.markdown("#### 📍 " + t("Where is the site? (optional)"))
+        st.markdown("#### :material/location_on: " + t("Where is the site? (optional)"))
         st.caption(t("With an address the site plan opens with the parcel, the buildings and the distances of the "
                      "state, places the boreholes or wells, and the ground layers can be predicted for this place. "
                      "Leave it empty to enter the values yourself."))
@@ -69,7 +69,7 @@ def welcome(page: Page) -> None:
                         unsafe_allow_html=True)
             for col, (key_, (icon, label, text_)) in zip(st.columns(2, gap="medium"), guidance.HEAT_SOURCES.items()):
                 with col, st.container(border=True):
-                    st.html(f"<div class='choice'>{icon}</div>")
+                    st.html(f"<div class='choice'>{look.icon(icon)}</div>")
                     st.markdown(f"#### {t(label)}")
                     st.caption(t(text_))
                     st.button(t("Start with {what} at this address", what=t(label)) if hit else

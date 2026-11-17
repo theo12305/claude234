@@ -10,11 +10,11 @@ from dataclasses import dataclass
 
 from ghe_web.i18n import t
 
-# The choice on the start page: icon, name and a short description of each heat source.
-HEAT_SOURCES = {"closed": ("⭕", "Borehole heat exchangers",
+# The choice on the start page: icon (Material Symbols name), name and a short description of each heat source.
+HEAT_SOURCES = {"closed": ("all_inclusive", "Borehole heat exchangers",
                            "Closed loop: probes usually 50 to 250 m deep with a water-glycol mixture. Possible almost "
                            "everywhere; needs a notification or permit."),
-                "open": ("💧", "Groundwater wells",
+                "open": ("water_drop", "Groundwater wells",
                          "Open loop: a production and an injection well. Needs a productive aquifer at a shallow depth "
                          "and a permit from the water authority.")}
 

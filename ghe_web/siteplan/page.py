@@ -467,18 +467,18 @@ def page(handoff, wells: dict | None = None) -> None:
         border_default = state.border_distance if state else 3.0
         rules = Rules(
             border_distance=c[0].number_input(
-                t("Distance to the parcel border [m]"), 0.0, 50.0, float(border_default), 0.5,
+                t("Distance to the parcel border [m]"), 0.0, 50.0, float(border_default), 0.5, format="%.1f",
                 key=K + f"border.{state.key if state else ''}",
                 help=(t(state.border_note) if state else t("No state known; 3 m is common."))
                 + " " + t("Check with the Untere Wasserbehörde: districts may ask for more.")),
-            building_distance=c[1].number_input(t("Distance to buildings [m]"), 0.0, 30.0, 2.0, 0.5, key=K + "bld"),
-            spacing=c[2].number_input(t("Distance between boreholes [m]"), 3.0, 30.0, 6.0, 0.5, key=K + "spacing",
+            building_distance=c[1].number_input(t("Distance to buildings [m]"), 0.0, 30.0, 2.0, 0.5, format="%.1f", key=K + "bld"),
+            spacing=c[2].number_input(t("Distance between boreholes [m]"), 3.0, 30.0, 6.0, 0.5, format="%.1f", key=K + "spacing",
                                       help=t("VDI 4640 recommends at least 5 m (6 m for longer boreholes); 5 to 8 m "
                                              "is common. Closer boreholes influence each other more."))
             if wells is None else c[2].number_input(
-                t("Spacing between wells of the same kind [m]"), 2.0, 500.0, float(wells["spacing"]), 1.0,
+                t("Spacing between wells of the same kind [m]"), 2.0, 500.0, float(wells["spacing"]), 1.0, format="%.0f",
                 key=K + "well_spacing", help=t("Used when there is more than one production or injection well.")),
-            exclusion_distance=c[3].number_input(t("Distance to areas you draw [m]"), 0.0, 30.0, 0.0, 0.5,
+            exclusion_distance=c[3].number_input(t("Distance to areas you draw [m]"), 0.0, 30.0, 0.0, 0.5, format="%.1f",
                                                  key=K + "excl",
                                                  help=t("Extra distance around the areas drawn on the map.")),
         )

@@ -58,22 +58,22 @@ def answer_section(ctx: Ctx) -> None:
         return t("limit {x:g} °C", x=limit) + " · " + (t("{x:+.1f} K margin", x=margin) if margin > 0 else
                                                        t("{x:.1f} K beyond the limit", x=-margin))
     items = [
-        ("📏 " + (t("Borehole length") if result.sizing_method == "check" else t("Required borehole length")),
+        (":material/straighten: " + (t("Borehole length") if result.sizing_method == "check" else t("Required borehole length")),
          fmt("{x:.1f} m", x=result.borehole_length), t("{n} boreholes", n=result.number_of_boreholes), ""),
-        ("Σ " + t("Total borehole length"), fmt("{x:,.0f} m", x=result.total_length),
+        (":material/functions: " + t("Total borehole length"), fmt("{x:,.0f} m", x=result.total_length),
          t("{n} boreholes", n=result.number_of_boreholes), ""),
-        ("❄️ " + t("Lowest fluid temperature"), fmt("{x:.1f} °C", x=t_lo), margin_note(vals["margin_cold"],
+        (":material/ac_unit: " + t("Lowest fluid temperature"), fmt("{x:.1f} °C", x=t_lo), margin_note(vals["margin_cold"],
                                                                                        limits["T_min"]), "cold"),
-        ("🔥 " + t("Highest fluid temperature"), fmt("{x:.1f} °C", x=t_hi), margin_note(vals["margin_warm"],
-                                                                                       limits["T_max"]), "warm"),
-        ("⭕ " + t("Borehole thermal resistance"), fmt("{x:.3f} m·K/W", x=result.borehole_resistance),
+        (":material/local_fire_department: " + t("Highest fluid temperature"), fmt("{x:.1f} °C", x=t_hi), margin_note(vals["margin_warm"],
+                                                                                        limits["T_max"]), "warm"),
+        (":material/adjust: " + t("Borehole thermal resistance"), fmt("{x:.3f} m·K/W", x=result.borehole_resistance),
          t("effective Rb"), ""),
     ]
     if "spf_heating" in vals:
-        items.append(("⚡ " + t("Seasonal performance factor (SPF), heating"), fmt("{x:.2f}", x=vals["spf_heating"]),
+        items.append((":material/bolt: " + t("Seasonal performance factor (SPF), heating"), fmt("{x:.2f}", x=vals["spf_heating"]),
                       t("heat pump electricity {x:,.1f} MWh per year", x=vals.get("electricity_mwh", 0.0)), ""))
     if "dp_kpa" in vals:
-        items.append(("💧 " + t("Pressure drop per borehole"), fmt("{x:.1f} kPa", x=vals["dp_kpa"]),
+        items.append((":material/water_drop: " + t("Pressure drop per borehole"), fmt("{x:.1f} kPa", x=vals["dp_kpa"]),
                       t("{w:,.0f} W electrical", w=vals["pump_electric_w"]), ""))
     if sheet.on("tiles"):
         look.tiles(items if ui_mode == "expert" else items[:4])

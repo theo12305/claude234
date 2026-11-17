@@ -5,11 +5,30 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 
 import altair as alt
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 
 from ghe_web import i18n
 from ghe_web.inputs.load import MONTHS
 
 alt.data_transformers.disable_max_rows()  # hourly charts have more than Altair's default 5000 rows
+
+# One look for all Matplotlib drawings (inputs, layers, wells, site plan, PDF): the text and line colours of the page
+# (look.PALETTE, light), titles at the left like the figure titles of the results, no box around the plots.
+INK, INK_MUTED, INK_LIGHT, RULE = "#1e293b", "#475569", "#64748b", "#cbd5e1"
+plt.rcParams.update({
+    "font.size": 9, "text.color": INK, "axes.labelcolor": INK_MUTED, "axes.labelsize": 9,
+    "axes.titlesize": 10.5, "axes.titleweight": "bold", "axes.titlelocation": "left", "axes.titlepad": 8,
+    "axes.titlecolor": INK, "axes.edgecolor": RULE, "axes.linewidth": 0.8,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "xtick.color": INK_LIGHT, "ytick.color": INK_LIGHT, "xtick.labelsize": 8, "ytick.labelsize": 8,
+    "xtick.major.size": 3, "ytick.major.size": 3, "xtick.major.width": 0.8, "ytick.major.width": 0.8,
+    "grid.color": "#e2e8f0", "grid.linewidth": 0.8, "grid.alpha": 1.0,
+    "legend.frameon": False, "legend.fontsize": 8.5,
+    "figure.facecolor": "white", "savefig.facecolor": "white",
+})
 
 
 GROUT = "#c9c4b8"

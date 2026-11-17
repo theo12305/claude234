@@ -59,7 +59,7 @@ def bar(page: Page, found_checks: list[checks.Check]) -> None:
                 look.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in page.errors.values())),
                                  where)
             elif "calc_error" in st.session_state:
-                look.calc_status("bad", t("The calculation failed"), t("Details in 📊 Results."))
+                look.calc_status("bad", t("The calculation failed"), t("Details in Results."))
             elif "result_json" in st.session_state:
                 res = cached_size(st.session_state.result_json)
                 last = t("{n} × {length:.1f} m, {total:,.0f} m in total", n=res.number_of_boreholes,

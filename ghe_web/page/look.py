@@ -3,6 +3,8 @@ the results, the range bars next to the inputs and the calculate bar fixed at th
 from __future__ import annotations
 
 import html
+import io
+import re
 import textwrap
 
 import streamlit as st
@@ -25,6 +27,24 @@ PALETTE = {
 
 # The logo: a gradient tile (warm above, cool below) with three boreholes, drawn with CSS (no image file).
 LOGO = "<div class='logo'><i></i><i></i><i></i></div>"
+
+
+def favicon():
+    """The logo as the browser tab icon: the gradient tile with three boreholes (as LOGO), drawn at 96 px."""
+    from PIL import Image, ImageDraw
+    size = 96
+    top, bottom = (0xF9, 0x73, 0x16), (0x0E, 0x74, 0x90)
+    tile = Image.new("RGBA", (size, size))
+    for y in range(size):
+        k = y / (size - 1)
+        tile.paste(tuple(round(a + (b - a) * k) for a, b in zip(top, bottom)) + (255,), (0, y, size, y + 1))
+    draw = ImageDraw.Draw(tile)
+    for x, h in ((33, 50), (46, 60), (59, 50)):
+        draw.rounded_rectangle((x, 23, x + 7, 23 + h), radius=3, fill="white")
+    mask = Image.new("L", (size, size))
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size - 1, size - 1), radius=24, fill=255)
+    tile.putalpha(mask)
+    return tile
 
 
 def is_phone() -> bool:
@@ -64,11 +84,37 @@ def show_chart(c, width="stretch", title: bool = True) -> None:
     (the page shows it above the chart, where it can wrap)."""
     # no schema validation on every page run: the charts are fixed code and covered by the tests (saves ~0.1 s/chart)
     spec = i18n.localize_chart(c).to_dict(validate=False)
+    # no own background: the chart sits on the card or page it is drawn on (the theme gives the page grey)
+    spec["config"] = {**spec.get("config", {}), "background": "transparent"}
     if not title:
         spec.pop("title", None)
     if is_phone():
         spec = _for_phone(spec)
     st.vega_lite_chart(spec, width=width)
+
+
+def figure_svg(fig) -> str:
+    """A Matplotlib figure as SVG: sharp at every zoom and on every screen. The text is drawn as outlines, so it
+    looks the same everywhere. The figure is closed."""
+    import matplotlib.pyplot as plt
+    buf = io.StringIO()
+    with plt.rc_context({"svg.fonttype": "path", "svg.hashsalt": "ghe"}):
+        fig.savefig(buf, format="svg", bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    svg = buf.getvalue()
+    return re.sub(r"<metadata>.*?</metadata>", "", svg, flags=re.S)  # no creation date: same drawing, same text
+
+
+def show_figure(fig_or_svg) -> None:
+    """A drawing (Matplotlib figure or SVG text from ``figure_svg``) on a white sheet, sharp on every screen. It
+    fills the column up to 1.6 × its own size."""
+    import base64
+    svg = fig_or_svg if isinstance(fig_or_svg, str) else figure_svg(fig_or_svg)
+    width = re.search(r'<svg[^>]*?width="([\d.]+)pt"', svg)
+    natural = float(width.group(1)) * 1.6 if width else 600
+    data = base64.b64encode(svg.encode()).decode()
+    st.html(f"<div class='drawing'><img src='data:image/svg+xml;base64,{data}' alt='' "
+            f"style='width:100%;max-width:{natural:.0f}px;height:auto'></div>")
 
 
 def theme() -> str:
@@ -88,7 +134,11 @@ def inject_css() -> None:
 /* the page grows with the screen: full width up to very wide monitors, side margins scale with the width */
 .block-container {{padding-top: 3.2rem; padding-bottom: 8rem; max-width: 2400px;
   padding-left: clamp(1rem, 2.5vw, 3.5rem); padding-right: clamp(1rem, 2.5vw, 3.5rem);}}
-[data-testid="stMetricValue"] {{font-size: 1.6rem;}}
+/* key figures (st.metric) look like the tiles of the results */
+[data-testid="stMetric"] {{background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 16px; box-shadow: var(--shadow); height: 100%;}}
+[data-testid="stMetricLabel"] p {{font-size: .85rem; color: var(--muted);}}
+[data-testid="stMetricValue"] {{font-size: 1.45rem; font-weight: 700;}}
 h1, h2, h3, h4, h5 {{letter-spacing: -0.01em;}}
 /* cards: containers get the card colour (the bordered ones are the input sections and result boxes) */
 div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {{background: var(--card);}}
@@ -143,7 +193,11 @@ div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {{background: var(
 .tiles {{display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px;}}
 .tile {{background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
   box-shadow: var(--shadow);}}
-.tile .l {{font-size: .85rem; color: var(--muted);}}
+.tile .l {{font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 6px;}}
+.mi {{font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 1.15em;
+  line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr;
+  -webkit-font-feature-settings: "liga"; font-feature-settings: "liga"; -webkit-font-smoothing: antialiased;
+  color: var(--accent); flex: none;}}
 .tile .v {{font-size: 1.55rem; font-weight: 700; margin-top: 2px; white-space: nowrap;}}
 .tile .d {{font-size: .8rem; color: var(--muted); margin-top: 2px;}}
 .tile .v.cold {{color: var(--cold);}} .tile .v.warm {{color: var(--warm);}}
@@ -166,10 +220,15 @@ details.more[open] summary span {{display: none;}}
   background: var(--accent); border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--accent);}}
 .rangebar .txt {{font-size: .75rem; color: var(--muted); margin-top: 4px; line-height: 1.25;}}
 .rangebar .txt.warn {{color: #b45309;}}
+/* Matplotlib drawings as SVG: a white sheet (also in dark mode, the drawings use dark ink), centred */
+.drawing {{background: #fff; border-radius: 12px; padding: 6px; display: flex; justify-content: center;}}
+.drawing img {{display: block;}}
 .sidenote {{font-size: .78rem; color: var(--muted); margin: -8px 0 10px; line-height: 1.3;}}
 .welcome h2 {{text-align: center; font-size: 2rem; margin: 18px 0 4px;}}
 .welcome p.lead {{text-align: center; color: var(--muted); margin-bottom: 18px;}}
-.choice {{font-size: 2.6rem; line-height: 1;}}
+.choice {{width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);}}
+.choice .mi {{font-size: 30px;}}
 @media (max-width: 640px) {{
   .block-container {{padding-left: 12px; padding-right: 12px; padding-top: 3rem;}}
   .st-key-appbar {{padding: 10px 12px; border-radius: 12px;}}
@@ -218,10 +277,22 @@ def answer_card(ok: bool, lead: str, big: str, sub: str, chip_items: list[tuple[
             f"<div class='sub'>{html.escape(sub)}</div></div><div class='chips'>{chips(chip_items)}</div></div>")
 
 
+def icon(name: str) -> str:
+    """A Material Symbols icon (the same set as the buttons, e.g. "water_drop") for HTML parts of the page."""
+    return f"<span class='mi' aria-hidden='true'>{html.escape(name)}</span>"
+
+
+def _with_icon(label: str) -> str:
+    """HTML of a label that may start with an icon written as in Streamlit, ":material/name: text"."""
+    found = re.match(r":material/([a-z0-9_]+):\s*(.*)", label, flags=re.S)
+    return icon(found.group(1)) + html.escape(found.group(2)) if found else html.escape(label)
+
+
 def tiles(items: list[tuple[str, str, str, str]]) -> None:
-    """Key figures as tiles: (label, value, note, style) with style "", "cold" or "warm"."""
+    """Key figures as tiles: (label, value, note, style) with style "", "cold" or "warm". A label may start with
+    an icon, ":material/name: "."""
     st.html("<div class='tiles'>" + "".join(
-        f"<div class='tile'><div class='l'>{html.escape(label)}</div><div class='v {style}'>{html.escape(value)}"
+        f"<div class='tile'><div class='l'>{_with_icon(label)}</div><div class='v {style}'>{html.escape(value)}"
         f"</div><div class='d'>{html.escape(note)}</div></div>" for label, value, note, style in items) + "</div>")
 
 
@@ -239,7 +310,6 @@ def range_bar(value: float, rng: guidance.Typical, low_limit, high_limit, rock: 
 def caption(text: str) -> None:
     """A caption that shows its first sentence; the rest opens with "more", so long explanations don't fill the
     page."""
-    import re
     parts = re.split(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ(])", text.strip(), maxsplit=1)
     if len(parts) == 1:
         st.caption(text)
@@ -279,7 +349,7 @@ def expert_css() -> None:
 .stTabs [data-testid="stNumberInput"] input {height: 2.1rem; font-size: .9rem;}
 .stTabs [data-baseweb="select"] > div {min-height: 2.1rem; font-size: .9rem;}
 .stTabs [data-testid="stWidgetLabel"] p {font-size: .82rem;}
-.stTabs h5 {font-size: 1rem; padding-bottom: .3rem;}
+.stTabs h5 {font-size: 1rem; line-height: 1.4; padding: .1rem 0 .45rem;}
 .stTabs div[data-testid="stVerticalBlock"][data-test-scroll-behavior] {padding: 10px 14px;}
 .rangebar {margin: -4px 0 6px;} .rangebar .txt {font-size: .7rem;}
 </style>""")

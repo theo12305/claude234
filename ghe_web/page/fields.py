@@ -4,7 +4,6 @@ beside the fields."""
 from __future__ import annotations
 
 import hashlib
-import io
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -18,6 +17,19 @@ from ghe_web.inputs import Property, Variant
 from ghe_web.page import guidance, look
 
 
+def _decimals(x) -> int:
+    """Decimal places of a number as written (0.05 -> 2, 100.0 -> 0), at most 4."""
+    text = f"{float(x):.4f}".rstrip("0")
+    return len(text.split(".")[1]) if "." in text else 0
+
+
+def number_format(step, value) -> str:
+    """The same number of decimals for a field as its step has (210 kW, 0.60 kg/s, 2.8 W/(m·K)), more only when
+    the value itself has more, so nothing entered is hidden."""
+    places = max(_decimals(step) if step else 2, _decimals(value) if isinstance(value, (int, float)) else 0)
+    return f"%.{places}f"
+
+
 def widget(prop: Property, value, key: str):
     """The widget for one field (number, toggle or drop-down), with label, unit and help."""
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
@@ -27,8 +39,10 @@ def widget(prop: Property, value, key: str):
     if prop.kind == "float":
         kw = initial if initial is not None else {"value": float(value)}
         as_float = lambda x: float(x) if x is not None else None  # noqa: E731 (Streamlit refuses mixed int/float)
+        shown = st.session_state.get(key, value)
         return st.number_input(label, min_value=as_float(prop.min), max_value=as_float(prop.max),
-                               step=as_float(prop.step), format=prop.format, help=help_text, key=key, **kw)
+                               step=as_float(prop.step), format=prop.format or number_format(prop.step, shown),
+                               help=help_text, key=key, **kw)
     if prop.kind == "int":
         kw = initial if initial is not None else {"value": int(value)}
         return int(st.number_input(label, min_value=int(prop.min) if prop.min is not None else None,
@@ -92,7 +106,8 @@ def preset_pickers(variant: Variant, key_prefix: str, values: dict) -> None:
                 st.session_state[f"{key_prefix}.{field}"] = float(val) if kinds.get(field) == "float" else val
         with col:
             options = [""] + list(group.options)
-            st.selectbox(f"🗂 {t(group.label)}", options, index=options.index(matching_preset(group, now)),
+            st.selectbox(f":material/library_books: {t(group.label)}", options,
+                         index=options.index(matching_preset(group, now)),
                          format_func=lambda o: t(o) if o else t("Own values"),
                          key=f"{key_prefix}.preset.{group.label}", on_change=apply,
                          help=t(group.help) if group.help else t("Fills in the fields below with typical values."))
@@ -167,27 +182,24 @@ def hourly_input(prop: Property, value, key: str) -> dict:
 
 @st.cache_resource(max_entries=64, show_spinner=False)
 def cached_drawing(section_key: str, variant_key: str, project_json: str, language: str) -> tuple:
-    """Input drawings, cached on the inputs and the language. Matplotlib figures are stored as PNG, charts as they
-    are."""
+    """Input drawings, cached on the inputs and the language. Matplotlib figures are stored as SVG text (sharp on
+    every screen), charts as they are."""
     with i18n.using(language):
         drawing = input_drawings.DRAWINGS[(section_key, variant_key)][1](model.from_json(project_json)[1])
     parts = []
     for part in drawing if isinstance(drawing, tuple) else (drawing,):
         if isinstance(part, plt.Figure):
-            buf = io.BytesIO()
-            part.savefig(buf, format="png", dpi=110, bbox_inches="tight")
-            plt.close(part)
-            parts.append(buf.getvalue())
+            parts.append(look.figure_svg(part))
         else:
             parts.append(part)
     return tuple(parts)
 
 
 def show_drawing(parts: tuple) -> None:
-    """An input drawing: pictures (matplotlib, stored as PNG) and charts."""
+    """An input drawing: pictures (matplotlib, stored as SVG) and charts."""
     for part in parts:
-        if isinstance(part, bytes):
-            st.image(part, width="stretch")
+        if isinstance(part, str):
+            look.show_figure(part)
         else:
             chart(part)
 

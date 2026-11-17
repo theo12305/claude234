@@ -14,6 +14,7 @@ from matplotlib.path import Path
 from pyproj import CRS
 from pyproj.enums import WktVersion
 
+from ghe_web.charts import palette as _look  # noqa: F401 (the common Matplotlib look)
 from ghe_web.i18n import t
 from ghe_web.siteplan.layout import Rules, Site, allowed_area
 from ghe_web.siteplan.lookup import EPSG, to_wgs84
@@ -80,7 +81,7 @@ def borehole_zip(points, spacing: float) -> bytes:
     return _zip(_shp_points("bhe_positions", points, spacing))
 
 
-def preview_png(site: Site, rules: Rules, points, title: str = "", dpi: int = 150) -> bytes:
+def preview_png(site: Site, rules: Rules, points, title: str = "", dpi: int = 220) -> bytes:
     """Site plan: parcel, buildings with their distance, allowed area and numbered boreholes."""
     fig, ax = plt.subplots(figsize=(8.3, 7.4))
     allowed = allowed_area(site, rules)
@@ -117,9 +118,9 @@ def preview_png(site: Site, rules: Rules, points, title: str = "", dpi: int = 15
     ax.tick_params(labelsize=7)
     ax.set_xlabel(t("Easting [m] (ETRS89 / UTM 32N)"), fontsize=8)
     ax.set_ylabel(t("Northing [m]"), fontsize=8)
-    ax.grid(alpha=0.25)
+    ax.grid(True)
     ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1), fontsize=8, frameon=False)
-    ax.set_title(title or t("Borehole site plan"), fontsize=11, loc="left")
+    ax.set_title(title or t("Borehole site plan"))
     ax.text(1.01, 0.0, t("Distances: parcel border {border:g} m, buildings {buildings:g} m,\nboreholes {spacing:g} m "
                          "apart", border=rules.border_distance, buildings=rules.building_distance,
                          spacing=rules.spacing), transform=ax.transAxes, fontsize=7, va="bottom")

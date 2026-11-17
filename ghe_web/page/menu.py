@@ -42,11 +42,11 @@ def draw(page: Page) -> None:
                     "analysis.\n3. **② Wells**: drilling diameter, well losses, and whether to size the wells or "
                     "check given ones.\n4. **③ Loads**: the heat taken from and put into the groundwater, or the "
                     "building demand.\n5. **④ Limits & calculation**: temperature spread and the limits of the water "
-                    "authority.\n6. Press **Size the wells** in the bar at the bottom. The **📊 Results** tab shows "
-                    "the flow, wells, water levels, temperatures, the site map, the well construction and the "
-                    "downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the thermal model (flow "
-                    "paths of the injected water and a planar plume) are written for this tool; GHEtool has no "
-                    "open-loop model."))
+                    "authority.\n6. Press **Size the wells** in the bar at the bottom. The **:material/bar_chart: "
+                    "Results** tab shows the flow, wells, water levels, temperatures, the site map, the well "
+                    "construction and the downloads.\n\nThe well hydraulics (Thiem, Dupuit-Jacob, Sichardt) and the "
+                    "thermal model (flow paths of the injected water and a planar plume) are written for this tool; "
+                    "GHEtool has no open-loop model."))
             else:
                 st.markdown(t(
                     "1. **⓪ Site plan** (optional): find the parcel and place as many boreholes as fit.\n2. **① "
@@ -55,10 +55,10 @@ def draw(page: Page) -> None:
                     "Loads**: the heat extracted from and injected into the ground, or the building demand with the "
                     "heat pump efficiency.\n5. **④ Limits & calculation**: the allowed fluid temperatures, and "
                     "whether to size the length or check a given one.\n6. Press **Size borefield** in the bar at the "
-                    "bottom. The **📊 Results** tab shows key figures, charts, further analysis and the PDF report "
-                    "and Excel export.\n\nSave the project in the menu ☰ to continue later. Calculations use the "
-                    "open-source [GHEtool](https://github.com/wouterpeere/GHEtool)."))
-        st.caption(t("🌙 Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
+                    "bottom. The **:material/bar_chart: Results** tab shows key figures, charts, further analysis "
+                    "and the PDF report and Excel export.\n\nSave the project in the menu ☰ to continue later. "
+                    "Calculations use the open-source [GHEtool](https://github.com/wouterpeere/GHEtool)."))
+        st.caption(t(":material/dark_mode: Dark mode: menu **⋮** at the top right > **Settings** > theme **Dark**."))
         st.caption(t("Simple / Expert: the switch next to the language. Simple shows the main fields and puts the "
                      "others under \"More options\"; nothing is left out of the calculation."))
         if page.system == "open":
