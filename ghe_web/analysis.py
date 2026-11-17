@@ -286,6 +286,84 @@ def gfunction_curve(result: model.SizingResult) -> pd.DataFrame:
 
 # ---------------------------------------------------------------- sensitivity
 
+# Inputs "Vary one input" can change: (section, key) -> (label, unit). The load is scaled as a whole.
+SWEEP_INPUTS = {
+    ("ground", "k_s"): ("Ground thermal conductivity", "W/(m·K)"),
+    ("ground", "T_g"): ("Undisturbed ground temperature", "°C"),
+    ("borefield", "B_1"): ("Borehole spacing", "m"),
+    ("pipe", "k_g"): ("Grout thermal conductivity", "W/(m·K)"),
+    ("flow", "mfr"): ("Mass flow rate per borehole", "kg/s"),
+    ("load", None): ("Building load (factor)", "×"),
+}
+
+
+def sweep(inputs: dict[str, SectionInput], section: str, key: str | None, values) -> pd.DataFrame:
+    """Required borehole length for each value of one input, the others fixed (monthly sizing for speed).
+
+    ``key=None`` on the load section scales the whole load by the value. The borehole spacing changes both
+    directions. A value the sizing cannot handle gives NaN instead of stopping the sweep."""
+    base = copy.deepcopy(inputs)
+    if "hourly_sizing" in base["load"].values:
+        base["load"].values["hourly_sizing"] = False
+    if "calculation" in base:
+        base["calculation"].variant = "size"
+    rows = []
+    for value in values:
+        trial = copy.deepcopy(base)
+        vals = trial[section].values
+        if section == "load":
+            variant = properties.get("load").variant(trial["load"].variant)
+            trial["load"].values = _scaled_load(vals, float(value), variant)
+        elif section == "borefield" and key in ("B_1", "B_2"):
+            vals["B_1"] = vals["B_2"] = float(value)
+        else:
+            vals[key] = float(value)
+            if key == "k_s" and (vals.get("layers") or {}).get("use"):
+                vals["layers"] = {**vals["layers"], "use": False}
+        try:
+            length = model.size(trial).borehole_length
+        except Exception:
+            length = float("nan")
+        rows.append({"Value": float(value), "Length": length})
+    return pd.DataFrame(rows)
+
+
+def coldest_breakdown(result: model.SizingResult) -> dict | None:
+    """How the undisturbed ground temperature turns into the limiting fluid temperature, in four parts that add up
+    exactly (monthly results only):
+
+    - long term: mean borehole wall temperature in the year of the extreme minus the undisturbed ground,
+    - month: the wall temperature of that month minus the year's mean,
+    - peak (ground): the ground's response to the peak load,
+    - borehole: peak heat flow per metre times the borehole resistance R_b.
+
+    Uses the colder side when it is closer to its limit than the warm side, otherwise the warm side."""
+    bf = result.borefield
+    res = bf.results
+    tb = np.asarray(getattr(res, "Tb", []), dtype=float)
+    lo, hi = np.asarray(res.peak_extraction, dtype=float), np.asarray(res.peak_injection, dtype=float)
+    if tb.size == 0 or tb.size != lo.size or tb.size % 12:
+        return None
+    t_min, t_max = float(bf.Tf_min), float(bf.Tf_max)
+    cold = (lo.min() - t_min) <= (t_max - hi.max())
+    i = int(lo.argmin() if cold else hi.argmax())
+    length = bf.H * bf.number_of_boreholes
+    load = bf.load
+    peak_kw = (np.asarray(load.monthly_peak_extraction_simulation_period) if cold else
+               np.asarray(load.monthly_peak_injection_simulation_period))[i]
+    q = float(peak_kw) * 1000 / length * (1 if cold else -1)  # W/m out of the ground (+) or into it (-)
+    t_g = float(bf.ground_data.calculate_Tg(bf.H + bf.D, bf.D)) if hasattr(bf.ground_data, "calculate_Tg") \
+        else float(bf.ground_data.Tg)
+    year = i // 12
+    year_mean = float(tb[year * 12:(year + 1) * 12].mean())
+    fluid = float(lo[i] if cold else hi[i])
+    through = -q * float(bf.Rb)
+    parts = [("Long term", year_mean - t_g), ("Month", float(tb[i]) - year_mean),
+             ("Peak (ground)", float(fluid - float(tb[i]) - through)), ("Borehole", float(through))]
+    return {"cold": bool(cold), "index": i, "year": year + 1, "month": i % 12, "t_ground": t_g, "parts": parts,
+            "fluid": fluid, "limit": t_min if cold else t_max, "q_peak": float(abs(q)), "Rb": float(bf.Rb)}
+
+
 def _scaled_load(values: dict, factor: float, variant) -> dict:
     out = dict(values)
     for p in variant.properties:
@@ -514,13 +592,14 @@ def _imbalance_per_metre(result: model.SizingResult) -> float:
     return imbalance_w / result.total_length
 
 
-def ground_temperature_map(result: model.SizingResult, cells: int = 90) -> dict | None:
-    """Ground temperature around the field at mid-depth at the end of the simulation, caused by the yearly
-    imbalance (finite line source with mirror image, superposed over all boreholes).
+def ground_temperature_map(result: model.SizingResult, cells: int = 90, years: float | None = None) -> dict | None:
+    """Ground temperature around the field at mid-depth after the given years (default: the end of the
+    simulation), caused by the yearly imbalance (finite line source with mirror image, superposed over all
+    boreholes).
 
     Shows how far the field changes the ground and how the boreholes influence each other. Seasonal swings
     are left out: they average out over a year."""
-    resp = _line_source_response(result)
+    resp = _line_source_response(result, years)
     xs, ys = resp["xs"], resp["ys"]
     q = _imbalance_per_metre(result)
     span = max(xs.max() - xs.min(), ys.max() - ys.min(), result.borehole_length / 2)
