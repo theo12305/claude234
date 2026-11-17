@@ -26,15 +26,15 @@ USER_AGENT = "GHEtool-Web site plan (https://github.com/theo12305/claude234)"
 TIMEOUT = 40
 OSM_TIMEOUT = 20  # the OpenStreetMap mirrors are asked at the same time; the first answer wins
 
-_local = threading.local()
+_thread = threading.local()  # not "_local": that name is the XML tag helper below
 
 
 def _session() -> requests.Session:
     """One connection pool per thread: the second request to a service skips the TLS handshake."""
-    if not hasattr(_local, "session"):
-        _local.session = requests.Session()
-        _local.session.headers["User-Agent"] = USER_AGENT
-    return _local.session
+    if not hasattr(_thread, "session"):
+        _thread.session = requests.Session()
+        _thread.session.headers["User-Agent"] = USER_AGENT
+    return _thread.session
 
 _to_utm = Transformer.from_crs(4326, EPSG, always_xy=True)
 _to_wgs = Transformer.from_crs(EPSG, 4326, always_xy=True)
@@ -88,6 +88,9 @@ def _get(url: str, params: dict | None = None, data: str | None = None, timeout:
     if r.status_code != 200:
         raise LookupError_(t("The service {host} answered with error {code}.", host=url.split("/")[2],
                              code=str(r.status_code)))
+    if "html" in r.headers.get("Content-Type", "").lower() and b"Request Rejected" in r.content[:2000]:
+        # a firewall in front of the service (seen at LGL-BW) answers "200 OK" with this HTML page
+        raise LookupError_(t("The service {host} refused the request (firewall).", host=url.split("/")[2]))
     return r
 
 
@@ -288,7 +291,16 @@ def parcel_at(lon: float, lat: float, state: State | None = None) -> tuple[Featu
         raise LookupError_(t("{state} does not publish its parcels as open data. Upload the parcel outline or "
                              "draw it on the map instead.", state=state.name))
     x, y = to_utm(lon, lat)
-    feats = wfs_features(state.parcels, (x - 30, y - 30, x + 30, y + 30), 100)
+    try:
+        feats = wfs_features(state.parcels, (x - 30, y - 30, x + 30, y + 30), 100)
+    except LookupError_ as exc:
+        if state.parcel_info is None:
+            raise
+        try:  # second route: the state's parcel map service tells the parcel at the point
+            feats = parcel_info_at(state.parcel_info, x, y)
+        except LookupError_:
+            raise LookupError_(t("{error} The parcel lines of the cadastre map are shown on the map: click the "
+                                 "parcel again later, or draw it along the lines.", error=str(exc))) from exc
     pt = Point(x, y)
     hits = [f for f in feats if f.geometry.buffer(0.01).contains(pt)]
     if not hits:
@@ -298,6 +310,67 @@ def parcel_at(lon: float, lat: float, state: State | None = None) -> tuple[Featu
     feat = min(hits, key=lambda f: f.geometry.area)
     feat.attrs["_label"] = _parcel_label(feat.attrs)
     return feat, state
+
+
+def parcel_info_at(wms, x: float, y: float) -> list[Feature]:
+    """The parcels at a point (EPSG:25832) from a queryable parcel WMS (GetFeatureInfo as GML, with geometry)."""
+    h = 10.0
+    errors = []
+    for info_format in ("application/vnd.ogc.gml/3.1.1", "application/vnd.ogc.gml", "text/xml"):
+        r = _get(wms.url, {"SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetFeatureInfo", "LAYERS": wms.layer,
+                           "QUERY_LAYERS": wms.layer, "STYLES": "", "CRS": f"EPSG:{EPSG}",
+                           "BBOX": f"{x - h:.2f},{y - h:.2f},{x + h:.2f},{y + h:.2f}", "WIDTH": 101, "HEIGHT": 101,
+                           "I": 50, "J": 50, "INFO_FORMAT": info_format, "FEATURE_COUNT": 5})
+        try:
+            feats = gml_features_anywhere(r.content, EPSG)
+        except LookupError_ as exc:
+            errors.append(str(exc))
+            continue
+        if feats:
+            return feats
+    raise LookupError_(errors[-1] if errors else t("The parcel map service sent no parcel outline."))
+
+
+def gml_features_anywhere(content: bytes, epsg: int) -> list[Feature]:
+    """Features with polygons from any GML-like answer (GetFeatureInfo nests them differently per server): every
+    outermost polygon is one feature, its attributes are the plain values next to it."""
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError as exc:
+        raise LookupError_(t("The service sent an answer that could not be read.")) from exc
+    if _local(root.tag) in ("ExceptionReport", "ServiceExceptionReport"):
+        text = " ".join(s.strip() for s in root.itertext() if s.strip())
+        raise LookupError_(t("The service reported an error: {error}", error=text[:300]))
+    parent = {c: p for p in root.iter() for c in p}
+
+    def inside_geometry(e) -> bool:
+        p = parent.get(e)
+        while p is not None:
+            if _local(p.tag) in _GEOM_TAGS:
+                return True
+            p = parent.get(p)
+        return False
+
+    features = []
+    for e in root.iter():
+        if _local(e.tag) not in _GEOM_TAGS or inside_geometry(e):
+            continue
+        polys = _gml_polygons(e)
+        if not polys:
+            continue
+        geom = _fix_axes(shapely.make_valid(unary_union(polys) if len(polys) > 1 else polys[0]))
+        if epsg != EPSG:
+            tr = _from_crs.setdefault(epsg, Transformer.from_crs(epsg, EPSG, always_xy=True))
+            geom = shapely.transform(geom, lambda xy: _array(tr.transform(xy[:, 0], xy[:, 1])))
+        prop = parent.get(e)
+        feat = parent.get(prop, prop) if prop is not None else root
+        attrs = {}
+        for a in feat.iter():
+            if len(a) == 0 and a.text and a.text.strip() and not inside_geometry(a) and \
+                    _local(a.tag) not in ("posList", "pos", "coordinates"):
+                attrs.setdefault(_local(a.tag), a.text.strip())
+        features.append(Feature(geom, attrs))
+    return features
 
 
 def flurstueckskennzeichen(state: State, gemarkung: str, flur: str, zaehler: str, nenner: str) -> str:

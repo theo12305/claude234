@@ -92,12 +92,19 @@ def _by_number(state, lon, lat):
     return f"{len(hits)} parcels for {key}*"
 
 
+def _parcel_info(state, x, y):
+    feats = lookup.parcel_info_at(state.parcel_info, x, y)
+    return f"{len(feats)} parcels, {feats[0].geometry.area:,.0f} m², {lookup._parcel_label(feats[0].attrs)}"
+
+
 def check_state(state):
     lon, lat = POINTS[state.key]
     x, y = lookup.to_utm(lon, lat)
     out = {"name": state.name}
     if state.parcels:
         out["parcels"] = timed(lambda: lookup.parcel_at(lon, lat, state)[0].attrs["_label"])
+    if state.parcel_info:  # the second route, used when the parcel WFS fails
+        out["parcels (map service)"] = timed(lambda: _parcel_info(state, x, y))
     if state.parcels and state.parcels.ref_property:
         out["parcel by number"] = timed(lambda: _by_number(state, lon, lat))
     if state.buildings:

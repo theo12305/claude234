@@ -116,6 +116,7 @@ def _load_parcel_at(lon, lat, chosen_state) -> bool:
         except lookup.LookupError_ as exc:
             st.error(str(exc), icon=":material/error:")
             _set("view_centre", (lat, lon))  # for clicking or drawing the parcel instead
+            _set("failed_state", state.key)  # the click/draw map then shows this state's parcel lines
             _set("view_zoom", 18)
             return False
     _set_parcel(feat, state.key)
@@ -254,11 +255,12 @@ def _find_parcel(chosen_state):
                 st.warning(t("Address not found."))
         drawing = how == "draw"
         st.caption(t("Draw the parcel with the polygon tool (left of the map), following the parcel lines. In "
-                     "Bayern, choose the Bundesland above to see the parcel lines of the cadastre map.")
+                     "Bayern and Baden-Württemberg, choose the Bundesland above to see the parcel lines of the "
+                     "cadastre map.")
                    if drawing else t("Zoom in on the aerial image and click inside your parcel."))
         centre = _ss("view_centre", (51.16, 10.45))
         m = folium.Map(location=centre, zoom_start=_ss("view_zoom", 6), max_zoom=21, tiles=None)
-        _base_layers(m, chosen_state)
+        _base_layers(m, chosen_state or by_key(_ss("failed_state")))
         if drawing:
             Draw(export=False, position="topleft",
                  draw_options={"polyline": False, "circlemarker": False, "marker": False, "circle": False},

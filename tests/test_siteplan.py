@@ -163,7 +163,7 @@ def test_parcel_at_asks_the_state_service(monkeypatch):
     seen = {}
 
     class Answer:
-        status_code, content = 200, GML
+        status_code, content, headers = 200, GML, {"Content-Type": "application/gml+xml"}
 
     class FakeSession:
         def get(self, url, params=None, **kw):
@@ -197,3 +197,73 @@ def test_the_first_mirror_that_answers_wins():
     assert time.time() - start < 1.5
     with pytest.raises(lookup.LookupError_, match="none: down"):
         lookup._first_answer(fetch, ["broken"], "none: {error}")
+
+
+# ---------------------------------------------------------------- second route to a parcel (BW, 2026-11)
+
+_MAPSERVER_GML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<msGMLOutput xmlns:gml="http://www.opengis.net/gml">
+ <CadastralParcel_layer><CadastralParcel_feature>
+  <gml:boundedBy><gml:Box srsName="EPSG:25832"><gml:coordinates>513400,5402500 513460,5402560</gml:coordinates></gml:Box></gml:boundedBy>
+  <geometry><gml:Polygon srsName="EPSG:25832"><gml:outerBoundaryIs><gml:LinearRing>
+   <gml:coordinates>513400,5402500 513460,5402500 513460,5402560 513400,5402560 513400,5402500</gml:coordinates>
+  </gml:LinearRing></gml:outerBoundaryIs></gml:Polygon></geometry>
+  <label>366/2</label><nationalCadastralReference>0811110010036600002</nationalCadastralReference>
+ </CadastralParcel_feature></CadastralParcel_layer>
+</msGMLOutput>"""
+
+_GML3 = b"""<?xml version="1.0" encoding="UTF-8"?>
+<wfs:FeatureCollection xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml"
+  xmlns:cp="http://inspire.ec.europa.eu/schemas/cp/4.0">
+ <gml:featureMember><cp:CadastralParcel>
+  <cp:geometry><gml:MultiSurface><gml:surfaceMember><gml:Polygon><gml:exterior><gml:LinearRing>
+   <gml:posList srsDimension="2">513400 5402500 513460 5402500 513460 5402560 513400 5402500</gml:posList>
+  </gml:LinearRing></gml:exterior></gml:Polygon></gml:surfaceMember></gml:MultiSurface></cp:geometry>
+  <cp:label>12</cp:label>
+ </cp:CadastralParcel></gml:featureMember>
+</wfs:FeatureCollection>"""
+
+
+def test_feature_info_gml_of_both_server_kinds():
+    a = lookup.gml_features_anywhere(_MAPSERVER_GML, 25832)
+    assert len(a) == 1 and a[0].geometry.area == pytest.approx(3600)
+    assert a[0].attrs["label"] == "366/2" and "coordinates" not in a[0].attrs
+    b = lookup.gml_features_anywhere(_GML3, 25832)
+    assert len(b) == 1 and b[0].geometry.area == pytest.approx(1800) and b[0].attrs["label"] == "12"
+
+
+def test_parcel_falls_back_to_the_map_service_when_the_wfs_fails(monkeypatch):
+    bw = next(s for s in STATES if s.key == "BW")
+    assert bw.parcel_info is not None and bw.overlay is not None
+
+    def broken(*args, **kwargs):
+        raise lookup.LookupError_("The service owsproxy.lgl-bw.de answered with error 503.")
+
+    monkeypatch.setattr(lookup, "wfs_features", broken)
+    monkeypatch.setattr(lookup, "parcel_info_at", lambda wms, x, y: lookup.gml_features_anywhere(_MAPSERVER_GML, 25832))
+    lon, lat = lookup.to_wgs84(513430, 5402530)
+    feat, state = lookup.parcel_at(lon, lat, bw)
+    assert state.key == "BW" and feat.geometry.area == pytest.approx(3600)
+    assert "366/2" in feat.attrs["_label"]
+
+    def also_broken(*args, **kwargs):
+        raise lookup.LookupError_("no")
+
+    monkeypatch.setattr(lookup, "parcel_info_at", also_broken)
+    with pytest.raises(lookup.LookupError_, match="error 503.*parcel lines"):
+        lookup.parcel_at(lon, lat, bw)
+
+
+def test_firewall_page_is_reported(monkeypatch):
+    class Answer:
+        status_code = 200
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+        content = b"<html><head><title>Request Rejected</title></head><body>The requested URL was rejected.</body></html>"
+
+    class Session:
+        def get(self, *a, **k):
+            return Answer()
+
+    monkeypatch.setattr(lookup, "_session", lambda: Session())
+    with pytest.raises(lookup.LookupError_, match="refused the request"):
+        lookup._get("https://owsproxy.lgl-bw.de/owsproxy/wfs/x", {})
