@@ -137,12 +137,13 @@ _WORDS = [
     ("quarzit|quartzite", "Quartzite"),
     ("marmor|marble", "Marble"),
     ("feinkies|mittelkies|grobkies|kies|gravel|schotter|geröll|blöcke|steine|cobbles|boulders", "Gravel"),
-    ("feinsand|mittelsand|grobsand|sand", "Sand"),
+    ("feinstsand|feinsand|mittelsand|grobsand|sand", "Sand"),
     ("löss|loess|lehm|loam|schluff|silt|mudde|mud", "Silt / loess"),
     ("ton|clay", "Clay"),
 ]
 # "(?!ig)": an adjective ("kiesig", "tonig", "kalkig") names an admixture, not the main component
 _WORD_RES = [(re.compile(rf"(?<![a-zäöüß])({pattern})(?!ig)", re.IGNORECASE), rock) for pattern, rock in _WORDS]
+_TILL = re.compile(r"geschiebe(?:lehm|mergel)", re.IGNORECASE)
 _FILL = re.compile(r"auffüllung|aufschüttung|anthropogen|künstliches material", re.IGNORECASE)  # the genesis decides wherever it is
 _TOKEN = re.compile(r"[A-Za-zÄÖÜäöüß]+")
 
@@ -163,6 +164,8 @@ def classify(text: str | None) -> str:
             break  # not a code: read the words instead
     if _FILL.search(text):
         return "Made ground / fill"
+    if _TILL.search(text):  # "(Ton, Schluff, Sand, Kies); Geschiebelehm": the genesis names the rock
+        return "Till / boulder clay"
     # words: the one that comes first in the text is the main component ("Ton, sandig" is clay)
     best = None
     for order, (pattern, rock) in enumerate(_WORD_RES):

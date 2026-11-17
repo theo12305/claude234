@@ -106,6 +106,19 @@ def _ocr_depth(line: str, top: float = 0.0, limit: float = 2000.0) -> tuple[floa
     return value, rest
 
 
+def _clean_ocr_description(text: str) -> str:
+    """Drops what the recognition read from the drawn column in front of a description ("as | 9 Sand", "B2 B2
+    Sand", "© 0® Kies"): leading marks, numbers and short fragments that are not a rock name themselves."""
+    words = text.split()
+    while words:
+        letters = re.sub(r"[^A-Za-zÄÖÜäöüß]", "", words[0])
+        if (len(letters) > 3 or (len(letters) == 3 and rocks.classify(letters) != rocks.UNKNOWN)) and \
+                re.fullmatch(r"[(\"„“]?[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß(),.;/-]*", words[0]):
+            break
+        words.pop(0)
+    return " ".join(words)
+
+
 def layers_from_ocr(text: str, name: str = "Log", x: float = 0.0, y: float = 0.0, source: str = "picture",
                     max_depth: float | None = None) -> Borehole:
     """The layers of a Schichtenverzeichnis read from a picture: the depth of each layer bottom at the start of a
@@ -136,7 +149,7 @@ def layers_from_ocr(text: str, name: str = "Log", x: float = 0.0, y: float = 0.0
             continue
         if re.match(r"m\s*(?:NHN|NN|HN|ü|u\.)", rest):  # a height (Geländeoberkante), not a layer
             continue
-        desc = f"{pending} {rest}".strip() if pending else rest
+        desc = _clean_ocr_description(f"{pending} {rest}".strip() if pending else rest)
         if not re.search(r"[A-Za-zÄÖÜäöü]{3}", desc) or (not started and rocks.classify(desc) == rocks.UNKNOWN):
             continue
         layers.append(LogLayer(top, bottom, rocks.classify(desc), desc))
