@@ -1,24 +1,23 @@
 """Overview: the temperature chart and the key results in two columns."""
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
-from ... import analysis, export, i18n, model, plots, report, ui
-from ...i18n import fmt, t
-from ..cache import *  # noqa: F403 (the cached calculations)
-from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from ..registry import Ctx, ResultView, hidden, register
+from ghe_web.charts import result_charts
+from ghe_web.downloads import excel
+from ghe_web.i18n import t
+from ghe_web.results.common import TEMPERATURE_CAPTION, figure, key_table
+from ghe_web.results.registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:
     result, key, limits = ctx.result, ctx.key, ctx.limits
     if result.hourly_basis:  # the hourly result is what the limits were checked against
-        figure(plots.hourly_band_chart(result.hourly_temperatures, limits),
+        figure(result_charts.hourly_band_chart(result.hourly_temperatures, limits),
                t("Daily range of the hourly average fluid temperature. Dashed: your limits."))
     else:
-        figure(plots.temperature_chart(result.temperatures, limits), TEMPERATURE_CAPTION(),
-               export.monthly_temperatures(result).round(3))
+        figure(result_charts.temperature_chart(result.temperatures, limits), TEMPERATURE_CAPTION(),
+               excel.monthly_temperatures(result).round(3))
     # spread the groups over two columns so both end at about the same height
     parts, heights = ([], []), [0, 0]
     for group, rows in key.by_group().items():

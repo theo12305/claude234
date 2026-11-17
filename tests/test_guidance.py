@@ -1,5 +1,7 @@
 """Typical ranges, side notes and Simple-mode fields next to the inputs."""
-from ghe_web import catalog, guidance, model, properties
+from ghe_web.core import catalog, model
+from ghe_web.inputs import registry as input_registry
+from ghe_web.page import guidance
 
 
 def test_rock_ranges_contain_the_dropdown_value():
@@ -33,7 +35,7 @@ def test_old_projects_with_yearly_energy_become_full_load_hours():
     import json
     text = json.loads(model.to_json(model.default_inputs()))
     values = text["sections"]["load"]["values"] = {"annual_heating_mwh": 300.0, "peak_heating_kw": 150.0,
-                                                  "annual_cooling_mwh": 40.0, "peak_cooling_kw": 0.0}
+                                                   "annual_cooling_mwh": 40.0, "peak_cooling_kw": 0.0}
     text["sections"]["load"]["variant"] = "annual_building"
     _, inputs = model.from_json(json.dumps(text))
     assert values and inputs["load"].values["full_load_hours_heating"] == 2000.0
@@ -41,7 +43,7 @@ def test_old_projects_with_yearly_energy_become_full_load_hours():
 
 
 def test_advanced_fields_exist():
-    keys = {(s.key, p.key) for s in properties.sections() for v in s.variants for p in v.properties}
+    keys = {(s.key, p.key) for s in input_registry.sections() for v in s.variants for p in v.properties}
     assert guidance.ADVANCED <= keys
 
 
@@ -53,13 +55,13 @@ def test_mode_is_saved_with_the_project():
 
 
 def test_simple_hidden_fields_exist():
-    keys = {(s.key, p.key) for s in properties.sections() for v in s.variants for p in v.properties}
+    keys = {(s.key, p.key) for s in input_registry.sections() for v in s.variants for p in v.properties}
     assert guidance.SIMPLE_HIDDEN <= keys
 
 
 def test_defaults_match_a_drop_down_choice():
     """The drop-downs start on a typical choice, so the default values are one of their options."""
-    for section in properties.sections():
+    for section in input_registry.sections():
         for variant in section.variants:
             defaults = variant.defaults()
             for group in variant.presets:
@@ -68,4 +70,4 @@ def test_defaults_match_a_drop_down_choice():
 
 
 def test_double_u_tube_is_the_default():
-    assert properties.get("pipe").variant().key == "double_u"
+    assert input_registry.get("pipe").variant().key == "double_u"

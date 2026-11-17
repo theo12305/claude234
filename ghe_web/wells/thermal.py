@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .hydraulics import C_W, Well
+from ghe_web.wells.hydraulics import C_W, Well
 
 SECONDS_PER_YEAR = 365.25 * 86400
 SECONDS_PER_MONTH = SECONDS_PER_YEAR / 12

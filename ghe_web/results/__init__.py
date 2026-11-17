@@ -8,7 +8,7 @@ Map (to change one thing, open only its file):
   views/*.py    one file per view of the "View" drop-down
 Feature packages (e.g. ghe_web/materials) register their own views.
 """
-from .views import (overview, checks, temperatures, energy, hourly, heat_pump, hydraulics, ground,  # noqa: F401
-                    field, layers, load_optimisation, analysis, export)
-from .registry import Ctx, ResultView, register, views  # noqa: F401
-from .. import materials  # noqa: F401,E402 (a feature package: registers the material list view)
+from ghe_web.results.views import (overview, checks, temperatures, energy, hourly, heat_pump,  # noqa: F401
+                                   hydraulics, ground, field, layers, load_optimisation, analysis, export)
+from ghe_web.results.registry import Ctx, ResultView, register, views  # noqa: F401
+from ghe_web import materials  # noqa: F401,E402 (a feature package: registers the material list view)

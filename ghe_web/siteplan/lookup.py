@@ -18,8 +18,8 @@ from pyproj import Transformer
 from shapely.geometry import Point, Polygon, shape
 from shapely.ops import unary_union
 
-from ..i18n import t
-from .states import State, by_key
+from ghe_web.i18n import t
+from ghe_web.siteplan.states import State, by_key
 
 EPSG = 25832
 USER_AGENT = "GHEtool-Web site plan (https://github.com/theo12305/claude234)"
@@ -211,16 +211,6 @@ def parse_gml(content: bytes, epsg: int) -> list[Feature]:
 
 
 # ---------------------------------------------------------------- WFS
-
-def _bbox_filter(geom_prop: str, b, epsg: int, version: str) -> str:
-    srs = f"urn:ogc:def:crs:EPSG::{epsg}" if version.startswith("2") else f"EPSG:{epsg}"
-    gml = "http://www.opengis.net/gml/3.2" if version.startswith("2") else "http://www.opengis.net/gml"
-    fes = "http://www.opengis.net/fes/2.0" if version.startswith("2") else "http://www.opengis.net/ogc"
-    vr = "ValueReference" if version.startswith("2") else "PropertyName"
-    return (f'<fes:Filter xmlns:fes="{fes}" xmlns:gml="{gml}"><fes:BBOX><fes:{vr}>{geom_prop}</fes:{vr}>'
-            f'<gml:Envelope srsName="{srs}"><gml:lowerCorner>{b[0]} {b[1]}</gml:lowerCorner>'
-            f'<gml:upperCorner>{b[2]} {b[3]}</gml:upperCorner></gml:Envelope></fes:BBOX></fes:Filter>')
-
 
 def wfs_features(service, bounds_utm, max_features: int = 500) -> list[Feature]:
     """Features of one WFS layer (``service`` from states.py) inside a box given in EPSG:25832."""

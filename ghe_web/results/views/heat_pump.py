@@ -1,14 +1,12 @@
 """Heat pump: SPF, SEER, electricity and the efficiency curves (building loads only)."""
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
-from ... import analysis, export, i18n, model, plots, report, ui
-from ...i18n import fmt, t
-from ..cache import *  # noqa: F403 (the cached calculations)
-from ..common import TEMPERATURE_CAPTION, figure, in_language, key_table
-from ..registry import Ctx, ResultView, hidden, register
+from ghe_web.charts import input_drawings
+from ghe_web.i18n import fmt, t
+from ghe_web.results.common import figure
+from ghe_web.results.registry import Ctx, ResultView, hidden, register
 
 
 def render(ctx: Ctx) -> None:
@@ -25,13 +23,13 @@ def render(ctx: Ctx) -> None:
     if curve:
         lo = float(min(result.temperatures["Average fluid (peak extraction)"].min(), key.values["t_min"]))
         hi = float(max(result.temperatures["Average fluid (peak injection)"].max(), key.values["t_max"]))
-        for c in plots.efficiency_curves(sized_inputs["heat_pump"].values, (lo, hi)):
+        for c in input_drawings.efficiency_curves(sized_inputs["heat_pump"].values, (lo, hi)):
             figure(c)
     else:
         st.info(t("The heat pump efficiency is fixed (SCOP/SEER). Choose **Depends on the fluid temperature** under "
                   "Heat pump efficiency in step ③ to see how the COP changes as the ground cools."),
                 icon=":material/info:")
-    charts = plots.heat_pump_yearly_chart(result.heat_pump, show_spf=curve)
+    charts = input_drawings.heat_pump_yearly_chart(result.heat_pump, show_spf=curve)
     for c in charts if isinstance(charts, tuple) else (charts,):
         figure(c)
 

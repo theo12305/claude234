@@ -8,11 +8,13 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from .. import export, ui
-from ..i18n import fmt, t
-from ..results.common import figure, in_language
-from ..results.registry import Ctx, ResultView, plugin_data, register
-from . import network, quantities as q
+from ghe_web.downloads import excel
+from ghe_web.i18n import fmt, t
+from ghe_web.materials import network
+from ghe_web.materials import quantities as q
+from ghe_web.page import look
+from ghe_web.results.common import in_language
+from ghe_web.results.registry import Ctx, ResultView, plugin_data, register
 
 KEY = "materials"
 TOOLS = {"entrance": "Building entrance", "manifold": "Manifold", "trench": "Draw trench"}
@@ -34,7 +36,7 @@ def _background(ctx: Ctx):
     bf = ctx.sized_inputs["borefield"]
     if not origin or bf.variant != "custom" or tuple(map(tuple, origin[1])) != tuple(map(tuple, bf.values["points"])):
         return []
-    from ..siteplan import page as siteplan_page
+    from ghe_web.siteplan import page as siteplan_page
     x0, y0 = origin[0]
     rows = []
     for i, (kind, geom) in enumerate(siteplan_page.background()):
@@ -61,7 +63,6 @@ def plan_chart(lay: q.Layout, data: dict, background: list[dict], width: int) ->
     if background:
         bx0, bx1, by0, by1 = _extent([(r["x"], r["y"]) for r in background], 2.0)
         x0, x1, y0, y1 = min(x0, bx0), max(x1, bx1), min(y0, by0), max(y1, by1)
-    span = max(x1 - x0, y1 - y0)
     step = max(0.5, math.ceil(math.sqrt((x1 - x0) * (y1 - y0) / 3500) * 2) / 2)
     ppm = width / max(x1 - x0, 1.0)
     height = int(min(max((y1 - y0) * ppm, 220), 900))
@@ -235,9 +236,9 @@ def _items(ctx: Ctx) -> tuple[q.Layout, list[q.Item]]:
 
 def render(ctx: Ctx) -> None:
     data = _state()
-    ui.caption(t("Quantities from the sizing result and the horizontal piping on the plan. Click the building "
-                 "entrance on the plan; the trenches are routed automatically, or draw them yourself. No prices: "
-                 "export the list and price it in your own tools."))
+    look.caption(t("Quantities from the sizing result and the horizontal piping on the plan. Click the building "
+                   "entrance on the plan; the trenches are routed automatically, or draw them yourself. No prices: "
+                   "export the list and price it in your own tools."))
     _settings(data, ctx.simple)
     lay, items = _items(ctx)
     bar = st.container(horizontal=True, vertical_alignment="bottom", gap="small", key="mat_toolbar")
@@ -251,7 +252,7 @@ def render(ctx: Ctx) -> None:
     if data.get("trenches") or data.get("current"):
         bar.button(t("Delete drawn trenches (automatic routing)"), icon=":material/delete:", on_click=_clear,
                    type="tertiary")
-    chart, step = plan_chart(lay, data, _background(ctx), 340 if ui.is_phone() else 760)
+    chart, step = plan_chart(lay, data, _background(ctx), 340 if look.is_phone() else 760)
     key = f"mat_plan.{st.session_state.get('mat_clicks', 0)}"
     st.markdown(f"<span class='fignum'>{t('Figure {n}', n=str(st.session_state.get('_view_number', 0)) + '.1')}"
                 f"</span>", unsafe_allow_html=True)
@@ -260,8 +261,8 @@ def render(ctx: Ctx) -> None:
              "manifold": t("Click where the manifold shaft goes."),
              "trench": t("Click the corners of a trench one after the other, then Finish line. Lines that touch or "
                          "cross are joined; each BHE and the manifold are joined to the nearest trench.")}
-    ui.caption(hints[tool] + " " + t("Dark blue: BHEs. Teal: trenches, thicker with more circuits. Orange dashed: "
-                                     "header pipe. Click resolution {s:g} m.", s=step))
+    look.caption(hints[tool] + " " + t("Dark blue: BHEs. Teal: trenches, thicker with more circuits. Orange dashed: "
+                                       "header pipe. Click resolution {s:g} m.", s=step))
     if lay.entrance_assumed:
         st.info(t("The building entrance is assumed 10 m west of the field. Click it on the plan for the real "
                   "lengths."), icon=":material/info:")
@@ -272,13 +273,13 @@ def render(ctx: Ctx) -> None:
     r = lay.routing
     connection = sum(2 * (p + float(data["reserve"])) for p in r.paths)
     volume = next(it.quantity for it in items if it.group == t("Heat transfer fluid"))
-    ui.tiles([("⛏️ " + t("Trench length"), fmt("{x:,.0f} m", x=r.trench_length), t("circuits and header"), ""),
-              ("〰️ " + t("Connection pipe"), fmt("{x:,.0f} m", x=connection),
-               t("longest circuit {x:.0f} m", x=max(r.paths) + data["reserve"]), ""),
-              ("➡️ " + t("Header pipe"), fmt("{x:,.1f} m", x=r.header_length),
-               t("manifold to building, single length") if not lay.manifold_in_building else t("manifold in the "
-                                                                                                 "building"), ""),
-              ("💧 " + t("System volume"), fmt("{x:,.2f} m³", x=volume), t("heat transfer fluid"), "")])
+    look.tiles([("⛏️ " + t("Trench length"), fmt("{x:,.0f} m", x=r.trench_length), t("circuits and header"), ""),
+                ("〰️ " + t("Connection pipe"), fmt("{x:,.0f} m", x=connection),
+                 t("longest circuit {x:.0f} m", x=max(r.paths) + data["reserve"]), ""),
+                ("➡️ " + t("Header pipe"), fmt("{x:,.1f} m", x=r.header_length),
+                 t("manifold to building, single length") if not lay.manifold_in_building
+                 else t("manifold in the building"), ""),
+                ("💧 " + t("System volume"), fmt("{x:,.2f} m³", x=volume), t("heat transfer fluid"), "")])
     df = table(items)
     st.markdown(f"<span class='fignum'>{t('Table {n}', n=str(st.session_state.get('_view_number', 0)) + '.2')}"
                 f"</span><div class='figtitle'>{t('Material list')}</div>", unsafe_allow_html=True)
@@ -287,14 +288,14 @@ def render(ctx: Ctx) -> None:
     st.dataframe(shown, hide_index=True, width="stretch",
                  column_config={t("Quantity"): st.column_config.TextColumn(width="small")})
     c1, c2 = st.columns(2)
-    c1.download_button(t("Material list (Excel)"), in_language(lambda: export.tables_workbook({t("Material list"): df})),
+    c1.download_button(t("Material list (Excel)"), in_language(lambda: excel.tables_workbook({t("Material list"): df})),
                        f"{ctx.stem}_materials.xlsx",
                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                        icon=":material/table_view:", on_click="ignore", width="stretch")
     c2.download_button(t("Material list (CSV)"), df.to_csv(index=False).encode(), f"{ctx.stem}_materials.csv",
                        "text/csv", icon=":material/download:", on_click="ignore", width="stretch")
-    ui.caption(t("The material list and the plan settings are saved with the project (menu ☰ > Save project) and "
-                 "are part of the Excel export under Export."))
+    look.caption(t("The material list and the plan settings are saved with the project (menu ☰ > Save project) and "
+                   "are part of the Excel export under Export."))
 
 
 def tables(ctx: Ctx) -> dict[str, pd.DataFrame]:

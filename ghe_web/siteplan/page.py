@@ -14,11 +14,11 @@ from folium.plugins import Draw
 from shapely.geometry import Point, shape
 from streamlit_folium import st_folium
 
-from .. import i18n
-from ..i18n import fmt, t
-from . import export, lookup
-from .layout import Rules, Site, allowed_area, check, flow_vector, place_boreholes, place_wells
-from .states import STATES, by_key
+from ghe_web import i18n
+from ghe_web.i18n import fmt, t
+from ghe_web.siteplan import export, lookup
+from ghe_web.siteplan.layout import Rules, Site, allowed_area, check, flow_vector, place_boreholes, place_wells
+from ghe_web.siteplan.states import STATES, by_key
 
 K = "siteplan."  # session state prefix
 HOW = {"address": "Address", "number": "Flurstück number", "click": "Click on the map", "draw": "Draw the outline",
@@ -372,7 +372,7 @@ def _site_map(state, parcel, buildings, ignored, drawn, allowed, points, kinds=N
     fd = folium.FeatureGroup(name=t("Excluded areas you drew"))
     for g in drawn:
         folium.GeoJson(_geojson(g), style_function=lambda _: {"color": "#ff8c1a", "weight": 2,
-                                                             "fillColor": "#ff8c1a", "fillOpacity": 0.35}).add_to(fd)
+                                                              "fillColor": "#ff8c1a", "fillOpacity": 0.35}).add_to(fd)
     fd.add_to(m)
     fp = folium.FeatureGroup(name=t("Wells ({n})", n=len(points)) if kinds else t("Boreholes ({n})", n=len(points)))
     for i, (x, y) in enumerate(points, start=1):

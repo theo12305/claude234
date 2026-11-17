@@ -13,9 +13,9 @@ from dataclasses import fields
 
 import streamlit as st
 
-from .. import plots
-from ..i18n import t
-from .registry import plugin_data
+from ghe_web.charts import palette
+from ghe_web.i18n import t
+from ghe_web.results.registry import plugin_data
 
 KEY = "sheet"
 
@@ -42,7 +42,7 @@ PARTS: dict[str, list[tuple[str, str, bool]]] = {
                ("gfunction", "g-function", False)],
 }
 
-# The switches of the temperature charts, in the order of plots.ChartStyle
+# The switches of the temperature charts, in the order of palette.ChartStyle
 STYLE_LABELS = {"base": "Fluid without peaks (grey)", "peak_heat": "Fluid at the heating peaks (blue)",
                 "peak_cool": "Fluid at the cooling peaks (red)", "limits": "Temperature limits (dashed lines)",
                 "shading": "Shading outside the limits", "limit_labels": "Labels of the limits",
@@ -63,8 +63,8 @@ def on(part: str) -> bool:
     return bool(_store().get(part, default))
 
 
-def style() -> plots.ChartStyle:
-    return plots.ChartStyle.from_dict(_store().get("style"))
+def style() -> palette.ChartStyle:
+    return palette.ChartStyle.from_dict(_store().get("style"))
 
 
 def choice() -> dict:
@@ -111,7 +111,7 @@ def customize(views: list) -> None:
         with cols[2]:
             st.markdown(t("**Temperature charts**"))
             current = style()
-            for f in fields(plots.ChartStyle):
+            for f in fields(palette.ChartStyle):
                 _toggle(t(STYLE_LABELS[f.name]), f.name, getattr(current, f.name), style_key=True)
         if st.button(t("Back to the standard sheet"), icon=":material/restart_alt:", key="sheet.reset"):
             _store().clear()

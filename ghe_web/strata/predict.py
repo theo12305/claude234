@@ -17,8 +17,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from ..i18n import t
-from . import rocks
+from ghe_web.i18n import t
+from ghe_web.strata import rocks
 
 
 @dataclass

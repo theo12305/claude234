@@ -1,13 +1,15 @@
 import pandas as pd
 import pytest
 
-from ghe_web import hourly, model, plots, properties
+from ghe_web.charts import result_charts
+from ghe_web.core import hourly, model
+from ghe_web.inputs import registry as input_registry
 
 
 def _hourly_inputs(**overrides):
     inputs = model.default_inputs()
     inputs["load"].variant = "hourly_building"
-    inputs["load"].values = properties.get("load").variant("hourly_building").defaults()
+    inputs["load"].values = input_registry.get("load").variant("hourly_building").defaults()
     inputs["load"].values.update(overrides)
     return inputs
 
@@ -33,7 +35,8 @@ def test_leap_year_is_trimmed():
     assert len(heating) == 8760 and "leap" in notes[0]
 
 
-@pytest.mark.parametrize("rows, message", [(["1,2"] * 100, "8760"), (["-1,2"] * 8760, "negative"), (["1"] * 8760, "two columns")])
+@pytest.mark.parametrize("rows, message", [(["1,2"] * 100, "8760"), (["-1,2"] * 8760, "negative"), (["1"] * 8760, "two "
+                                                                                                                  "columns")])
 def test_bad_files_are_reported(rows, message):
     with pytest.raises(hourly.HourlyFileError, match=message):
         hourly.read_profile("demand.csv", "\n".join(rows).encode())
@@ -46,8 +49,8 @@ def test_hourly_sizing_stays_within_limits():
     assert result.hourly_temperatures["Average fluid"].min() > -0.1
     assert result.hourly_temperatures["Average fluid"].max() < 17.1
     limits = model.default_inputs()["limits"].values
-    plots.hourly_band_chart(result.hourly_temperatures, limits).to_dict()
-    plots.hourly_last_year_chart(result.hourly_temperatures, limits).to_dict()
+    result_charts.hourly_band_chart(result.hourly_temperatures, limits).to_dict()
+    result_charts.hourly_last_year_chart(result.hourly_temperatures, limits).to_dict()
 
 
 def test_hourly_demand_converted_with_scop():

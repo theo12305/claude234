@@ -2,18 +2,19 @@
 from __future__ import annotations
 
 import html
-import io
 from typing import Callable
 
 import pandas as pd
 import streamlit as st
 
-from .. import checks as ghe_checks
-from .. import i18n, model
-from .. import ui
-from ..i18n import fmt, t
-from ..properties import SectionInput
-from . import checks, design, plots, report, sources
+from ghe_web import i18n
+from ghe_web.core import checks as ghe_checks
+from ghe_web.core import model
+from ghe_web.i18n import fmt, t
+from ghe_web.inputs import SectionInput
+from ghe_web.inputs import registry as input_registry
+from ghe_web.page import look
+from ghe_web.wells import checks, design, plots, report, sources
 
 VIEWS = {"overview": "Overview", "hydraulics": "Hydraulics", "temperatures": "Temperatures", "map": "Site map",
          "construction": "Well construction", "energy": "Water and energy", "checks": "Design check",
@@ -28,7 +29,7 @@ def cached_design(project_json: str) -> design.Design:
 
 
 def _chart(c) -> None:
-    ui.show_chart(c)
+    look.show_chart(c)
 
 
 def _key_table(rows: list[tuple[str, str, str]]) -> None:
@@ -82,19 +83,19 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
         n = ghe_checks.counts(found)
         with st.container(width="stretch"):
             if errors:
-                ui.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
-                               "; ".join(f"{step_of(k)}: {t(model.properties.get(k).label)}" for k in errors))
+                look.calc_status("bad", t("{n} input(s) need attention", n=sum(len(m) for m in errors.values())),
+                                 "; ".join(f"{step_of(k)}: {t(input_registry.get(k).label)}" for k in errors))
             elif "calc_error" in st.session_state:
-                ui.calc_status("bad", t("The calculation failed"), t("Details in Results."))
+                look.calc_status("bad", t("The calculation failed"), t("Details in Results."))
             elif d_last is not None:
                 last = t("{p} + {i} wells, {d:g} m apart", p=d_last.n_production, i=d_last.n_injection,
                          d=d_last.distance) + ", " + t("{q:.1f} m³/h at peak", q=d_last.q_peak * 3600)
                 if st.session_state.result_json != current_json:
-                    ui.calc_status("warn", t("Inputs changed – results out of date"), t("Last result: {x}", x=last))
+                    look.calc_status("warn", t("Inputs changed – results out of date"), t("Last result: {x}", x=last))
                 else:
-                    ui.calc_status("ok", t("Result up to date"), last)
+                    look.calc_status("ok", t("Result up to date"), last)
             else:
-                ui.calc_status("grey", t("Not calculated yet"))
+                look.calc_status("grey", t("Not calculated yet"))
         if errors:
             st.button(t("Show"), on_click=goto, args=(next(iter(errors)),), key="calc_goto_error",
                       icon=":material/arrow_upward:")
@@ -138,17 +139,17 @@ def page(inputs: dict[str, SectionInput], errors: dict, current_json: str, name:
                          "that goes back. A rising or falling production temperature over the years means injected "
                          "water flows back to the production wells."))
         elif view == "map":
-            ui.show_figure(plots.site_map(d, aquifer))
+            look.show_figure(plots.site_map(d, aquifer))
             st.caption(t("Seen from above, the groundwater flows from left to right. Blue lines: where the injected "
                          "water goes. Shaded: the temperature change of the yearly net heat (planar model without "
                          "heat exchange with the layers above and below, so on the safe side)."))
         elif view == "construction":
-            from ..properties.ground import layered
+            from ghe_web.inputs.ground import layered
             g = sized_inputs["ground"].values
             rows = list(g["layers"]["rows"]) if layered(g) else None
             left, right = st.columns([3, 2], gap="large")
             with left:
-                ui.show_figure(plots.well_section(d, aquifer, rows))
+                look.show_figure(plots.well_section(d, aquifer, rows))
             with right:
                 _key_table([
                     (t("Well depth"), fmt("{x:.1f} m", x=d.screen.depth), t("to the aquifer bottom")),
@@ -195,9 +196,9 @@ def _verdict(d: design.Design, inputs, found: list | None = None) -> None:
     if warnings:
         chip_items.append(("warn", t("{n} warning(s)", n=len(warnings))))
     chip_items.append(("ok", t("{n} fine", n=len(found) - len(problems) - len(warnings))))
-    ui.answer_card(not problems, t("Answer"), t("{p} + {i} wells, {d:g} m apart", p=d.n_production, i=d.n_injection,
+    look.answer_card(not problems, t("Answer"), t("{p} + {i} wells, {d:g} m apart", p=d.n_production, i=d.n_injection,
                                                 d=d.distance), sub, chip_items)
-    ui.tiles([
+    look.tiles([
         (":material/water_drop: " + t("Peak flow"), fmt("{x:.1f} m³/h", x=d.q_peak * 3600), fmt("{x:.1f} l/s", x=d.q_peak * 1000), ""),
         (":material/functions: " + t("Water per year"), fmt("{x:,.0f} m³", x=d.volume_year), "", ""),
         (":material/arrow_downward: " + t("Drawdown"), fmt("{x:.1f} m", x=d.peak.drawdown), t("of {x:.1f} m", x=d.drawdown_allowed), ""),

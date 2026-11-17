@@ -1,5 +1,5 @@
 # No fixed base: the page follows the device's light or dark setting, and users can switch in ⋮ > Settings.
-# The colours match ghe_web/ui.py (PALETTE). Inter is a free Google font.
+# The colours match ghe_web/page/look.py (PALETTE). Inter is a free Google font.
 [theme]
 primaryColor = "#0e7490"
 font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap, sans-serif"
