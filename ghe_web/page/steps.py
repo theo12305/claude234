@@ -27,7 +27,8 @@ def labels(system: str, simple: bool) -> dict[str, str]:
     """Step id -> tab label in the current language."""
     labels_ = WELL_STEP_LABELS if system == "open" else STEP_LABELS
     if simple:  # three input steps: the borehole, fluid and limits come with typical values under Loads
-        labels_ = {**labels_, **SIMPLE_STEP_LABELS}
+        # (only the labels of steps this heat source has: wells have no design check, which crashed the tabs)
+        labels_ = {**labels_, **{k: v for k, v in SIMPLE_STEP_LABELS.items() if k in labels_}}
     steps = {k: t(v) for k, v in labels_.items()}
     if simple:
         steps["Borehole"] = steps["Design"] = steps["Loads"]

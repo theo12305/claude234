@@ -40,7 +40,8 @@ class State:
     imagery: Wms | None
     border_distance: float  # m, borehole to the parcel border
     border_note: str
-    overlay: Wms | None = None  # parcel boundaries as an image, where there is no open parcel WFS
+    overlay: Wms | None = None  # parcel boundaries as an image (no open parcel WFS, or one that often fails)
+    parcel_info: Wms | None = None  # a queryable parcel WMS: second route to the parcel when the WFS fails
 
 
 CP = "cp:CadastralParcel"
@@ -97,7 +98,13 @@ STATES: list[State] = [
           Wms("https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_ATKIS_DOP_20_C", "IMAGES_DOP_20_RGB",
               "© LGL-BW, dl-de/by-2.0"),
           3.0, "LQS EWS Baden-Württemberg 2018, section 2.1.3: half the borehole spacing of VDI 4640, "
-               "typically 3 m."),
+               "typically 3 m.",
+          # the parcel WFS answered every query with error 503 in November 2026 (its capabilities still load);
+          # the INSPIRE parcel WMS of the same office then gives the parcel, and the ALKIS map shows the lines
+          overlay=Wms("https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_ALKIS_Basis_transparent",
+                      "nora:ALKIS_Basis_transparent", "© LGL-BW, dl-de/by-2.0"),
+          parcel_info=Wms("https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_INSP_BW_Flst_ALKIS", "alkis:CP.CadastralParcel",
+                          "© LGL-BW, dl-de/by-2.0")),
     State("BY", "09", "Bayern", None, None,
           Wms("https://geoservices.bayern.de/od/wms/dop/v1/dop20", "by_dop20c", "© Bayerische Vermessungsverwaltung, CC BY 4.0"),
           3.0, "LfU Merkblatt 3.7/2 (Bayern): 3 m recommended (LAWA: 5 m).",

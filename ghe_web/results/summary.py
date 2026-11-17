@@ -17,7 +17,7 @@ from ghe_web.results.registry import Ctx, extra_tables
 def answer_section(ctx: Ctx) -> None:
     """The answer first: a card with the design and the design check, the key figures as tiles, the warnings and the
     most used downloads."""
-    result, key, sized_inputs, limits, sized_json = ctx.result, ctx.key, ctx.sized_inputs, ctx.limits, ctx.sized_json
+    result, key, sized_inputs, limits = ctx.result, ctx.key, ctx.sized_inputs, ctx.limits
     name, lang, found_checks = ctx.name, i18n.language(), ctx.found_checks
     ui_mode = "simple" if ctx.simple else "expert"
     project_json = ctx.project_json

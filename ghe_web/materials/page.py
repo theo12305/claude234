@@ -63,7 +63,6 @@ def plan_chart(lay: q.Layout, data: dict, background: list[dict], width: int) ->
     if background:
         bx0, bx1, by0, by1 = _extent([(r["x"], r["y"]) for r in background], 2.0)
         x0, x1, y0, y1 = min(x0, bx0), max(x1, bx1), min(y0, by0), max(y1, by1)
-    span = max(x1 - x0, y1 - y0)
     step = max(0.5, math.ceil(math.sqrt((x1 - x0) * (y1 - y0) / 3500) * 2) / 2)
     ppm = width / max(x1 - x0, 1.0)
     height = int(min(max((y1 - y0) * ppm, 220), 900))

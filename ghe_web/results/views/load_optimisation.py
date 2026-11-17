@@ -15,7 +15,7 @@ from ghe_web.results.registry import Ctx, ResultView, register
 
 
 def render(ctx: Ctx) -> None:
-    result, sized_json, name = ctx.result, ctx.sized_json, ctx.name
+    sized_json, name = ctx.sized_json, ctx.name
     look.caption(t("Keeps the borefield as designed and works out how much of the hourly building demand it can take "
                    "within the temperature limits. The rest comes from a backup boiler, gas or electric, or a chiller "
                    "(a hybrid system). This answers: how far does a smaller or cheaper field get me?"))

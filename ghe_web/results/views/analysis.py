@@ -13,7 +13,7 @@ from ghe_web.results.registry import Ctx, ResultView, register
 
 
 def render(ctx: Ctx) -> None:
-    result, key, sized_json, sized_inputs = ctx.result, ctx.key, ctx.sized_json, ctx.sized_inputs
+    result, key, sized_json = ctx.result, ctx.key, ctx.sized_json
     with st.expander(t("Sensitivity check: what the borehole length depends on"), icon=":material/tune:"):
         look.caption(t("Sizes the field again with one input changed at a time (monthly sizing for speed). The longest "
                        "bars are the inputs worth measuring carefully, e.g. with a thermal response test."))

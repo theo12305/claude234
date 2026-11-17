@@ -66,14 +66,6 @@ def surface_geology(x: float, y: float) -> list[dict]:
     return out
 
 
-def bedrock_from_map(units: list[dict]) -> str | None:
-    """The main rock of the base layer of the map (not the cover), if it could be classified."""
-    for u in units:
-        if not u["cover"] and u["rock"] != rocks.UNKNOWN:
-            return u["rock"]
-    return None
-
-
 # ---------------------------------------------------------------- BoreholeML
 
 def _local(tag: str) -> str:

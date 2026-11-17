@@ -163,7 +163,7 @@ def test_parcel_at_asks_the_state_service(monkeypatch):
     seen = {}
 
     class Answer:
-        status_code, content = 200, GML
+        status_code, content, headers = 200, GML, {"Content-Type": "application/gml+xml"}
 
     class FakeSession:
         def get(self, url, params=None, **kw):
@@ -177,9 +177,6 @@ def test_parcel_at_asks_the_state_service(monkeypatch):
     assert state is nw and feat.geometry.area == pytest.approx(2400)
     assert seen["url"] == nw.parcels.url and seen["params"]["TYPENAMES"] == "cp:CadastralParcel"
     assert seen["params"]["BBOX"].endswith("urn:ogc:def:crs:EPSG::25832")
-    by = next(s for s in STATES if s.key == "BY")
-    with pytest.raises(lookup.LookupError_, match="Bayern"):
-        lookup.parcel_at(lon, lat, by)
 
 
 def test_the_first_mirror_that_answers_wins():
@@ -197,3 +194,120 @@ def test_the_first_mirror_that_answers_wins():
     assert time.time() - start < 1.5
     with pytest.raises(lookup.LookupError_, match="none: down"):
         lookup._first_answer(fetch, ["broken"], "none: {error}")
+
+
+# ---------------------------------------------------------------- second route to a parcel (BW, 2026-11)
+
+_MAPSERVER_GML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<msGMLOutput xmlns:gml="http://www.opengis.net/gml">
+ <CadastralParcel_layer><CadastralParcel_feature>
+  <gml:boundedBy><gml:Box srsName="EPSG:25832"><gml:coordinates>513400,5402500 513460,5402560</gml:coordinates></gml:Box></gml:boundedBy>
+  <geometry><gml:Polygon srsName="EPSG:25832"><gml:outerBoundaryIs><gml:LinearRing>
+   <gml:coordinates>513400,5402500 513460,5402500 513460,5402560 513400,5402560 513400,5402500</gml:coordinates>
+  </gml:LinearRing></gml:outerBoundaryIs></gml:Polygon></geometry>
+  <label>366/2</label><nationalCadastralReference>0811110010036600002</nationalCadastralReference>
+ </CadastralParcel_feature></CadastralParcel_layer>
+</msGMLOutput>"""
+
+_GML3 = b"""<?xml version="1.0" encoding="UTF-8"?>
+<wfs:FeatureCollection xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml"
+  xmlns:cp="http://inspire.ec.europa.eu/schemas/cp/4.0">
+ <gml:featureMember><cp:CadastralParcel>
+  <cp:geometry><gml:MultiSurface><gml:surfaceMember><gml:Polygon><gml:exterior><gml:LinearRing>
+   <gml:posList srsDimension="2">513400 5402500 513460 5402500 513460 5402560 513400 5402500</gml:posList>
+  </gml:LinearRing></gml:exterior></gml:Polygon></gml:surfaceMember></gml:MultiSurface></cp:geometry>
+  <cp:label>12</cp:label>
+ </cp:CadastralParcel></gml:featureMember>
+</wfs:FeatureCollection>"""
+
+
+def test_feature_info_gml_of_both_server_kinds():
+    a = lookup.gml_features_anywhere(_MAPSERVER_GML, 25832)
+    assert len(a) == 1 and a[0].geometry.area == pytest.approx(3600)
+    assert a[0].attrs["label"] == "366/2" and "coordinates" not in a[0].attrs
+    b = lookup.gml_features_anywhere(_GML3, 25832)
+    assert len(b) == 1 and b[0].geometry.area == pytest.approx(1800) and b[0].attrs["label"] == "12"
+
+
+def test_parcel_falls_back_to_the_map_service_when_the_wfs_fails(monkeypatch):
+    bw = next(s for s in STATES if s.key == "BW")
+    assert bw.parcel_info is not None and bw.overlay is not None
+
+    def broken(*args, **kwargs):
+        raise lookup.LookupError_("The service owsproxy.lgl-bw.de answered with error 503.")
+
+    monkeypatch.setattr(lookup, "wfs_features", broken)
+    monkeypatch.setattr(lookup, "parcel_info_at", lambda wms, x, y: lookup.gml_features_anywhere(_MAPSERVER_GML, 25832))
+    lon, lat = lookup.to_wgs84(513430, 5402530)
+    feat, state = lookup.parcel_at(lon, lat, bw)
+    assert state.key == "BW" and feat.geometry.area == pytest.approx(3600)
+    assert "366/2" in feat.attrs["_label"]
+
+    def also_broken(*args, **kwargs):
+        raise lookup.LookupError_("no")
+
+    monkeypatch.setattr(lookup, "parcel_info_at", also_broken)
+    monkeypatch.setattr(lookup, "parcel_from_map", also_broken)
+    with pytest.raises(lookup.LookupError_, match="error 503.*parcel lines"):
+        lookup.parcel_at(lon, lat, bw)
+
+
+def test_firewall_page_is_reported(monkeypatch):
+    class Answer:
+        status_code = 200
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+        content = b"<html><head><title>Request Rejected</title></head><body>The requested URL was rejected.</body></html>"
+
+    class Session:
+        def get(self, *a, **k):
+            return Answer()
+
+    monkeypatch.setattr(lookup, "_session", lambda: Session())
+    with pytest.raises(lookup.LookupError_, match="refused the request"):
+        lookup._get("https://owsproxy.lgl-bw.de/owsproxy/wfs/x", {})
+
+
+def _parcel_map(size=600):
+    """A transparent parcel-line map: a 30 m x 20 m parcel at the centre (0.2 m per pixel), a number inside it, and
+    a neighbour to the east."""
+    from PIL import Image, ImageDraw
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    c = size // 2
+    d.rectangle([c - 75, c - 50, c + 75, c + 50], outline=(200, 30, 30, 255), width=2)  # 30 m x 20 m
+    d.rectangle([c + 75, c - 50, c + 175, c + 50], outline=(200, 30, 30, 255), width=2)
+    d.text((c - 10, c - 5), "366/2", fill=(0, 0, 0, 255))
+    return img
+
+
+def test_parcel_is_traced_from_the_parcel_lines():
+    bbox = (513430 - 60, 5402530 - 60, 513430 + 60, 5402530 + 60)
+    poly = lookup.trace_parcel(_parcel_map(), bbox)
+    assert poly is not None and poly.area == pytest.approx(600, rel=0.05)
+    assert poly.contains(lookup.Point(513430, 5402530))
+    minx, miny, maxx, maxy = poly.bounds
+    assert maxx - minx == pytest.approx(30, abs=0.6) and maxy - miny == pytest.approx(20, abs=0.6)
+    # no closed line around the point: nothing
+    from PIL import Image
+    assert lookup.trace_parcel(Image.new("RGBA", (600, 600), (0, 0, 0, 0)), bbox) is None
+
+
+def test_bayern_parcel_comes_from_the_parcel_map(monkeypatch):
+    import io
+    by = next(s for s in STATES if s.key == "BY")
+    buf = io.BytesIO()
+    _parcel_map().save(buf, "PNG")
+
+    class Answer:
+        status_code, content, headers = 200, buf.getvalue(), {"Content-Type": "image/png"}
+
+    class Session:
+        def get(self, url, params=None, **kw):
+            assert params["REQUEST"] == "GetMap" and params["LAYERS"] == by.overlay.layer
+            return Answer()
+
+    monkeypatch.setattr(lookup, "_session", lambda: Session())
+    lon, lat = lookup.to_wgs84(600000, 5400000)
+    feat, state = lookup.parcel_at(lon, lat, by)
+    assert state.key == "BY" and feat.attrs[lookup.TRACED] == "1"
+    assert feat.geometry.area == pytest.approx(600, rel=0.05)
