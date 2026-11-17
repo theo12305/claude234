@@ -613,9 +613,10 @@ DE: dict[str, str] = {
     "Download template": "Vorlage herunterladen",
     "Download the optimised load, first year hourly (CSV)": "Optimierte Last herunterladen, erstes Jahr stündlich (CSV)",
     "Download zip": "ZIP herunterladen",
-    "Draw the parcel with the polygon tool (left of the map), following the parcel lines. In Bayern, choose the Bundesland above to see the parcel lines of the cadastre map.":
+    "Draw the parcel with the polygon tool (left of the map), following the parcel lines. In Bayern and "
+    "Baden-Württemberg, choose the Bundesland above to see the parcel lines of the cadastre map.":
         "Zeichnen Sie das Flurstück mit dem Polygonwerkzeug (links an der Karte) entlang der Flurstücksgrenzen. "
-        "In Bayern wählen Sie oben das Bundesland, um die Grenzen der Flurkarte zu sehen.",
+        "In Bayern und Baden-Württemberg wählen Sie oben das Bundesland, um die Grenzen der Flurkarte zu sehen.",
     "Drawn parcel": "Gezeichnetes Flurstück",
     "EER cooling": "EER Kühlen",
     "ETRS89 / UTM 32N (EPSG:25832)": "ETRS89 / UTM 32N (EPSG:25832)",
@@ -1093,6 +1094,22 @@ DE: dict[str, str] = {
     "The service sent an answer that could not be read.": "Der Dienst sendete eine Antwort, die nicht gelesen werden konnte.",
     "The service {host} answered with error {code}.": "Der Dienst {host} antwortete mit Fehler {code}.",
     "The service {host} did not answer ({error}).": "Der Dienst {host} hat nicht geantwortet ({error}).",
+    "The service {host} refused the request (firewall).":
+        "Der Dienst {host} hat die Anfrage abgewiesen (Firewall).",
+    "{error} The parcel lines of the cadastre map are shown on the map: click the parcel again later, or draw it "
+    "along the lines.":
+        "{error} Die Flurstücksgrenzen der Flurkarte sind in der Karte eingeblendet: Klicken Sie das Flurstück später "
+        "erneut an oder zeichnen Sie es entlang der Grenzen.",
+    "The parcel map service sent no parcel outline.": "Der Kartendienst der Flurstücke lieferte keinen Umriss.",
+    "Parcel traced from the cadastre map": "Flurstück aus der Flurkarte nachgezeichnet",
+    "No closed parcel was found around this point on the cadastre map.":
+        "In der Flurkarte wurde um diesen Punkt kein geschlossenes Flurstück gefunden.",
+    "No parcel outline could be loaded from the cadastre service of this state, so the outline was traced from the "
+    "parcel lines of the cadastre map (accurate to a few decimetres). Check it on the map; if it is wrong, draw the "
+    "parcel instead.":
+        "Vom Katasterdienst dieses Landes ließ sich kein Flurstücksumriss laden. Der Umriss wurde deshalb aus den "
+        "Flurstücksgrenzen der Flurkarte nachgezeichnet (auf wenige Dezimeter genau). Prüfen Sie ihn in der Karte; "
+        "wenn er nicht stimmt, zeichnen Sie das Flurstück.",
     "The shapefile contains no points.": "Das Shapefile enthält keine Punkte.",
     "The shapefile contains {kind} features. Each borehole must be a point.":
         "Das Shapefile enthält Objekte vom Typ {kind}. Jede Sonde muss ein Punkt sein.",

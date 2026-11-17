@@ -150,7 +150,8 @@ system = st.session_state.get(f"{gen}.system.variant_key", model.system(start))
 LABELS = WELL_STEP_LABELS if system == "open" else STEP_LABELS
 SIMPLE = ui_mode != "expert"
 if SIMPLE:  # three input steps: the borehole, fluid and limits come with typical values under Loads
-    LABELS = {**LABELS, **SIMPLE_STEP_LABELS}
+    # (only the labels of steps this heat source has: wells have no design check, which crashed the tabs)
+    LABELS = {**LABELS, **{k: v for k, v in SIMPLE_STEP_LABELS.items() if k in LABELS}}
 STEPS = {k: t(v) for k, v in LABELS.items()}
 if SIMPLE:
     STEPS["Borehole"] = STEPS["Design"] = STEPS["Loads"]
