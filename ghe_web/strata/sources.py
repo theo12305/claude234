@@ -234,6 +234,31 @@ class BoreholePoint:
     note: str = ""
     distance: float = 0.0
 
+    @property
+    def log(self) -> tuple[str, str] | None:
+        """(url, "picture" or "column") of a version of the log the app can read itself, or None."""
+        return readable_log(self.link)
+
+
+def readable_log(link: str | None) -> tuple[str, str] | None:
+    """Where a state service keeps a log in a form the app can read without the user:
+
+    - Berlin: the log sheet as a picture (GeODin layout 1, the Schichtenverzeichnis with depths and descriptions
+      in text), read by text recognition.
+    - Schleswig-Holstein: the log column as PDF with a text layer (GeODin portal, layout SGD_SH_Start).
+    """
+    if not link:
+        return None
+    if "gdi.berlin.de/ext/bohrungen/getimage" in link:
+        url = re.sub(r"LAYOUT=\d+", "LAYOUT=1", link)
+        url = re.sub(r"RESOLUTION=\d+", "RESOLUTION=3000", url)
+        return url, "picture"
+    found = re.search(r"//([\d.]+)/geodin/getportalpage\?.*ObjectID1=(\w+?)BRG\d{3}", link)
+    if found and "SGD_SH" in link:
+        return (f"http://{found.group(1)}/geodin/getimage?LAYOUT=SGD_SH_Start&ImageType=PDF"
+                f"&ObjectID1={found.group(2)}BRG000&PORTAL=1"), "column"
+    return None
+
 
 def _prop(props: dict, *names):
     """The first of the named properties that is set (services rename fields between field names and aliases)."""
@@ -449,6 +474,10 @@ def _near(points: list[BoreholePoint], x: float, y: float, radius: float) -> lis
     return sorted((p for p in points if p.distance <= radius), key=lambda p: p.distance)
 
 
+# States whose borehole points link to logs the app reads itself (see readable_log)
+READ_SERVICES = {"BE": "text recognition of the log sheets", "SH": "text layer of the log column PDFs"}
+
+
 # What each state survey offers, for the page's overview (state key -> survey, portal, what is open)
 PORTALS = {
     "BW": ("LGRB Baden-Württemberg (LGRBbohrungen)", "https://bohrungen.lgrb-bw.de",
@@ -457,7 +486,8 @@ PORTALS = {
     "BY": ("LfU Bayern", "https://www.umweltatlas.bayern.de",
            "Boreholes in the UmweltAtlas (Geologie); no open download service."),
     "BE": ("Senatsverwaltung Berlin", "https://gdi.berlin.de",
-           "Connected: boreholes with a picture of the log."),
+           "Connected: boreholes with a picture of the log sheet; the app reads the nearest sheets by text "
+           "recognition."),
     "BB": ("LBGR Brandenburg", "https://lbgr.brandenburg.de",
            "Connected: boreholes with a picture of the log."),
     "HB": ("Geologischer Dienst für Bremen", "https://www.gdfb.de",
@@ -468,7 +498,8 @@ PORTALS = {
     "HE": ("HLNUG Hessen", "https://www.hlnug.de",
            "Connected: archive boreholes with depth, unit and groundwater; logs on request."),
     "MV": ("LUNG Mecklenburg-Vorpommern", "https://www.umweltkarten.mv-regierung.de",
-           "Connected: boreholes with a link to the released log."),
+           "Connected: boreholes with a link to the released log (the log viewer only answers from German "
+           "networks, so open it yourself)."),
     "NI": ("LBEG Niedersachsen (NIBIS)", "https://nibis.lbeg.de/cardomap3/",
            "Connected: boreholes with a picture of the log column."),
     "NW": ("Geologischer Dienst NRW", "https://www.gd.nrw.de",
@@ -482,7 +513,7 @@ PORTALS = {
     "ST": ("LAGB Sachsen-Anhalt", "https://www.geodaten.lagb.sachsen-anhalt.de/",
            "Map of the state borehole database; logs on request."),
     "SH": ("LfU Schleswig-Holstein", "https://umweltportal.schleswig-holstein.de/kartendienste?lang=de&topic=thegeologie",
-           "Connected: boreholes with a link to the log column."),
+           "Connected: boreholes with the log column; the app reads the nearest columns from their PDF."),
     "TH": ("TLUBN Thüringen", "https://tlubn.thueringen.de",
            "No open borehole service found; ask the survey."),
 }

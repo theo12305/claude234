@@ -1,0 +1,51 @@
+Sand
+0,00
+2,40
+Feinsand
+5,40 Schluff
+6,30 Sand
+7,10
+Schluff
+8,30 Feinsand
+9,00
+Ton
+13,00
+Schluff
+14,20 Mittelsand
+15,20
+Feinsand
+16,40
+Mittelsand
+17,50
+Sand
+30,0030,00
+0
+-10
+-20
+m NHN
+2,10
+m u. AP
+Höhenmaßstab: 1:125
+1627/16/1/1001/B
+6020315
+3,50 m NHN
+32575973
+30,00 m
+Kiel, Marine-Arsenal, Ballastb
+B 11
+ - 
+Bohrung:
+Y-Koordinate (UTM):
+X-Koordinate (UTM):
+Höhe des Ansatzpunktes (AP):
+Endtiefe:
+Ort:
+Kurzbezeichnung:
+Bohrdatum:
+Haftungsauschluss
+Die im Geologischen Landesarchiv Schleswig-Holstein
+archivierten Bohrungsdaten wurden zum großen Teil von
+externen Quellen übernommen. Eine Gewähr für die
+Richtigkeit der Informationen wird nicht übernommen.
+Hinweis: Bei an der Bohrsäule angegebenen Wasserstandsdaten handelt es sich um den 
+bei der Aufschlusstätigkeit im nicht ausgebauten Bohrloch ermittelten Wasserstand.

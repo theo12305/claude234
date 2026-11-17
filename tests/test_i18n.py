@@ -13,6 +13,7 @@ from ghe_web.downloads import pdf_report
 from ghe_web.i18n import fmt, t
 from ghe_web.inputs import registry as input_registry
 from ghe_web import learn  # noqa: F401 (registers the German of Learn mode)
+from ghe_web import strata  # noqa: F401 (registers the German of the ground layers panel)
 from ghe_web.materials import page as materials_page
 from ghe_web.materials import quantities as materials
 from ghe_web.page import guidance
