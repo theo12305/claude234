@@ -313,7 +313,7 @@ def sweep(inputs: dict[str, SectionInput], section: str, key: str | None, values
     for value in values:
         trial = copy.deepcopy(base)
         vals = trial[section].values
-        if section == "load":
+        if section == "load" and key is None:
             variant = input_registry.get("load").variant(trial["load"].variant)
             trial["load"].values = _scaled_load(vals, float(value), variant)
         elif section == "borefield" and key in ("B_1", "B_2"):

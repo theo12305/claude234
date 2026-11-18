@@ -8,7 +8,7 @@ from ghe_web import i18n
 from ghe_web.i18n import t
 from ghe_web.page import look
 
-MODES = {"simple": "Simple", "expert": "Expert", "learn": "Learn"}  # Learn: Simple plus ghe_web/learn
+MODES = {"simple": "Simple", "expert": "Expert", "learn": "Learn"}  # Learn: example projects, ghe_web/learn
 
 
 def draw() -> tuple[str, str, object, object]:

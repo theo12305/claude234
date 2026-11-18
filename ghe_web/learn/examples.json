@@ -1,0 +1,56 @@
+{
+ "house": {
+  "length": 105.97,
+  "sensitivity": {
+   "borefield.B_1": -0.0518,
+   "borefield.r_b_mm": 0.096,
+   "flow.mfr": -0.719,
+   "ground.T_g": -9.6458,
+   "ground.k_s": -0.63,
+   "ground.volumetric_heat_capacity": -0.1079,
+   "limits.T_min": 4.7698,
+   "load.full_load_hours_heating": 0.4726,
+   "load.peak_cooling_kw": null,
+   "load.peak_heating_kw": 1.0832,
+   "load.scop": 0.3112,
+   "load.simulation_period": 0.0194,
+   "pipe.k_g": -0.1913
+  }
+ },
+ "office": {
+  "length": 105.22,
+  "sensitivity": {
+   "borefield.B_1": -0.1139,
+   "borefield.r_b_mm": 0.1254,
+   "flow.mfr": -0.0731,
+   "ground.T_g": 5.001,
+   "ground.k_s": -0.6388,
+   "ground.volumetric_heat_capacity": -0.1289,
+   "limits.T_min": 5.7302,
+   "load.full_load_hours_heating": 0.5774,
+   "load.peak_cooling_kw": 0.3271,
+   "load.peak_heating_kw": 0.8541,
+   "load.scop": 0.2114,
+   "load.simulation_period": 0.0,
+   "pipe.k_g": -0.2599
+  }
+ },
+ "quarter": {
+  "length": 181.61,
+  "sensitivity": {
+   "borefield.B_1": -0.879,
+   "borefield.r_b_mm": -0.0224,
+   "flow.mfr": -0.1018,
+   "ground.T_g": -23.6545,
+   "ground.k_s": -1.0613,
+   "ground.volumetric_heat_capacity": -0.271,
+   "limits.T_min": 23.2245,
+   "load.full_load_hours_heating": 1.1877,
+   "load.peak_cooling_kw": null,
+   "load.peak_heating_kw": 1.4859,
+   "load.scop": 0.5,
+   "load.simulation_period": 0.2326,
+   "pipe.k_g": -0.0807
+  }
+ }
+}

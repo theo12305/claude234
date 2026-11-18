@@ -10,7 +10,6 @@ import streamlit as st
 from ghe_web import results
 from ghe_web.core import analysis, checks, model
 from ghe_web.i18n import t
-from ghe_web.learn import page as learn_page
 from ghe_web.page import calculation, design_check, look, project
 from ghe_web.page.state import Page
 from ghe_web.results import registry as results_registry
@@ -67,8 +66,6 @@ def draw(page: Page, found_checks: list[checks.Check]) -> None:
                 results_sheet.customize(sections)
             st.html("<div id='sec-answer'></div>")
             results_summary.answer_section(ctx)
-            if page.learn:
-                learn_page.results_cards(ctx)
             for number, view in enumerate(shown, start=1):  # every section switched on, one below the other
                 st.html(look.sheet_heading(view.key, t(view.title)))
                 results_registry.render(view, ctx, number)

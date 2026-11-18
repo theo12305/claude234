@@ -35,7 +35,7 @@ def widget(prop: Property, value, key: str):
     """The widget for one field (number, toggle or drop-down), with label, unit and help."""
     label = f"{t(prop.label)} [{t(prop.unit)}]" if prop.unit else t(prop.label)
     help_text = t(prop.help) or None
-    more = learn_page.read_more(prop.key)  # in Learn mode: the sources and the module of this field
+    more = learn_page.read_more(prop.key)  # the sources of this field's glossary entry
     if more:
         help_text = f"{help_text}\n\n{more}" if help_text else more
     # A preset may already have put a value in the session state; then the widget must not get one too.
