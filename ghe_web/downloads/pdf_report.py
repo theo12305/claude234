@@ -117,6 +117,8 @@ def chart_png(chart, width: int = 700, height: int | None = None, scale: float =
     config = {**spec.get("config", {}), **i18n.chart_config(background="white").to_dict(validate=False)}
     config["font"] = "DejaVu Sans"
     spec["config"] = config
+    from ghe_web.charts import palette
+    palette.with_theme(spec)  # the same chart look as on the page
     if "width" not in spec:
         spec["width"] = width
     if height is not None:

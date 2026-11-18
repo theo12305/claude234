@@ -1,16 +1,18 @@
-"""Feature package: Learn mode, the third mode next to Simple and Expert, for new colleagues.
+"""Feature package: Learn mode, the third mode next to Simple and Expert, for colleagues who are new to borefield
+design (with a scientific or engineering background).
 
-Self-contained like a plug-in. Learn is Simple plus explanations; Simple and Expert stay as they are except for one
-"Read more" line in some fields' "?" help and the literature button in the menu.
+Learn mode is a page of its own: three sized example projects, each parameter explained with its governing relation,
+its sensitivity on the project and its sources, parameter studies and scenarios. Simple and Expert stay as they are
+except for one "Read more" line in some fields' "?" help and the literature button in the menu.
 
-  sources.py    the numbered literature list (one list for the whole app)
-  glossary.py   technical terms with symbol, typical values, sources; which field belongs to which term
-  modules.py    the introduction: eight short modules along the input steps, with a self-check question each
-  explain.py    "why this length" and "where the degrees go" with the project's numbers (no Streamlit)
-  exercises.py  the "Try it" calculations on a small practice project (no Streamlit)
-  page.py       everything on the page: result cards, the three Learn tabs, exercises, menu button
-  text.py       L(en, de): long texts in both languages side by side
-  de.py         German labels of this package
+  projects.py    the example projects, the parameters Learn mode explains, sensitivities and studies (no Streamlit)
+  examples.json  precomputed lengths and sensitivities (python -m tools.learn_examples)
+  glossary.py    every parameter and concept: definition, equation, practice values, sources
+  sources.py     the numbered literature list (one list for the whole app)
+  explain.py     "why this length" and the temperature budget with the project's numbers (no Streamlit)
+  page.py        the Learn page, the menu button and the "Read more" line
+  text.py        L(en, de): long texts in both languages side by side
+  de.py          German labels of this package
 """
 from .. import i18n
 from . import de

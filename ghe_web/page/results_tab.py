@@ -10,13 +10,29 @@ import streamlit as st
 from ghe_web import results
 from ghe_web.core import analysis, checks, model
 from ghe_web.i18n import t
-from ghe_web.learn import page as learn_page
-from ghe_web.page import calculation, design_check, project
+from ghe_web.page import calculation, design_check, look, project
 from ghe_web.page.state import Page
 from ghe_web.results import registry as results_registry
 from ghe_web.results import sheet as results_sheet
 from ghe_web.results import summary as results_summary
 from ghe_web.results.cache import cached_size
+
+
+def empty_state(page: Page, action: str) -> None:
+    """Results before the first calculation: what the sheet will show, and the way to it."""
+    items = [("task_alt", t("Answer: number and length of the boreholes")),
+             ("device_thermostat", t("Fluid temperatures over the years")), ("bolt", t("Energy balance")),
+             ("layers", t("Ground and borefield")), ("download", t("PDF report and Excel"))]
+    st.html(f"<div class='empty'><div class='big'>{look.icon('bar_chart')}</div><h3>{html.escape(t('No result yet'))}"
+            f"</h3><div style='color:var(--muted)'>{html.escape(t('Calculate to get the results sheet:'))}</div><ul>"
+            + "".join(f"<li>{look.icon(i)}{html.escape(x)}</li>" for i, x in items) + "</ul></div>")
+    with st.container(horizontal=True, horizontal_alignment="center", key="empty_actions"):
+        if page.step("check"):
+            st.button(t("Design check first"), icon=":material/fact_check:", key="results_check",
+                      on_click=design_check.open_design_check)
+        if st.button(action, type="primary", disabled=bool(page.errors), key="results_calc",
+                     icon=":material/play_arrow:"):
+            calculation.calculate(page)
 
 
 def draw(page: Page, found_checks: list[checks.Check]) -> None:
@@ -37,30 +53,24 @@ def draw(page: Page, found_checks: list[checks.Check]) -> None:
         if "calc_error" in st.session_state:
             st.error(t("The calculation failed: {error}", error=st.session_state.calc_error), icon=":material/error:")
         if ctx is None:
-            st.info(t("No result yet. Check the inputs in the steps above, then press **{action}**.", action=action),
-                    icon=":material/info:")
-            if st.button(action, type="primary", disabled=bool(page.errors), key="results_calc"):
-                calculation.calculate(page)
+            empty_state(page, action)
         else:
             if ctx.sized_json != page.current_json:
                 st.warning(t("The inputs changed since this result was calculated. Press **{action}** to update it.",
                              action=action), icon=":material/update:")
             sections = results_registry.sheet_views(ctx)
-            with st.container(horizontal=True, horizontal_alignment="right", key="sheetbar"):
+            shown = [view for view in sections if results_sheet.section_on(view.key)]
+            with st.container(horizontal=True, key="sheetbar", gap="small"):
+                look.contents_bar([("answer", t("Answer"))] + [(v.key, t(v.title)) for v in shown] +
+                                  [("export", t("Downloads"))])
                 results_sheet.customize(sections)
+            st.html("<div id='sec-answer'></div>")
             results_summary.answer_section(ctx)
-            if page.learn:
-                learn_page.results_cards(ctx)
-            number = 0
-            for view in sections:  # every section switched on, one below the other
-                if not results_sheet.section_on(view.key):
-                    continue
-                number += 1
-                st.markdown(f"<h3 class='sheethead'>{number} · {html.escape(t(view.title))}</h3>",
-                            unsafe_allow_html=True)
+            for number, view in enumerate(shown, start=1):  # every section switched on, one below the other
+                st.html(look.sheet_heading(view.key, t(view.title)))
                 results_registry.render(view, ctx, number)
-            st.markdown(f"<h3 class='sheethead'>{html.escape(t('Downloads'))}</h3>", unsafe_allow_html=True)
-            results_registry.render(results_registry.get("export"), ctx, number + 1)
+            st.html(look.sheet_heading("export", t("Downloads")))
+            results_registry.render(results_registry.get("export"), ctx, len(shown) + 1)
 
     with page.step_tabs[page.step("analysis")]:
         if ctx is None:
