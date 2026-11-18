@@ -83,6 +83,7 @@ if "result_json" in st.session_state and \
     del st.session_state.result_json  # a result of the other heat source
 
 if page.system == "open":  # groundwater wells: their own calculation, results and calculate bar (ghe_web/wells)
+    steps.status_css(page, [])
     wells_page.page(page.inputs, page.errors, page.current_json, page.name, page.lang, page.calc_slot,
                     page.step_tabs[page.steps["results"]],
                     lambda key: page.steps[steps.section_step_key(page, key)],
@@ -93,5 +94,6 @@ if page.system == "open":  # groundwater wells: their own calculation, results a
 calculation.run_if_requested(page)
 found_checks = design_check.design_checks(page)
 calculation.bar(page, found_checks)
+steps.status_css(page, found_checks)  # tick, warning or problem on each step's tab
 design_check.tab(page, found_checks)
 results_tab.draw(page, found_checks)
