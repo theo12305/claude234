@@ -10,6 +10,7 @@ import textwrap
 import streamlit as st
 
 from ghe_web import i18n
+from ghe_web.charts import palette
 from ghe_web.i18n import t
 from ghe_web.page import guidance
 
@@ -86,6 +87,7 @@ def show_chart(c, width="stretch", title: bool = True) -> None:
     spec = i18n.localize_chart(c).to_dict(validate=False)
     # no own background: the chart sits on the card or page it is drawn on (the theme gives the page grey)
     spec["config"] = {**spec.get("config", {}), "background": "transparent"}
+    spec = palette.with_theme(spec, dark=theme() == "dark")  # one chart look (ghe_web/charts/palette.py)
     if not title:
         spec.pop("title", None)
     if is_phone():
@@ -127,6 +129,10 @@ def theme() -> str:
 
 def inject_css() -> None:
     c = PALETTE[theme()]
+    # dark mode: the drawings in dark colours (inverted, hues kept) instead of a white sheet
+    dark_drawing = (".drawing {background: #0b1220; border-color: var(--line); box-shadow: none;}\n"
+                    ".drawing img {filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.95);}"
+                    if theme() == "dark" else "")
     st.html(f"""<style>
 :root {{--card:{c['card']};--line:{c['line']};--muted:{c['muted']};--accent:{c['accent']};--bar:{c['bar']};
   --bar-text:{c['bar_text']};--band:{c['band']};--track:{c['track']};--shadow:{c['shadow']};--cold:{c['cold']};
@@ -198,7 +204,52 @@ div[class*="st-key-frow"] [data-testid="stWidgetLabel"] p {{line-height: 1.38; f
 /* chips, tiles, answer card, range bars */
 /* the switches of the results sheet: wide enough for the labels */
 [data-testid="stPopoverBody"]:has(.st-key-sheetpanel) {{min-width: min(1000px, 94vw);}}
-.sheethead {{margin: 1.8rem 0 .2rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: 1.35rem;}}
+.sheethead {{margin: 1.8rem 0 .2rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: 1.35rem;
+  scroll-margin-top: 7rem;}}
+.sheethead .sechead {{font-size: 1.3rem; margin: 0;}}
+.sheethead .sechead .ic {{width: 34px; height: 34px; border-radius: 10px;}} .sheethead .sechead .ic .mi {{font-size: 21px;}}
+/* results: the contents bar stays at the top while the sheet scrolls */
+.st-key-sheetbar {{position: sticky; top: 3.75rem; z-index: 50; background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(6px); border: 1px solid var(--line); border-radius: 12px; padding: 4px 6px 4px 10px;
+  box-shadow: var(--shadow); align-items: center;}}
+.st-key-sheetbar > div:first-child {{flex: 1 1 0; min-width: 0;}}
+.toc {{display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; white-space: nowrap;}}
+.toc::-webkit-scrollbar {{display: none;}}
+.toc a {{display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 8px; font-size: .88rem;
+  font-weight: 550; color: var(--text-color, inherit) !important; text-decoration: none !important;}}
+.toc a .mi {{font-size: 17px; color: var(--tint);}}
+.toc a:hover {{background: color-mix(in srgb, var(--accent) 9%, transparent);}}
+#sec-answer {{scroll-margin-top: 7rem;}}
+/* results before the first calculation */
+.empty {{text-align: center; padding: 40px 16px 14px;}}
+.empty .big {{width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 14px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);}}
+.empty .big .mi {{font-size: 34px;}}
+.empty h3 {{margin: 0 0 6px; font-size: 1.35rem;}}
+.empty ul {{list-style: none; padding: 0; margin: 14px auto 4px; display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; max-width: 720px;}}
+.empty li {{display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card); font-size: .88rem;}}
+.empty li .mi {{font-size: 17px;}}
+/* design check: counts, then the checks grouped, each with a coloured edge */
+.ccounts {{display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 10px;}}
+.ccount {{background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px;
+  box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px;}}
+.ccount .mi {{font-size: 26px; color: var(--tint); font-variation-settings: "FILL" 1;}}
+.ccount .v {{font-size: 1.6rem; font-weight: 750; line-height: 1;}} .ccount .l {{font-size: .85rem; color: var(--muted);}}
+.ccount.zero {{opacity: .55;}}
+.lv-bad {{--tint: #dc2626;}} .lv-warn {{--tint: #d97706;}} .lv-ok {{--tint: #16a34a;}}
+.cgroup {{font-weight: 650; font-size: .95rem; margin: 12px 0 2px; display: flex; align-items: center; gap: 6px;
+  color: var(--tint);}}
+.cgroup .mi {{color: var(--tint); font-variation-settings: "FILL" 1;}}
+div[class*="st-key-chk_bad"], div[class*="st-key-chk_warn"], div[class*="st-key-chk_ok"] {{
+  border-left: 4px solid var(--tint) !important; border-radius: 10px;}}
+div[class*="st-key-chk_bad"] {{--tint: #dc2626;}} div[class*="st-key-chk_warn"] {{--tint: #d97706;}}
+div[class*="st-key-chk_ok"] {{--tint: #16a34a;}}
+div[class*="st-key-chk_"] [data-testid="stMarkdownContainer"] p {{margin-bottom: 0;}}
+div[class*="st-key-chk_"] {{padding-top: 12px !important; padding-bottom: 12px !important;}}
+/* the row under each step: back, where you are, next */
+.stepof {{font-size: .85rem; color: var(--muted); white-space: nowrap;}}
 .chip {{display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 600;
   white-space: nowrap;}}
 .chip.ok {{background: #dcfce7; color: #166534;}} .chip.warn {{background: #fef3c7; color: #92400e;}}
@@ -244,8 +295,13 @@ details.more[open] summary span {{display: none;}}
 .rangebar .txt {{font-size: .75rem; color: var(--muted); margin-top: 4px; line-height: 1.25;}}
 .rangebar .txt.warn {{color: #b45309;}}
 /* Matplotlib drawings as SVG: a white sheet (also in dark mode, the drawings use dark ink), centred */
-.drawing {{background: #fff; border-radius: 12px; padding: 6px; display: flex; justify-content: center;}}
+.drawing {{background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex;
+  justify-content: center; box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--accent) 4%, transparent);}}
 .drawing img {{display: block;}}
+/* the drawing beside the fields stays in view while the fields scroll */
+[data-testid="stColumn"]:has(.drawing):not(:has([data-testid="stColumn"])) {{position: sticky; top: 3.8rem;
+  align-self: flex-start;}}
+{dark_drawing}
 .sidenote {{font-size: .78rem; color: var(--muted); margin: -8px 0 10px; line-height: 1.3;}}
 .welcome h2 {{text-align: center; font-size: 2rem; margin: 18px 0 4px;}}
 .welcome p.lead {{text-align: center; color: var(--muted); margin-bottom: 18px;}}
@@ -271,15 +327,28 @@ details.more[open] summary span {{display: none;}}
   .st-key-calcbar button {{padding-left: 10px; padding-right: 10px;}}
   .st-key-open_checks button p, .st-key-calc_goto_error button p {{display: none;}}
   .welcome h2 {{font-size: 1.5rem;}}
-  /* tabs: wrap onto two lines as pills instead of a row that scrolls (the Results tab was out of sight) */
-  .st-key-step [role="tablist"] {{flex-wrap: wrap; gap: 6px; overflow: visible !important; width: 100%;}}
+  /* tabs: one row of pills that scrolls sideways */
+  .st-key-step [role="tablist"] {{flex-wrap: nowrap; gap: 6px; overflow-x: auto !important; scrollbar-width: none;
+    width: 100%; padding-bottom: 6px;}}
+  .st-key-step [role="tablist"]::-webkit-scrollbar {{display: none;}}
   .st-key-step [role="tablist"] + *, .st-key-step [data-testid="stTabs"] > div:first-child > div:not([role]) {{display: none;}}
   .st-key-step [role="tab"] {{height: auto; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
     margin: 0 !important; flex: none;}}
-  .st-key-step [role="tab"]::after {{display: none;}}
   .st-key-step [role="tab"] p {{font-size: .85rem;}}
   .st-key-step [role="tab"][aria-selected="true"] {{background: var(--accent); border-color: var(--accent);}}
-  .st-key-step [role="tab"][aria-selected="true"] p {{color: #fff;}}
+  .st-key-step [role="tab"][aria-selected="true"] p, .st-key-step [role="tab"][aria-selected="true"]
+    [data-testid="stIconMaterial"] {{color: #fff;}}
+  .st-key-step [role="tab"][aria-selected="true"] p::after {{color: #fff !important;}}
+  /* app bar on one line: the logo, the mode drop-down, the language and the menu */
+  .st-key-appbar {{flex-wrap: nowrap;}}
+  .appbrand > div:not(.logo) {{display: none;}}
+  .st-key-appbar [data-testid="stElementContainer"]:has([data-testid="stSelectbox"]) {{width: 116px !important;
+    flex: none;}}
+  .st-key-appbar [data-testid="stSelectbox"] [data-baseweb="select"] > div {{background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.22); color: var(--bar-text);}}
+  .st-key-appbar [data-testid="stSelectbox"] svg {{color: var(--bar-text);}}
+  .ccounts {{gap: 6px;}} .ccount {{padding: 8px 10px; gap: 8px; flex-direction: column; align-items: flex-start;}}
+  .stepof {{display: none;}}
 }}
 </style>""")
 
@@ -296,6 +365,9 @@ SECTION_ICONS = {
     "pipe": ("adjust", "hx"), "fluid": ("water_drop", "hx"), "flow": ("speed", "hx"),
     "load": ("thermostat", "load"), "heat_pump": ("heat_pump", "load"),
     "typical": ("tune", "hx"), "limits": ("device_thermostat", "limit"), "calculation": ("calculate", "limit"), "well_limits": ("rule", "limit"),
+    "checks": ("fact_check", "limit"),
+    "sp_parcel": ("map", "earth"), "sp_distances": ("straighten", "limit"), "sp_buildings": ("domain", "load"),
+    "sp_result": ("pin_drop", "hx"), "sp_wells": ("water_pump", "water"),
 }
 
 
@@ -304,6 +376,29 @@ def section_heading(key: str, label: str) -> str:
     name, tint = SECTION_ICONS.get(key, ("radio_button_unchecked", "plain"))
     return (f"<div class='sechead tint-{tint}'><span class='ic'>{icon(name)}</span>"
             f"<span>{html.escape(label)}</span></div>")
+
+
+# Result section -> (Material icon, tint) of its heading and of its entry in the contents bar
+RESULT_ICONS = {
+    "answer": ("task_alt", "hx"), "temperatures": ("device_thermostat", "limit"), "energy": ("bolt", "load"),
+    "hourly": ("schedule", "limit"), "heat_pump": ("heat_pump", "load"), "hydraulics": ("water_drop", "water"),
+    "ground": ("layers", "earth"), "field": ("grid_view", "earth"), "layers": ("stacked_bar_chart", "earth"),
+    "load_optimisation": ("balance", "load"), "checks": ("fact_check", "limit"), "export": ("download", "plain"),
+}
+
+
+def sheet_heading(key: str, label: str) -> str:
+    """HTML of a heading of the results sheet: its tinted icon, the name, and an anchor for the contents bar."""
+    name, tint = RESULT_ICONS.get(key, ("insert_chart", "hx"))
+    return (f"<h3 class='sheethead' id='sec-{html.escape(key)}'><div class='sechead tint-{tint}'><span class='ic'>"
+            f"{icon(name)}</span><span>{html.escape(label)}</span></div></h3>")
+
+
+def contents_bar(items: list[tuple[str, str]]) -> None:
+    """Links to the sections of the results sheet: (key, label)."""
+    links = "".join(f"<a href='#sec-{html.escape(k)}' class='tint-{RESULT_ICONS.get(k, ('', 'hx'))[1]}'>"
+                    f"{icon(RESULT_ICONS.get(k, ('insert_chart',))[0])}{html.escape(label)}</a>" for k, label in items)
+    st.html(f"<nav class='toc'>{links}</nav>")
 
 
 def chips(items: list[tuple[str, str]]) -> str:

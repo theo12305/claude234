@@ -423,11 +423,6 @@ DE: dict[str, str] = {
     " average {k:.2f}": " Mittelwert {k:.2f}",
     " – ignored": " – nicht berücksichtigt",
     "##### Site plan: from a Flurstück to borehole positions": "##### Lageplan: vom Flurstück zu den Sondenstandorten",
-    "**1 · Parcel**": "**1 · Flurstück**",
-    "**2 · Distances**": "**2 · Abstände**",
-    "**3 · Check the buildings and mark areas to keep free**":
-        "**3 · Gebäude prüfen und freizuhaltende Flächen markieren**",
-    "**4 · Result**": "**4 · Ergebnis**",
     "**Average conductivity for other borehole lengths**": "**Mittlere Wärmeleitfähigkeit für andere Sondenlängen**",
     "**CSV files**": "**CSV-Dateien**",
     "**Everything in one zip**": "**Alles in einer ZIP-Datei**",
@@ -878,8 +873,6 @@ DE: dict[str, str] = {
     "No published value found for the Saarland; 5 m is the conservative LAWA value. VDI 4640 Blatt 2 is commonly cited with 3 m to the border; LAWA recommends 5 m.":
         "Für das Saarland wurde kein veröffentlichter Wert gefunden; 5 m ist der vorsichtige LAWA-Wert. VDI 4640 "
         "Blatt 2 wird meist mit 3 m zur Grundstücksgrenze zitiert; die LAWA empfiehlt 5 m.",
-    "No result yet. Check the inputs in the steps above, then press **{action}**.":
-        "Noch kein Ergebnis. Prüfen Sie die Eingaben in den Schritten oben und klicken Sie dann auf **{action}**.",
     "No state known; 3 m is common.": "Kein Bundesland bekannt; 3 m sind üblich.",
     "Northing [m]": "Hochwert [m]",
     "Not recognised (set to Unknown, k = 2.0 W/(m·K)): {which}":
@@ -2386,4 +2379,19 @@ DE: dict[str, str] = {
     'The given length does not keep the fluid within the limits.': 'Die vorgegebene Länge hält das Fluid nicht innerhalb der Grenzwerte.',
     'The given length keeps the fluid within the limits.': 'Die vorgegebene Länge hält das Fluid innerhalb der Grenzwerte.',
     '{total:,.0f} m drilled · fluid between {lo:.1f} and {hi:.1f} °C over {years} years': '{total:,.0f} m gebohrt · Fluid zwischen {lo:.1f} und {hi:.1f} °C über {years} Jahre',
+    "Answer: number and length of the boreholes": "Ergebnis: Anzahl und Länge der Sonden",
+    "Back": "Zurück",
+    "Buildings and areas to keep free": "Gebäude und freizuhaltende Flächen",
+    "Calculate to get the results sheet:": "Nach der Berechnung zeigt das Ergebnisblatt:",
+    "Design check first": "Erst Planungsprüfung",
+    "Distances": "Abstände",
+    "Energy balance": "Energiebilanz",
+    "Fluid temperatures over the years": "Fluidtemperaturen über die Jahre",
+    "Ground and borefield": "Untergrund und Sondenfeld",
+    "No result yet": "Noch kein Ergebnis",
+    "PDF report and Excel": "PDF-Bericht und Excel",
+    "Step {i} of {n}": "Schritt {i} von {n}",
+    "Well positions": "Brunnenpositionen",
+    "Problems": "Probleme",
+    "Fine": "In Ordnung",
 }

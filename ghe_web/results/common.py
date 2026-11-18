@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 
 from ghe_web import i18n
+from ghe_web.charts import palette
 from ghe_web.i18n import t
 from ghe_web.page import look
 
@@ -57,6 +58,7 @@ def figure(c, caption: str | None = None, data: pd.DataFrame | None = None, widt
     def spec():  # made only when a download is clicked
         out = c.to_dict(validate=False)
         out["config"] = {**out.get("config", {}), **i18n.chart_config(background="white").to_dict(validate=False)}
+        palette.with_theme(out)
         out.setdefault("width", 860)
         out["title"] = {"text": t("Figure {n}", n=number) + (f" · {title}" if title else ""),
                         "subtitle": textwrap.wrap(caption or "", 120) or "", "subtitleFontSize": 11,
