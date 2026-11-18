@@ -103,7 +103,8 @@ _CODES = {
 # Words in German and English (INSPIRE lithology terms of the BGR map). Checked in this order, so compound
 # words come before their parts ("sandstein" before "sand", "kalkmergel" before "kalk").
 _WORDS = [
-    ("auffüllung|aufschüttung|bauschutt|made ground|fill|anthropogen|artificial", "Made ground / fill"),
+    ("auffüllung|aufschüttung|bauschutt|künstliches material|made ground|fill|anthropogen|artificial",
+     "Made ground / fill"),
     ("mutterboden|oberboden|humus|topsoil", "Topsoil / humus"),
     ("torf|peat|moor", "Peat"),
     ("geschiebemergel|geschiebelehm|till|diamict|boulder clay", "Till / boulder clay"),
@@ -135,12 +136,15 @@ _WORDS = [
     ("amphibolit|amphibolite|metabasit|metabasite", "Amphibolite"),
     ("quarzit|quartzite", "Quartzite"),
     ("marmor|marble", "Marble"),
-    ("kies|gravel|schotter|geröll|blöcke|steine|cobbles|boulders", "Gravel"),
-    ("sand", "Sand"),
+    ("feinkies|mittelkies|grobkies|kies|gravel|schotter|geröll|blöcke|steine|cobbles|boulders", "Gravel"),
+    ("feinstsand|feinsand|mittelsand|grobsand|sand", "Sand"),
     ("löss|loess|lehm|loam|schluff|silt|mudde|mud", "Silt / loess"),
     ("ton|clay", "Clay"),
 ]
-_WORD_RES = [(re.compile(rf"(?<![a-zäöüß])({pattern})", re.IGNORECASE), rock) for pattern, rock in _WORDS]
+# "(?!ig)": an adjective ("kiesig", "tonig", "kalkig") names an admixture, not the main component
+_WORD_RES = [(re.compile(rf"(?<![a-zäöüß])({pattern})(?!ig)", re.IGNORECASE), rock) for pattern, rock in _WORDS]
+_TILL = re.compile(r"geschiebe(?:lehm|mergel)", re.IGNORECASE)
+_FILL = re.compile(r"auffüllung|aufschüttung|anthropogen|künstliches material", re.IGNORECASE)  # the genesis decides wherever it is
 _TOKEN = re.compile(r"[A-Za-zÄÖÜäöüß]+")
 
 
@@ -158,6 +162,10 @@ def classify(text: str | None) -> str:
             return _CODES[token]
         if match.start() > 0 or len(token) > 4 or not token[:1].isupper():
             break  # not a code: read the words instead
+    if _FILL.search(text):
+        return "Made ground / fill"
+    if _TILL.search(text):  # "(Ton, Schluff, Sand, Kies); Geschiebelehm": the genesis names the rock
+        return "Till / boulder clay"
     # words: the one that comes first in the text is the main component ("Ton, sandig" is clay)
     best = None
     for order, (pattern, rock) in enumerate(_WORD_RES):

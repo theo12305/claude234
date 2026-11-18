@@ -112,6 +112,13 @@ def _traced(state, x, y):
     return f"{poly.area:,.0f} m², {b[2] - b[0]:.1f} x {b[3] - b[1]:.1f} m, {len(poly.exterior.coords)} corners"
 
 
+def _read_log(key, x, y):
+    from ghe_web.strata import reader
+    p = next(p for p in sources.borehole_points(key, x, y, 2000) if p.log and (p.depth or 0) >= 10)
+    hole = reader.read_service_log(*p.log, p.name, p.x, p.y, "check", p.depth)
+    return f"{p.name}: {len(hole.layers)} layers to {hole.depth:.1f} m"
+
+
 def check_state(state):
     lon, lat = POINTS[state.key]
     x, y = lookup.to_utm(lon, lat)
@@ -131,6 +138,8 @@ def check_state(state):
         out["parcel traced from the map"] = timed(lambda: _traced(state, x, y))
     if state.key in sources.POINT_SERVICES:
         out["borehole points"] = timed(lambda: f"{len(sources.borehole_points(state.key, x, y, 2000))} points in 2 km")
+    if state.key in sources.READ_SERVICES:
+        out["borehole log read by the app"] = timed(lambda: _read_log(state.key, x, y))
     if state.key in sources.LOG_SERVICES:
         out["borehole logs"] = timed(lambda: f"{len(sources.boreholes_online(state.key, x, y, 3000))} logs in 3 km")
     out["geology map"] = timed(lambda: _geology(x, y))

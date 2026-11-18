@@ -1,10 +1,13 @@
+import io
+from pathlib import Path
+
 import pytest
 
 from ghe_web.charts import input_drawings
 from ghe_web.core import analysis, model
 from ghe_web.downloads import excel, pdf_report
 from ghe_web.siteplan import states
-from ghe_web.strata import predict, rocks, sources
+from ghe_web.strata import predict, reader, rocks, sources
 from ghe_web.strata.predict import Borehole, LogLayer
 
 BML = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -288,7 +291,7 @@ def test_read_log_text_html_and_pdf():
     plt.close(fig)
     hole = reader.read_file("log.pdf", buf.getvalue(), 0.0, 0.0)
     assert hole.layers[-1].bottom == 25.0
-    with pytest.raises(reader.ReadError, match="free"):  # no paid reading of pictures
+    with pytest.raises(reader.ReadError, match="could not be opened"):  # a broken picture
         reader.read_file("shot.png", b"\x89PNG", 0, 0)
 
 
@@ -343,7 +346,7 @@ def test_lgrb_search_widens_until_enough(monkeypatch):
     field = [(x + 100 * i, y) for i in range(1, 16)]  # 15 logged boreholes, 100 m apart, east of the site
     asked = []
 
-    def answer(url, params):
+    def answer(url, params, **kw):
         assert url == sources.LGRB_BML and params["TYPENAMES"] == "bml:Borehole"
         x0, y0, x1, y1 = (float(v) for v in params["BBOX"].split(",")[:4])
         asked.append(x1 - x)
@@ -357,7 +360,7 @@ def test_lgrb_search_widens_until_enough(monkeypatch):
     assert len(sources.lgrb_boreholes(x, y, 3000, per_request=3)) == 3  # first square full: stop there
     assert asked == [300]
 
-    def wider_fails(url, params):
+    def wider_fails(url, params, **kw):
         if asked:
             raise sources.LookupError_("timeout")
         return answer(url, params)
@@ -365,3 +368,40 @@ def test_lgrb_search_widens_until_enough(monkeypatch):
     asked.clear()
     monkeypatch.setattr(sources.lookup, "_get", wider_fails)
     assert len(sources.lgrb_boreholes(x, y, 3000)) == 3  # keeps what the first answer gave
+
+
+def test_read_log_from_ocr_text():
+    """A Berlin log picture as Tesseract reads it: lost commas, the height scale beside the depths, a description
+    wrapped onto the line of its depth, the sheet's header and footer."""
+    text = (Path(__file__).parent / "data" / "ocr_berlin_413A-2.txt").read_text(encoding="utf-8")
+    hole = reader.layers_from_ocr(text, "413A-2")
+    assert [l.bottom for l in hole.layers] == [2.1, 3.6, 7.0, 11.6, 13.3, 19.1, 22.4, 24.6, 30.0]
+    assert [l.rock for l in hole.layers[:5]] == ["Made ground / fill", "Peat", "Sand", "Sand", "Gravel"]
+    assert hole.layers[4].text.startswith("Kies") and hole.layers[4].text.endswith("schwer zu bohren")
+    with pytest.raises(reader.ReadError):
+        reader.layers_from_ocr("Höhenmaßstab 1:100\nBezirk: Mitte")
+
+
+def test_classify_compound_words_and_adjectives():
+    assert rocks.classify("Mittelsand (grobsandig, kiesig)") == "Sand"
+    assert rocks.classify("Feinkies, sandig") == "Gravel"
+    assert rocks.classify("Schluff, tonig, kalkig") == "Silt / loess"
+    assert rocks.classify("Sand, Ziegelreste / Auffüllung") == "Made ground / fill"
+
+
+@pytest.mark.skipif(not reader.ocr_available(), reason="Tesseract not installed")
+def test_ocr_reads_a_rendered_log():
+    from PIL import Image, ImageDraw, ImageFont
+    image = Image.new("L", (1400, 500), 255)
+    draw = ImageDraw.Draw(image)
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", 34)
+    except OSError:
+        font = ImageFont.load_default(size=34)
+    for i, line in enumerate(["0,80 Mutterboden, humos", "6,50 Sand, kiesig / braun", "25,00 Tonstein / grau"]):
+        draw.text((40, 60 + 120 * i), line, fill=0, font=font)
+    buffer = io.BytesIO()
+    image.save(buffer, "PNG")
+    hole = reader.read_picture(buffer.getvalue(), "test", 0, 0, "picture")
+    assert [(l.bottom, l.rock) for l in hole.layers] == [(0.8, "Topsoil / humus"), (6.5, "Sand"),
+                                                          (25.0, "Claystone / siltstone")]

@@ -1419,10 +1419,6 @@ DE: dict[str, str] = {
         'Angebunden: Archivbohrungen mit Endteufe, Einheit und Grundwasser; Schichtenverzeichnisse auf Anfrage.',
     'Connected: boreholes with a data sheet link.':
         'Angebunden: Bohrungen mit Link zum Datenblatt.',
-    'Connected: boreholes with a link to the log column.':
-        'Angebunden: Bohrungen mit Link zur Profilsäule.',
-    'Connected: boreholes with a link to the released log.':
-        'Angebunden: Bohrungen mit Link zum freigegebenen Schichtenverzeichnis.',
     'Connected: boreholes with a picture of the log column.':
         'Angebunden: Bohrungen mit Bild der Profilsäule.',
     'Connected: boreholes with a picture of the log.':
@@ -1481,8 +1477,6 @@ DE: dict[str, str] = {
         '**{name}** ({source}, {n} Schichten{gw})',
     ', groundwater {gw:.1f} m':
         ', Grundwasser {gw:.1f} m',
-    'Check the depths and rocks; the logs are used in the prediction below.':
-        'Prüfen Sie Tiefen und Gesteine; die Schichtenverzeichnisse fließen in die Vorhersage unten ein.',
     "Choose a location first, or give the borehole's position.":
         'Wählen Sie zuerst einen Standort oder geben Sie die Lage der Bohrung an.',
     'Could not open the PDF ({error}).':
@@ -1519,10 +1513,6 @@ DE: dict[str, str] = {
         'Klicken Sie die Bohrung in der Karte unten an, um dies auszufüllen; nähere Bohrungen zählen mehr.',
     'Connected: logs with layers (BoreholeML), used for the prediction directly; all other boreholes with depth and BO number.':
         'Angebunden: Schichtenverzeichnisse (BoreholeML), direkt in der Vorhersage genutzt; alle übrigen Bohrungen mit Endteufe und BO-Nummer.',
-    'Copy the layer list from the portal (or download its PDF) and the layers are read from it. Pictures and scans cannot be read for free; type their layers into the box.':
-        'Kopieren Sie die Schichtliste aus dem Portal (oder laden Sie das PDF herunter); die Schichten werden daraus gelesen. Bilder und Scans lassen sich nicht kostenlos lesen; tippen Sie deren Schichten in das Feld.',
-    'Enter a log from text or a PDF (e.g. copied from LGRBbohrungen)':
-        'Schichtenverzeichnis aus Text oder PDF eingeben (z. B. aus LGRBbohrungen kopiert)',
     'Enter its layers':
         'Schichten eingeben',
     'LGRB Baden-Württemberg, borehole database (WFS)':
@@ -1531,28 +1521,16 @@ DE: dict[str, str] = {
         'Schichtenverzeichnis in LGRBbohrungen (nach der BO-Nummer suchen)',
     'Open the log':
         'Schichtenverzeichnis öffnen',
-    'Opens the box above, placed at this borehole: paste or type the layers from its log.':
-        'Öffnet das Feld oben, an dieser Bohrung verortet: Schichten aus ihrem Schichtenverzeichnis einfügen oder eintippen.',
-    'Or a PDF or text file of the log':
-        'Oder ein PDF bzw. eine Textdatei des Schichtenverzeichnisses',
     'Paste the layer list':
         'Schichtliste einfügen',
-    'Pictures cannot be read for free. Type the layers into the box instead.':
-        'Bilder lassen sich nicht kostenlos lesen. Tippen Sie die Schichten stattdessen in das Feld.',
     'Read its layers':
         'Schichten lesen',
-    'Reads the layer list from the linked page, if it has one as text, and adds it to the prediction.':
-        'Liest die Schichtliste von der verlinkten Seite, sofern sie dort als Text steht, und nimmt sie in die Vorhersage auf.',
     'Show all {n} boreholes as a table':
         'Alle {n} Bohrungen als Tabelle zeigen',
     'Site':
         'Standort',
     'The linked page has no layer list the app can read. Open the link instead.':
         'Die verlinkte Seite hat keine Schichtliste, die die App lesen kann. Öffnen Sie stattdessen den Link.',
-    'The log behind this link is a picture, which cannot be read for free. Open the link and type its layers into the box.':
-        'Hinter diesem Link liegt ein Bild, das sich nicht kostenlos lesen lässt. Öffnen Sie den Link und tippen Sie die Schichten in das Feld.',
-    'This PDF is a scan without text, so it cannot be read. Type its layers into the box instead.':
-        'Dieses PDF ist ein Scan ohne Text und lässt sich nicht lesen. Tippen Sie die Schichten stattdessen in das Feld.',
     'layer log in the portal':
         'Schichtenverzeichnis im Portal',
     'no layer log':
