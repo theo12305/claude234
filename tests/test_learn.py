@@ -66,6 +66,13 @@ def test_temperature_budget_adds_up_and_the_why_steps():
     assert sum(r for _, r in parts) == pytest.approx(result.borehole_resistance, rel=1e-6)
 
 
+def test_edited_values_reach_the_inputs():
+    inputs = projects.BY_KEY["house"].inputs((("borefield.B_1", 8.0), ("ground.k_s", 3.0)))
+    assert inputs["borefield"].values["B_1"] == inputs["borefield"].values["B_2"] == 8.0
+    assert inputs["ground"].values["k_s"] == 3.0
+    assert projects.BY_KEY["house"].inputs()["ground"].values["k_s"] == 2.2  # the example stays as it was
+
+
 def test_regeneration_shortens_the_drift_dominated_field():
     df = projects.regeneration_study(projects.BY_KEY["quarter"].inputs(), shares=(0.0, 0.5))
     assert df["Length"].iloc[1] < 0.7 * df["Length"].iloc[0]
@@ -92,6 +99,8 @@ def test_learn_page_opens(language):
         assert not at.exception, (project, [e.value for e in at.exception])
     from ghe_web.learn.page import STUDIES
     at.session_state["learn_project"] = "house"
+    at.session_state["learn_in.house.ground.k_s"] = 3.0  # an edited value: re-sized, sensitivities not yet asked for
+    at.session_state["learn_in.house.load.simulation_period"] = 20
     for study in STUDIES:
         at.session_state["learn_study"] = study
         at.run()

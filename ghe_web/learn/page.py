@@ -45,7 +45,8 @@ CSS = """<style>
 .lkeys b {font-size: 1.05rem; font-variant-numeric: tabular-nums;}
 .pgroup {font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .65;
   margin: .9rem 0 .1rem; border-bottom: 1px solid rgba(128,128,128,.2); padding-bottom: .2rem;}
-.pname {font-weight: 600;} .psym {font-family: ui-monospace, monospace; font-size: .8rem; opacity: .7;}
+.pname {font-weight: 600;} .pchanged {color: #0e7490;} .pchanged::after {content: ' •';}
+.ledit {margin-top: .6rem; font-size: .85rem; color: #0e7490; font-weight: 600;} .psym {font-family: ui-monospace, monospace; font-size: .8rem; opacity: .7;}
 .pval {font-variant-numeric: tabular-nums; text-align: right;}
 .sens {display: grid; grid-template-columns: 1fr 1fr; align-items: center; height: .7rem; position: relative;}
 .sens i {display: block; height: .7rem; border-radius: 3px;}
@@ -104,43 +105,56 @@ def read_more(prop_key: str) -> str | None:
 
 # ---------------------------------------------------------------- cached calculations (shared by all viewers)
 
-@st.cache_resource(max_entries=6, show_spinner=False)
-def _sized(project_key: str):
-    project = projects.BY_KEY[project_key]
-    inputs = project.inputs()
+# A case is an example project with the values edited on the Parameters tab: (project key, (("section.key", value),
+# ...)). The calculations are cached per case, so going back to a value or to the example costs nothing.
+
+@st.cache_resource(max_entries=8, show_spinner=False)
+def _sized(case: tuple):
+    key, changes = case
+    inputs = projects.BY_KEY[key].inputs(changes)
     result = model.size(inputs)
     return inputs, result, analysis.key_results(result, inputs)
 
 
-@st.cache_data(max_entries=6, show_spinner=False)
-def _sensitivities(project_key: str) -> dict:
-    stored = projects.stored().get(project_key)
-    if stored:
-        return stored["sensitivity"]
-    return projects.compute(projects.BY_KEY[project_key])["sensitivity"]
+@st.cache_data(max_entries=8, show_spinner=False)
+def _computed_sensitivities(case: tuple) -> dict:
+    inputs = _sized(case)[0]
+    return {f"{p.section}.{p.key}": projects.sensitivity(inputs, p) for p in projects.PARAMETERS}
 
 
-@st.cache_data(max_entries=40, show_spinner=False)
-def _study(project_key: str, param: str) -> pd.DataFrame:
+def _sensitivities(case: tuple) -> dict | None:
+    """The sensitivities of a case: stored for the examples; for edited values only once they were asked for
+    (two sizings per parameter, about a minute), otherwise None."""
+    key, changes = case
+    if not changes:
+        stored = projects.stored().get(key)
+        return stored["sensitivity"] if stored else _computed_sensitivities(case)
+    if case in st.session_state.get("learn_sens_asked", set()):
+        return _computed_sensitivities(case)
+    return None
+
+
+@st.cache_data(max_entries=30, show_spinner=False)
+def _study(case: tuple, param: str) -> pd.DataFrame:
     p = projects.BY_PARAM[tuple(param.split("."))]
-    inputs = _sized(project_key)[0]
+    inputs = _sized(case)[0]
     return projects.study(inputs, p, projects.study_values(inputs, p, n=7))
 
 
 @st.cache_data(max_entries=6, show_spinner=False)
-def _regeneration(project_key: str) -> pd.DataFrame:
-    return projects.regeneration_study(_sized(project_key)[0])
+def _regeneration(case: tuple) -> pd.DataFrame:
+    return projects.regeneration_study(_sized(case)[0])
 
 
-@st.cache_resource(max_entries=12, show_spinner=False)
-def _ground(project_key: str, years: int):
-    return analysis.ground_temperature_map(_sized(project_key)[1], cells=60, years=years)
+@st.cache_resource(max_entries=4, show_spinner=False)
+def _ground(case: tuple, years: int):
+    return analysis.ground_temperature_map(_sized(case)[1], cells=60, years=years)
 
 
 @st.cache_data(max_entries=6, show_spinner=False)
-def _borehole(project_key: str) -> dict:
+def _borehole(case: tuple) -> dict:
     import copy
-    inputs, result, _ = _sized(project_key)
+    inputs, result, _ = _sized(case)
     out = {"grout": [], "flow": []}
     for kg in (0.8, 1.6, 2.4):
         trial = copy.deepcopy(inputs)
@@ -157,6 +171,32 @@ def _borehole(project_key: str) -> dict:
     return out
 
 
+@st.cache_data(show_spinner=False)
+def _example_values(key: str) -> dict[str, float]:
+    inputs = projects.BY_KEY[key].inputs()
+    return {f"{p.section}.{p.key}": projects.value(inputs, p) for p in projects.PARAMETERS}
+
+
+def _widget_key(key: str, name: str) -> str:
+    return f"learn_in.{key}.{name}"
+
+
+def _case(key: str) -> tuple:
+    """The project with the values from the Parameters tab (read before the fields are drawn: Streamlit keeps a
+    widget's new value in the session state at the start of the run)."""
+    changes = []
+    for name, example in _example_values(key).items():
+        value = st.session_state.get(_widget_key(key, name))
+        if value is not None and not np.isclose(float(value), example):
+            changes.append((name, value))
+    return key, tuple(changes)
+
+
+def _reset(key: str) -> None:
+    for name in _example_values(key):
+        st.session_state.pop(_widget_key(key, name), None)
+
+
 # ---------------------------------------------------------------- the Learn page
 
 def page(state) -> None:
@@ -164,32 +204,33 @@ def page(state) -> None:
     inject_css()
     st.markdown("### " + t("Learn with example projects"))
     st.caption(L("Three sized reference cases. Every number on this page comes from the same GHEtool sizing as a "
-                 "real project; change the case to see how the governing mechanisms shift.",
+                 "real project; change the case or edit its parameters to see how the governing mechanisms shift.",
                  "Drei ausgelegte Referenzfälle. Jede Zahl auf dieser Seite stammt aus derselben GHEtool-Auslegung "
-                 "wie bei einem echten Projekt; wechseln Sie den Fall, um zu sehen, wie sich die maßgebenden "
-                 "Mechanismen verschieben."))
+                 "wie bei einem echten Projekt; wechseln Sie den Fall oder ändern Sie seine Parameter, um zu sehen, "
+                 "wie sich die maßgebenden Mechanismen verschieben."))
     key = st.segmented_control(t("Example project"), [p.key for p in projects.PROJECTS], default="house",
                                required=True, key="learn_project", label_visibility="collapsed",
                                format_func=_in_language(lambda k: projects.BY_KEY[k].title))
     project = projects.BY_KEY[key]
+    case = _case(key)
     with st.spinner(t("Sizing the example project...")):
-        inputs, result, key_results = _sized(key)
-    _project_card(project, result, key_results)
+        inputs, result, key_results = _sized(case)
+    _project_card(project, case, result, key_results)
     names = [t(v) for v in TABS.values()]
     tab = dict(zip(TABS, st.tabs(names, key="learn_tab", on_change="rerun")))
     with tab["params"]:
-        _parameters(project, inputs)
+        _parameters(project, case, inputs)
     with tab["result"]:
         _result(project, inputs, result, key_results)
     with tab["explore"]:
-        _explore(project, inputs, result)
+        _explore(project, case, inputs, result)
     with tab["glossary"]:
         glossary_tab()
     with tab["literature"]:
         literature_tab()
 
 
-def _project_card(project: projects.Project, result, key_results) -> None:
+def _project_card(project: projects.Project, case: tuple, result, key_results) -> None:
     v = key_results.values
     b = analysis.coldest_breakdown(result)
     items = [(t("Boreholes"), fmt("{n} × {h:,.1f} m", n=result.number_of_boreholes, h=result.borehole_length)),
@@ -201,8 +242,17 @@ def _project_card(project: projects.Project, result, key_results) -> None:
              (t("Limiting"), fmt("{f:.1f} °C · {when}", f=b["fluid"], when=t("year {n}", n=b["year"]))
               if b else "–")]
     keys = "".join(f"<div><span>{html.escape(a)}</span><b>{html.escape(c)}</b></div>" for a, c in items)
+    edited = ""
+    if case[1]:
+        example = _sized((project.key, ()))[1].borehole_length
+        changed = ", ".join(projects.BY_PARAM[tuple(n.split("."))].name for n, _ in case[1])
+        edited = ("<div class='ledit'>" + html.escape(fmt(
+            L("Edited: {names}. Example: {l0:,.1f} m per borehole, now {l:,.1f} m ({d:+.1f} %).",
+              "Geändert: {names}. Beispiel: {l0:,.1f} m je Sonde, jetzt {l:,.1f} m ({d:+.1f} %)."),
+            names=changed, l0=example, l=result.borehole_length, d=(result.borehole_length / example - 1) * 100))
+            + "</div>")
     st.html(f"<div class='lproj'><h4>{html.escape(project.title)}</h4><div class='lead'>{html.escape(project.lead)}"
-            f"</div>{_md(project.text)}<div class='lkeys'>{keys}</div></div>")
+            f"</div>{_md(project.text)}<div class='lkeys'>{keys}</div>{edited}</div>")
 
 
 def _in_language(func):
@@ -241,15 +291,54 @@ def _sens_bar(p: projects.Parameter, s: float | None, length: float) -> str:
     return f"<div class='sens'>{bar if side == 'neg' else '<span></span>'}{bar if side == 'pos' else ''}</div>"
 
 
-def _parameters(project: projects.Project, inputs) -> None:
-    sens = _sensitivities(project.key)
-    length = _sized(project.key)[1].borehole_length
-    st.caption(L("Local sensitivity of the required length on this project, by central differences of the sizing: "
-                 "the elasticity ε = (ΔL/L)/(Δx/x) for ±10 %, or ΔL/ΔT in m/K for temperatures. Blue shortens, "
-                 "red lengthens. The ? opens the definition, the governing relation and the sources.",
-                 "Lokale Sensitivität der erforderlichen Länge in diesem Projekt, aus zentralen Differenzen der "
+def _decimals(step: float | None) -> int:
+    text = "0.01" if step is None else f"{step:g}"
+    return len(text.split(".")[1]) if "." in text else 0
+
+
+def _field(project: projects.Project, p: projects.Parameter, column) -> None:
+    """The number field of a parameter, starting at the example's value."""
+    q = projects.prop(p)
+    name = f"{p.section}.{p.key}"
+    example = _example_values(project.key)[name]
+    whole = q.kind == "int"
+    column.number_input(
+        f"{p.name} [{t(q.unit)}]" if q.unit else p.name, label_visibility="collapsed",
+        value=int(example) if whole else float(example), key=_widget_key(project.key, name),
+        min_value=None if q.min is None else (int(q.min) if whole else float(q.min)),
+        max_value=None if q.max is None else (int(q.max) if whole else float(q.max)),
+        step=int(q.step or 1) if whole else float(q.step or 0.01),
+        format="%d" if whole else f"%.{max(_decimals(q.step), _decimals(example))}f")
+
+
+def _ask_sensitivities(case: tuple) -> None:
+    st.session_state.setdefault("learn_sens_asked", set()).add(case)
+
+
+def _parameters(project: projects.Project, case: tuple, inputs) -> None:
+    with st.spinner(t("Calculating the sensitivities for the edited values...")):
+        sens = _sensitivities(case)
+    stale = sens is None  # edited values whose sensitivities were not calculated yet: show the example's, faded
+    if stale:
+        sens = _sensitivities((project.key, ()))
+    length = _sized(case)[1].borehole_length
+    st.caption(L("Change any value to re-size the project; the card, the explanation and the studies follow. The bars "
+                 "show the local sensitivity of the required length, by central differences of the sizing: the "
+                 "elasticity ε = (ΔL/L)/(Δx/x) for ±10 %, or ΔL/ΔT in m/K for temperatures. Blue shortens, red "
+                 "lengthens. The ? opens the definition, the governing relation and the sources.",
+                 "Jeder Wert lässt sich ändern; das Projekt wird neu ausgelegt, Karte, Erklärung und Studien folgen. "
+                 "Die Balken zeigen die lokale Sensitivität der erforderlichen Länge, aus zentralen Differenzen der "
                  "Auslegung: die Elastizität ε = (ΔL/L)/(Δx/x) für ±10 %, bzw. ΔL/ΔT in m/K für Temperaturen. Blau "
                  "verkürzt, Rot verlängert. Das ? öffnet Definition, maßgebende Beziehung und Quellen."))
+    if case[1]:
+        with st.container(horizontal=True, vertical_alignment="center", key="learn_editbar"):
+            if stale:
+                st.caption(L("The sensitivities shown (faded) are those of the example values.",
+                             "Die gezeigten Sensitivitäten (blass) gelten für die Beispielwerte."))
+                st.button(t("Recalculate the sensitivities"), icon=":material/refresh:", on_click=_ask_sensitivities,
+                          args=(case,), help=t("Two sizings per parameter, about a minute."))
+            st.button(t("Reset to the example values"), icon=":material/restart_alt:", on_click=_reset,
+                      args=(project.key,))
     group = None
     for p in projects.PARAMETERS:
         if p.group != group:
@@ -257,16 +346,20 @@ def _parameters(project: projects.Project, inputs) -> None:
             st.html(f"<div class='pgroup'>{html.escape(L(*projects.GROUPS[group]))}</div>")
         q = projects.prop(p)
         term = glossary.BY_KEY[p.term]
-        s = sens.get(f"{p.section}.{p.key}")
-        name, value, bar, number, more = st.columns([3.0, 1.4, 2.0, 1.1, 0.4], vertical_alignment="center", gap="small")
-        symbol = _symbol(p)
-        name.html(f"<span class='pname'>{html.escape(p.name)}</span> "
-                  f"<span class='psym'>{html.escape(symbol)}</span>")
-        value.html(f"<div class='pval'>{html.escape(_fmt_value(projects.value(inputs, p), t(q.unit or ''), q.step))}</div>")
-        bar.html(_sens_bar(p, s, length))
-        number.html(f"<span class='sensval'>{html.escape(_sens_text(p, s))}</span>")
+        name_key = f"{p.section}.{p.key}"
+        s = sens.get(name_key)
+        changed = any(n == name_key for n, _ in case[1])
+        name, value, bar, number, more = st.columns([3.0, 1.5, 2.0, 1.1, 0.4], vertical_alignment="center",
+                                                    gap="small")
+        unit = f" [{t(q.unit)}]" if q.unit else ""
+        name.html(f"<span class='pname{' pchanged' if changed else ''}'>{html.escape(p.name)}</span> "
+                  f"<span class='psym'>{html.escape(_symbol(p) + unit)}</span>")
+        _field(project, p, value)
+        fade = " style='opacity:.35'" if stale else ""
+        bar.html(f"<div{fade}>{_sens_bar(p, s, length)}</div>")
+        number.html(f"<span class='sensval'{fade}>{html.escape(_sens_text(p, s))}</span>")
         with more.popover("", icon=":material/help:", help=t("Explanation, equation and sources")):
-            _term_body(term, p, s, project)
+            _term_body(term, p, None if stale else s, project)
 
 
 def _term_body(term: glossary.Term, p: projects.Parameter | None = None, s: float | None = None,
@@ -409,19 +502,19 @@ def _line(df: pd.DataFrame, x: str, x_title: str, now: float | None = None, y_ti
     return alt.layer(*layers).properties(height=300)
 
 
-def _explore(project, inputs, result) -> None:
+def _explore(project, case, inputs, result) -> None:
     pick = st.segmented_control(t("Study"), list(STUDIES), format_func=_in_language(lambda k: t(STUDIES[k])), default="parameter",
                                 required=True, key="learn_study", label_visibility="collapsed")
     if pick == "parameter":
-        _study_parameter(project, inputs)
+        _study_parameter(project, case, inputs)
     elif pick == "projects":
         _study_projects()
     elif pick == "regeneration":
-        _study_regeneration(project, inputs)
+        _study_regeneration(case)
     elif pick == "ground":
-        _study_ground(project, result)
+        _study_ground(case, inputs, result)
     else:
-        _study_borehole(project, result)
+        _study_borehole(case, result)
 
 
 def _symbol(p: projects.Parameter) -> str:
@@ -434,16 +527,16 @@ def _param_label(param: str) -> str:
     return f"{p.name} [{t(q.unit)}]" if q.unit else p.name
 
 
-def _study_parameter(project, inputs) -> None:
+def _study_parameter(project, case, inputs) -> None:
     options = [f"{p.section}.{p.key}" for p in projects.PARAMETERS]
     param = st.selectbox(t("Parameter"), options, format_func=_in_language(_param_label), key="learn_param")
     p = projects.BY_PARAM[tuple(param.split("."))]
     term = glossary.BY_KEY[p.term]
     with st.spinner(t("Sizing the project for every value...")):
-        df = _study(project.key, param)
+        df = _study(case, param)
     now = projects.value(inputs, p)
     ui.show_chart(_line(df, "Value", _param_label(param), now))
-    s = _sensitivities(project.key).get(param)
+    s = (_sensitivities(case) or {}).get(param)
     valid = df.dropna()
     if len(valid) >= 2:
         span = float(valid["Length"].max() - valid["Length"].min())
@@ -453,15 +546,17 @@ def _study_parameter(project, inputs) -> None:
                          "erforderlichen Länge: {a:,.1f}–{b:,.1f} m, eine Spanne von {p:.0f} % der Länge dieses Projekts. Lokale "
                          "Sensitivität: {s}."),
                        a=float(valid["Length"].min()), b=float(valid["Length"].max()),
-                       p=span / _sized(project.key)[1].borehole_length * 100, s=_sens_text(p, s)))
+                       p=span / _sized(case)[1].borehole_length * 100, s=_sens_text(p, s)))
     with st.expander(fmt(L("About {x}", "Zu {x}"), x=term.name), icon=":material/help:"):
         _term_body(term)
 
 
 def _study_projects() -> None:
-    st.caption(L("The same relative change applied to all three projects. Normalised: L/L₀ over x/x₀. The slopes at "
+    st.caption(L("The example values of all three projects (edits on the Parameters tab are not included), each "
+                 "changed by the same factor. Normalised: L/L₀ over x/x₀. The slopes at "
                  "1 are the elasticities; differences show which mechanism governs each case.",
-                 "Dieselbe relative Änderung in allen drei Projekten. Normiert: L/L₀ über x/x₀. Die Steigungen bei 1 "
+                 "Die Beispielwerte aller drei Projekte (Änderungen auf dem Parameter-Tab sind nicht enthalten), "
+                 "jeweils um denselben Faktor geändert. Normiert: L/L₀ über x/x₀. Die Steigungen bei 1 "
                  "sind die Elastizitäten; Unterschiede zeigen, welcher Mechanismus den jeweiligen Fall bestimmt."))
     options = [f"{p.section}.{p.key}" for p in projects.PARAMETERS if p.kind == "rel" and p.key != "peak_cooling_kw"]
     param = st.selectbox(t("Parameter"), options, format_func=_in_language(_param_label), key="learn_param_cmp",
@@ -470,8 +565,8 @@ def _study_projects() -> None:
     frames = []
     with st.spinner(t("Sizing the three projects for every value...")):
         for project in projects.PROJECTS:
-            inputs, result, _ = _sized(project.key)
-            df = _study(project.key, param).copy()
+            inputs, result, _ = _sized((project.key, ()))
+            df = _study((project.key, ()), param).copy()
             now = projects.value(inputs, p)
             base = result.borehole_length
             df["Value"] = df["Value"] / now
@@ -480,18 +575,18 @@ def _study_projects() -> None:
             frames.append(df)
     ui.show_chart(_line(pd.concat(frames), "Value", fmt("{x} / {x}₀", x=_symbol(p)), 1.0,
                         t("Required length L / L₀"), color="Project"))
-    rows = [{t("Project"): pr.title, "ε": _sensitivities(pr.key).get(param)} for pr in projects.PROJECTS]
+    rows = [{t("Project"): pr.title, "ε": _sensitivities((pr.key, ())).get(param)} for pr in projects.PROJECTS]
     st.dataframe(pd.DataFrame(rows), hide_index=True,
                  column_config={"ε": st.column_config.NumberColumn("ε = (ΔL/L)/(Δx/x)", format="%+.2f")})
 
 
-def _study_regeneration(project, inputs) -> None:
+def _study_regeneration(case) -> None:
     st.caption(L("Heat returned to the ground as a share of the annual extraction (passive cooling with the project's "
                  "SEER, 1,000 full-load hours). The other inputs stay fixed.",
                  "Rückgeführte Wärme als Anteil des jährlichen Entzugs (passive Kühlung mit der SEER des Projekts, "
                  "1.000 Volllaststunden). Die übrigen Eingaben bleiben fest."))
     with st.spinner(t("Sizing the project for every share...")):
-        df = _regeneration(project.key).copy()
+        df = _regeneration(case).copy()
     df["Percent"] = df["Share"] * 100
     ui.show_chart(_line(df, "Percent", t("Regeneration Q_inj / Q_ext [%]")))
     valid = df.dropna()
@@ -506,12 +601,16 @@ def _study_regeneration(project, inputs) -> None:
     source_line((1, 9))
 
 
-def _study_ground(project, result) -> None:
-    years = st.segmented_control(t("Year"), [1, 5, 25, 50], default=50, required=True, key="learn_year",
+def _study_ground(case, inputs, result) -> None:
+    period = int(inputs["load"].values["simulation_period"])
+    choices = sorted({n for n in (1, 5, 25, period) if n <= period})
+    if st.session_state.get("learn_year") not in choices:
+        st.session_state.pop("learn_year", None)
+    years = st.segmented_control(t("Year"), choices, default=period, required=True, key="learn_year",
                                  format_func=_in_language(lambda n: t("year {n}", n=n)))
     with st.spinner(t("Calculating the ground temperature around the field...")):
-        end = _ground(project.key, 50)
-        m = _ground(project.key, years)
+        end = _ground(case, period)
+        m = _ground(case, years)
     if not m or not end:
         st.info(t("No ground map for this project."))
         return
@@ -524,17 +623,17 @@ def _study_ground(project, result) -> None:
         st.metric(t("Largest change"), fmt("{x:.1f} K", x=float(m["table"]["Change"].min())))
         st.caption(L("Temperature change at mid-depth caused by the net annual imbalance (finite line source with "
                      "mirror image, superposed over all boreholes; seasonal swings average out and are left out). "
-                     "Colours are fixed to year 50, so the years compare. Inner boreholes cool most: their "
+                     "Colours are fixed to the last simulated year, so the years compare. Inner boreholes cool most: their "
                      "neighbours' fields overlap, which is what the late-time g-function describes.",
                      "Temperaturänderung in halber Tiefe durch die Netto-Jahresbilanz (finite Linienquelle mit "
                      "Spiegelquelle, über alle Sonden überlagert; saisonale Schwankungen mitteln sich aus und fehlen). "
-                     "Die Farben sind auf Jahr 50 festgelegt, damit die Jahre vergleichbar sind. Innere Sonden kühlen "
+                     "Die Farben sind auf das letzte simulierte Jahr festgelegt, damit die Jahre vergleichbar sind. Innere Sonden kühlen "
                      "am stärksten ab: die Felder der Nachbarn überlagern sich, genau das beschreibt die g-Funktion bei "
                      "großen Zeiten."))
         source_line((3, 7))
 
 
-def _study_borehole(project, result) -> None:
+def _study_borehole(case, result) -> None:
     parts = explain.resistance_parts(result, result.borefield.Tf_min)
     b = analysis.coldest_breakdown(result)
     q = b["q_peak"] if b else 0.0
@@ -552,7 +651,7 @@ def _study_borehole(project, result) -> None:
                          "Spitze von {q:.1f} W/m liegt das Fluid {k:.2f} K unter der Bohrlochwand."),
                        rb=result.borehole_resistance, q=q, k=result.borehole_resistance * q))
     with st.spinner(t("Sizing the project with other grouts and flow rates...")):
-        data = _borehole(project.key)
+        data = _borehole(case)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("**" + t("Grout thermal conductivity") + "**")

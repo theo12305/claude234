@@ -50,8 +50,9 @@ class Project:
     def text(self) -> str:
         return L(self.text_en, self.text_de)
 
-    def inputs(self) -> dict[str, SectionInput]:
-        """The full input set of the project (monthly sizing, building loads given as peak and full-load hours)."""
+    def inputs(self, changes: tuple = ()) -> dict[str, SectionInput]:
+        """The full input set of the project (monthly sizing, building loads given as peak and full-load hours).
+        ``changes``: (("section.key", value), ...) edited on the Learn page; the spacing applies to both directions."""
         inputs = model.default_inputs()
         inputs["load"].variant = "annual_building"
         variant = input_registry.get("load").variant("annual_building")
@@ -61,6 +62,11 @@ class Project:
         inputs["load"].values = values
         for (section, key), value in self.values.items():
             inputs[section].values[key] = value
+        for name, value in changes:
+            section, key = name.split(".")
+            inputs[section].values[key] = value
+            if section == "borefield" and key == "B_1":
+                inputs[section].values["B_2"] = value
         return inputs
 
 
