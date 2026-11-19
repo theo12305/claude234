@@ -64,4 +64,8 @@ DE: dict[str, str] = {
     'Yearly maximum': 'Jahresmaximum',
     'Yearly minimum': 'Jahresminimum',
     '×': '×',
+    'Recalculate the sensitivities': 'Sensitivitäten neu berechnen',
+    'Two sizings per parameter, about a minute.': 'Zwei Auslegungen je Parameter, etwa eine Minute.',
+    'Reset to the example values': 'Auf die Beispielwerte zurücksetzen',
+    'Calculating the sensitivities for the edited values...': 'Berechne die Sensitivitäten für die geänderten Werte...',
 }
