@@ -1,4 +1,9 @@
 GHEtool==2.4.1
+# GHEtool needs PyTorch. From PyPI it comes with about 4 GB of NVIDIA GPU libraries and needs about 300 MB more
+# memory, which Streamlit Cloud has no use for. These lines take the CPU-only build (one line per Python version).
+torch @ https://download.pytorch.org/whl/cpu/torch-2.11.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl ; python_version == "3.12"
+torch @ https://download.pytorch.org/whl/cpu/torch-2.11.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl ; python_version == "3.13"
+torch @ https://download.pytorch.org/whl/cpu/torch-2.11.0%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl ; python_version == "3.14"
 streamlit==1.65.0
 altair==6.3.0
 pandas==3.0.6

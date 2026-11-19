@@ -945,6 +945,12 @@ DE: dict[str, str] = {
     "Rock below the logs": "Gestein unterhalb der Bohrungen",
     "Run the sensitivity check": "Sensitivitätsanalyse starten",
     "SEER": "SEER",
+    "Heating demand [MWh]": "Heizbedarf [MWh]",
+    "Cooling demand [MWh]": "Kühlbedarf [MWh]",
+    "Hot water demand [MWh]": "Warmwasserbedarf [MWh]",
+    "Electricity heating [MWh]": "Strom Heizen [MWh]",
+    "Electricity cooling [MWh]": "Strom Kühlen [MWh]",
+    "Electricity hot water [MWh]": "Strom Warmwasser [MWh]",
     "SGD Nord Leitfaden Erdwärmesonden 2017 and LGB Mindestanforderungen 2024: 3 m to the border.":
         "SGD Nord Leitfaden Erdwärmesonden 2017 und LGB Mindestanforderungen 2024: 3 m zur Grundstücksgrenze.",
     "SPF heating": "JAZ Heizen",

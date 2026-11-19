@@ -89,8 +89,9 @@ def _data_texts() -> set[str]:
     texts |= {"heating", "cooling", "cadastre", "OpenStreetMap", "Parcel", "State", "quick", "normal", "thorough",
               "outside-in rows", "nothing fits", "hexagonal grid at {angle}", "square grid at {angle}",
               "extrapolated", "geological map", "assumed", "entered", "above groundwater"}
-    hp = model.heat_pump_table.__code__.co_consts
-    texts |= {c for c in hp if isinstance(c, str) and "[MWh]" in c} | {"Year", "SPF heating", "SEER"}
+    texts |= {f"{what} [MWh]" for what in ("Heating demand", "Cooling demand", "Hot water demand", "Electricity heating",
+                                          "Electricity cooling", "Electricity hot water")}  # model.heat_pump_table
+    texts |= {"Year", "SPF heating", "SEER"}
     for who in ("Building", "Ground", "External"):
         for kind in ("heating", "cooling"):
             texts.add(f"{who} {kind} [MWh]")

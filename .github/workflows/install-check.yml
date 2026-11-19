@@ -1,0 +1,35 @@
+name: Install check
+
+# Installs requirements.txt the way Streamlit Community Cloud does (uv, fresh), on each Python version a deploy can
+# choose, then checks the CPU-only PyTorch, the memory the app needs and the quick tests.
+on:
+  workflow_dispatch:
+  push:
+    paths: [requirements.txt, packages.txt, .github/workflows/install-check.yml]
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv venv -p ${{ matrix.python }} .venv
+      - run: uv pip install -r requirements.txt pytest
+      - run: sudo apt-get install -y -q tesseract-ocr tesseract-ocr-deu > /dev/null  # as packages.txt on Streamlit Cloud
+      - name: CPU-only PyTorch, no NVIDIA libraries
+        run: |
+          .venv/bin/python -c "import torch; print(torch.__version__); assert '+cpu' in torch.__version__"
+          ! uv pip list | grep -i nvidia
+          du -sh .venv
+      - name: Memory after importing the app's packages
+        run: |
+          .venv/bin/python -c "
+          import GHEtool, streamlit, altair, pandas, pyproj, folium, pypdf
+          from ghe_web.core import model
+          print('RSS MB', int(open('/proc/self/statm').read().split()[1]) * 4096 // 2**20)"
+      - run: .venv/bin/python -m pytest -m "not slow" -q -p no:warnings
